@@ -26,6 +26,166 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Apply English UI language overlay
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              'รับมอบข้อมูลจาก Sales': 'Receive handover information from Sales',
+              'เอกสารเริ่มโครงการ': 'Project start document',
+              'ขอรหัสโครงการและ folder': 'Request project code and folder',
+              'รายงานประชุม kickoff': 'Kickoff meeting minutes',
+              'แผนงานหลัก': 'Master schedule',
+              'งบประมาณโครงการ': 'Project budget',
+              'แผนจัดซื้อ': 'Procurement plan',
+              'ชุดงานออกแบบ': 'Design package',
+              'ทะเบียนแบบ': 'Drawing register',
+              'ตรวจแบบ': 'Drawing review',
+              'ส่งเอกสารเทคนิคให้ลูกค้า': 'Submit technical documents to client',
+              'ขอจัดซื้อ': 'Purchase request',
+              'รับของ/GRN': 'Goods receiving / GRN',
+              'ตรวจงานติดตั้ง': 'Installation inspection',
+              'รายงานประจำวัน': 'Daily work report',
+              'ตรวจคุณภาพ': 'Quality inspection',
+              'ตรวจความปลอดภัย': 'Safety inspection',
+              'รายงาน commissioning': 'Commissioning report',
+              'เบิกงวดงาน': 'Progress claim',
+              'เบิกของจาก stock': 'Stock issue request',
+              'Audit ก่อนส่งมอบ': 'Pre-handover audit',
+              'ชุดเอกสารส่งมอบ': 'Handover document package',
+              'ใบรับมอบงาน': 'Work acceptance form',
+              'ปิดโครงการ': 'Project closeout',
+              'ประกัน/DLP': 'Warranty / DLP',
+              'ลงทะเบียนความเสี่ยง': 'Risk registration',
+              'บันทึก Issue': 'Issue log',
+              'คำขอ Change Order': 'Change order request',
+              'ใบขอจัดซื้อวัสดุ': 'Material purchase request',
+              'อนุมัติ PO': 'PO approval',
+              'รายงานตรวจรับสินค้า': 'Goods receiving inspection report',
+              'ปรับสต็อก': 'Stock adjustment',
+              'รายงานการติดตั้งประจำวัน': 'Daily installation report',
+              'Checklist ตรวจงานติดตั้ง': 'Installation checklist',
+              'ตรวจความพร้อมระบบก่อน Test': 'System readiness check before testing',
+              'รายงาน FAT': 'FAT report',
+              'รายงาน SAT': 'SAT report',
+              'แบบฟอร์มลายเซ็นลูกค้า': 'Client signature form',
+              'แบบฟอร์มเบิกงวดงาน': 'Progress claim form',
+              'บันทึก Payment Milestone': 'Payment milestone log',
+              'ตรวจสอบก่อนส่งมอบ': 'Pre-handover inspection',
+              'ทะเบียน As-Built': 'As-built register',
+              'รายการ Spare Parts': 'Spare parts list',
+
+              'วันที่ตรวจสอบ': 'Inspection Date',
+              'พื้นที่ปฏิบัติงาน': 'Work Area',
+              'ระบบ': 'System',
+              'เช่น HVAC Control, Chiller Plant BAS, AHU-1F': 'e.g. HVAC Control, Chiller Plant BAS, AHU-1F',
+              'รายละเอียดงาน': 'Work Description',
+              'สถานะการติดตั้ง': 'Installation Status',
+              'ผลการตรวจรับ (Passed/Failed)': 'Inspection Result (Passed/Failed)',
+              'ข้อบกพร่อง/ข้อสังเกต': 'Findings / Observations',
+              'การแก้ไข': 'Corrective Action',
+              'ผู้ลงนามรับมอบ (Client)': 'Client Signatory',
+              'หมายเหตุ': 'Remarks',
+              'เลขที่ใบเบิก': 'Claim No.',
+              'งวดที่ / ช่วงเวลา': 'Period / Timeframe',
+              'เช่น งวดที่ 3 / ตุลาคม 2025': 'e.g. Period 3 / October 2025',
+              'ความก้าวหน้าสะสม (%)': 'Accumulated Progress (%)',
+              'เช่น 30 (หมายถึง 30%)': 'e.g. 30 (means 30%)',
+              'ยอดเบิกงวดนี้ (บาท)': 'Current Claim Amount (THB)',
+              'ยอดเบิกงวดนี้ในบาท เช่น 4500000': 'Current claim amount in THB, e.g. 4500000',
+              'ที่หัก (บาท)': 'Deduction (THB)',
+              'ยอดสุทธิ (บาท)': 'Net Amount (THB)',
+              'สถานะจาก Client': 'Client Status',
+              'เลขที่ Invoice': 'Invoice No.',
+              'หลักฐานประกอบ': 'Supporting Evidence',
+              'จัดทำโดย': 'Prepared By',
+              'เลขที่ JSA': 'JSA No.',
+              'วันที่ทำงาน': 'Work Date',
+              'ลักษณะงาน / กิจกรรม': 'Work Activity',
+              'อันตรายที่อาจเกิดขึ้น': 'Potential Hazards',
+              'ระบุอันตราย เช่น ไฟฟ้าดูด, ตกจากที่สูง, ของตกหล่น': 'Describe hazards, e.g. electric shock, fall from height, falling objects',
+              'มาตรการควบคุม / วิธีทำงานที่ปลอดภัย': 'Control Measures / Safe Work Method',
+              'เช่น LOTO, Safety Harness, Barricade, ป้ายเตือน': 'e.g. LOTO, Safety Harness, Barricade, Warning Signs',
+              'อุปกรณ์คุ้มครองส่วนบุคคล (PPE)': 'Personal Protective Equipment (PPE)',
+              'เช่น Safety Helmet, Gloves, Safety Harness, Safety Glasses': 'e.g. Safety Helmet, Gloves, Safety Harness, Safety Glasses',
+              'ผู้รับผิดชอบ': 'Person in Charge',
+              'เช่น Site Engineer, Safety Officer': 'e.g. Site Engineer, Safety Officer',
+              'หัวหน้างาน': 'Supervisor',
+              'สถานะ': 'Status',
+              'อนุมัติ': 'Approved',
+              'เลขที่ใบอนุญาต': 'Permit No.',
+              'ประเภทงาน': 'Work Type',
+              'เช่น งานไฟฟ้า, งานที่สูง, งานร้อน (Hot Work)': 'e.g. Electrical Work, Work at Height, Hot Work',
+              'สถานที่': 'Location',
+              'เช่น ชั้น 5 อาคาร A, BAS Panel Room': 'e.g. 5th Floor, Building A, BAS Panel Room',
+              'วัน-เวลาเริ่มงาน': 'Start Date/Time',
+              'วัน-เวลาสิ้นสุด': 'End Date/Time',
+              'ผู้ออกใบอนุญาต': 'Permit Issuer',
+              'ผู้รับใบอนุญาต': 'Permit Receiver',
+              'มาตรการความปลอดภัย': 'Safety Measures',
+              'เช่น ติดตั้งระบบ BAS Control Panel ชั้น 5': 'e.g. Install BAS Control Panel on 5th Floor',
+              'แผนก / หน่วยงาน': 'Department / Unit',
+              'เงื่อนไขพิเศษ': 'Special Conditions',
+
+              'เอกสารทั้งหมด': 'All documents',
+              '1. เริ่มโครงการ / รับมอบจากฝ่ายขาย': '1. Project Start / Sales Handover',
+              '2. วางแผนโครงการ / ควบคุมโครงการ': '2. Project Planning / Control',
+              '3. Design & Engineering / เอกสารขออนุมัติ': '3. Design & Engineering / Approval Documents',
+              '7. Handover / Closeout / ส่งมอบงาน': '7. Handover / Closeout',
+              '8. Warranty / DLP / หลังส่งมอบ': '8. Warranty / DLP / Post-handover',
+              'ใช้สำหรับแยกเอกสารตามลำดับงานตั้งแต่เริ่มโครงการ → วางแผน → ออกแบบ → จัดซื้อ → ติดตั้ง → ทดสอบ → ส่งมอบ → Warranty/DLP': 'Used to group documents by project lifecycle: initiation → planning → design → procurement → installation → testing → handover → Warranty/DLP',
+              'เริ่มโครงการ / รับมอบจากฝ่ายขาย': 'Project Start / Sales Handover',
+              'วางแผนโครงการ / ควบคุมโครงการ': 'Project Planning / Control',
+              'เอกสารขออนุมัติ': 'Approval Documents',
+              'ส่งมอบงาน': 'Handover',
+              'หลังส่งมอบ': 'Post-handover',
+              'จัดซื้อ': 'procurement',
+              'ติดตั้ง': 'installation',
+              'ทดสอบ': 'testing',
+              'วางแผน': 'planning',
+              'ส่งมอบ': 'handover',
+              'ออกแบบ': 'design',
+          }
+
+          for file_name in ['Code.gs', 'Index.html']:
+              p = Path(file_name)
+              s = p.read_text(encoding='utf-8')
+              for k in sorted(replacements, key=len, reverse=True):
+                  s = s.replace(k, replacements[k])
+              s = s.replace('V21_DOCUMENT_LIFECYCLE_GROUPING', 'V22_ENGLISH_UI')
+              s = s.replace('V21 Smart Document Engine · lifecycle document grouping from project start to handover', 'V22 Smart Document Engine · English UI + lifecycle document grouping')
+              s = s.replace('<title>AETERLINK Documentation Control V10</title>', '<title>AETERLINK Documentation Control V22</title>')
+              s = s.replace('V16 — offline (server not connected)', 'V22 — offline (server not connected)')
+              if file_name == 'Code.gs' and 'function setupDocumentationModuleV22()' not in s:
+                  s += """
+
+function setupDocumentationModuleV22() {
+  return {
+    ok: true,
+    version: 'V22_ENGLISH_UI',
+    sheetChangeRequired: false,
+    message: 'V22 loaded. WebApp visible text is standardized in English. No Google Sheet structure change required.'
+  };
+}
+
+function apiDocumentModuleV22Health() {
+  var h = (typeof apiDocumentModuleV21Health === 'function') ? apiDocumentModuleV21Health() : apiHealthCheck();
+  h.version = 'V22_ENGLISH_UI';
+  h.language = 'English';
+  h.sheetChangeRequired = false;
+  return h;
+}
+"""
+              p.write_text(s, encoding='utf-8', newline='\n')
+
+          for file_name in ['Code.gs', 'Index.html']:
+              p = Path(file_name)
+              thai_count = sum(1 for ch in p.read_text(encoding='utf-8') if '\u0e00' <= ch <= '\u0e7f')
+              print(f'{file_name}: remaining Thai characters after overlay = {thai_count}')
+          PY
+
       - name: Install clasp
         run: npm install -g @google/clasp
 
