@@ -25,7 +25,7 @@
 const DMS = {
   name: 'AETERLINK Documentation Control',
   title: 'Documents & Forms — Editable A4 Workflow + Linked Chart / ERP Link',
-  version: 'DOC_MODULE_STANDALONE_V4_FAST_SETUP_WCR_EQC',
+  version: 'V21_DOCUMENT_LIFECYCLE_GROUPING',
   tz: 'Asia/Bangkok',
   menu: 'AETERLINK DOC'
 };
@@ -6529,4 +6529,31 @@ function setupDocumentationModuleV20() {
 
 function apiDocumentModuleV20Health() {
   return setupDocumentationModuleV20();
+}
+
+
+function setupDocumentationModuleV21() {
+  return {
+    ok: true,
+    version: 'V21_DOCUMENT_LIFECYCLE_GROUPING',
+    sheetChangeRequired: false,
+    message: 'V21 loaded. Documents are grouped by project lifecycle from initiation to handover and warranty/DLP. No Google Sheet structure change required.'
+  };
+}
+
+function apiDocumentModuleV21Health() {
+  var h = (typeof apiDocumentModuleV20Health === 'function') ? apiDocumentModuleV20Health() : apiHealthCheck();
+  h.version = 'V21_DOCUMENT_LIFECYCLE_GROUPING';
+  h.lifecycleGrouping = [
+    '1. Start / Initiation',
+    '2. Planning / Control',
+    '3. Design / Engineering',
+    '4. Procurement / Material',
+    '5. Construction / Installation',
+    '6. Testing / Commissioning',
+    '7. Handover / Closeout',
+    '8. Warranty / DLP'
+  ];
+  h.sheetChangeRequired = false;
+  return h;
 }
