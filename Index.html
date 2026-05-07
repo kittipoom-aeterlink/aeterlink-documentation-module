@@ -172,6 +172,206 @@ var serverConnected = false;
 var lastServerError = '';
 var connectAttempts = 0;
 
+var DOC_LIFECYCLE_STAGES = [
+  {key:'All', label:'All'},
+  {key:'01_INITIATION', label:'1. Start / Initiation'},
+  {key:'02_PLANNING', label:'2. Planning / Control'},
+  {key:'03_DESIGN', label:'3. Design / Engineering'},
+  {key:'04_PROCUREMENT', label:'4. Procurement / Material'},
+  {key:'05_CONSTRUCTION', label:'5. Construction / Installation'},
+  {key:'06_TESTING', label:'6. Testing / Commissioning'},
+  {key:'07_HANDOVER', label:'7. Handover / Closeout'},
+  {key:'08_WARRANTY', label:'8. Warranty / DLP'}
+];
+
+var DOC_LIFECYCLE_LABELS_TH = {
+  All: 'เอกสารทั้งหมด',
+  '01_INITIATION': '1. เริ่มโครงการ / รับมอบจากฝ่ายขาย',
+  '02_PLANNING': '2. วางแผนโครงการ / ควบคุมโครงการ',
+  '03_DESIGN': '3. Design & Engineering / เอกสารขออนุมัติ',
+  '04_PROCUREMENT': '4. Procurement / Material / Inventory',
+  '05_CONSTRUCTION': '5. Construction / Installation / Site QA-HSE',
+  '06_TESTING': '6. Testing / Commissioning',
+  '07_HANDOVER': '7. Handover / Closeout / ส่งมอบงาน',
+  '08_WARRANTY': '8. Warranty / DLP / หลังส่งมอบ'
+};
+
+var DOC_LIFECYCLE_EXACT = {
+  'PJ-HND-001':'01_INITIATION',
+  'PJ-CHT-001':'01_INITIATION',
+  'PJ-CODE-001':'01_INITIATION',
+
+  'PJ-MOM-001':'02_PLANNING',
+  'PJ-KICKOFF-001':'02_PLANNING',
+  'PJ-RACI-001':'02_PLANNING',
+  'PJ-SCH-001':'02_PLANNING',
+  'PJ-BUD-001':'02_PLANNING',
+  'PJ-RISK-001':'02_PLANNING',
+  'PJ-RISK-REG-001':'02_PLANNING',
+  'PJ-ISSUE-001':'02_PLANNING',
+  'PJ-VO-001':'02_PLANNING',
+  'PJ-CHG-ORD-001':'02_PLANNING',
+  'PJ-PAY-001':'02_PLANNING',
+  'PJ-CLAIM-FORM-001':'02_PLANNING',
+  'PJ-MILESTONE-001':'02_PLANNING',
+  'PJ-ORG-001':'02_PLANNING',
+  'PJ-CASHFLOW-001':'02_PLANNING',
+  'PJ-INSTALL-PLAN-001':'02_PLANNING',
+  'PJ-COMMISSION-PLAN-001':'02_PLANNING',
+  'PJ-DAILY-REQ-PRE-001':'02_PLANNING',
+  'PJ-DAILY-RPT-PRE-001':'02_PLANNING',
+  'PJ-WEEKLY-RPT-PRE-001':'02_PLANNING',
+  'PJ-MTG-SCH-001':'02_PLANNING',
+  'PJ-MTG-MOM-001':'02_PLANNING',
+
+  'PJ-ENG-PKG-001':'03_DESIGN',
+  'PJ-DRW-001':'03_DESIGN',
+  'PJ-DRW-REV-001':'03_DESIGN',
+  'PJ-RFI-001':'03_DESIGN',
+  'PJ-RFA-001':'03_DESIGN',
+  'PJ-TECH-SUB-001':'03_DESIGN',
+  'PJ-DRW-DRAFT-LAY-001':'03_DESIGN',
+  'PJ-DRW-DRAFT-DIA-001':'03_DESIGN',
+  'PJ-DRW-CON-LAY-001':'03_DESIGN',
+  'PJ-DRW-CON-DIA-001':'03_DESIGN',
+  'PJ-MAT-DS-001':'03_DESIGN',
+  'PJ-MAT-LIST-001':'03_DESIGN',
+  'PJ-MAT-SPEC-001':'03_DESIGN',
+  'PJ-CALC-001':'03_DESIGN',
+  'PJ-FAT-PROC-001':'03_DESIGN',
+  'PJ-CALIB-001':'03_DESIGN',
+  'PJ-POINT-LIST-001':'03_DESIGN',
+  'PJ-METHOD-001':'03_DESIGN',
+  'PJ-SEQUENCE-001':'03_DESIGN',
+
+  'PJ-PRC-PLAN-001':'04_PROCUREMENT',
+  'PJ-PO-001':'04_PROCUREMENT',
+  'PJ-GRN-001':'04_PROCUREMENT',
+  'PJ-MAT-REQ-001':'04_PROCUREMENT',
+  'PJ-PO-APPV-001':'04_PROCUREMENT',
+  'PJ-GRN-INS-001':'04_PROCUREMENT',
+  'PJ-STK-ADJ-001':'04_PROCUREMENT',
+  'PJ-INV-STK-001':'04_PROCUREMENT',
+  'PJ-INV-ISSUE-001':'04_PROCUREMENT',
+  'PJ-EQUIP-PLAN-001':'04_PROCUREMENT',
+  'PJ-MAT-RECV-001':'04_PROCUREMENT',
+  'PJ-MAT-APPV-001':'04_PROCUREMENT',
+  'PJ-MAT-APPV-POST-001':'04_PROCUREMENT',
+
+  'PJ-INS-001':'05_CONSTRUCTION',
+  'PJ-DWR-001':'05_CONSTRUCTION',
+  'PJ-QA-001':'05_CONSTRUCTION',
+  'PJ-HSE-001':'05_CONSTRUCTION',
+  'PJ-NCR-001':'05_CONSTRUCTION',
+  'PJ-PUNCH-001':'05_CONSTRUCTION',
+  'PJ-INS-DAILY-001':'05_CONSTRUCTION',
+  'PJ-INS-CHKLIST-001':'05_CONSTRUCTION',
+  'PJ-JSA-PRE-001':'05_CONSTRUCTION',
+  'PJ-INSURANCE-001':'05_CONSTRUCTION',
+  'PJ-ITP-001':'05_CONSTRUCTION',
+  'PJ-ITR-001':'05_CONSTRUCTION',
+  'PJ-JOINT-INSP-001':'05_CONSTRUCTION',
+  'PJ-RELEASE-NOTE-001':'05_CONSTRUCTION',
+  'PJ-JSA-CON-001':'05_CONSTRUCTION',
+  'PJ-WORK-PERMIT-001':'05_CONSTRUCTION',
+  'PJ-INSP-REQ-001':'05_CONSTRUCTION',
+  'PJ-CONST-PHOTOS-001':'05_CONSTRUCTION',
+  'PJ-DAILY-REQ-CON-001':'05_CONSTRUCTION',
+  'PJ-DAILY-RPT-CON-001':'05_CONSTRUCTION',
+  'PJ-WEEKLY-RPT-CON-001':'05_CONSTRUCTION',
+  'PJ-SITE-ISSUE-001':'05_CONSTRUCTION',
+  'PJ-PUNCH-SIER-001':'05_CONSTRUCTION',
+  'PJ-PUNCH-CLIENT-001':'05_CONSTRUCTION',
+
+  'PJ-PRETEST-001':'06_TESTING',
+  'PJ-FAT-001':'06_TESTING',
+  'PJ-SAT-001':'06_TESTING',
+  'PJ-COM-RPT-001':'06_TESTING',
+  'PJ-READINESS-001':'06_TESTING',
+  'PJ-PRE-TEST-001':'06_TESTING',
+  'PJ-FAT-RPT-001':'06_TESTING',
+  'PJ-SAT-RPT-001':'06_TESTING',
+  'PJ-SAT-CON-001':'06_TESTING',
+  'PJ-UNIT-COM-RPT-001':'06_TESTING',
+  'PJ-POINT-CHECK-001':'06_TESTING',
+  'PJ-FUNC-CHECK-001':'06_TESTING',
+  'PJ-UNIT-CHECK-001':'06_TESTING',
+  'PJ-COM-RPT-POST-001':'06_TESTING',
+
+  'PJ-HO-AUD-001':'07_HANDOVER',
+  'PJ-HO-PKG-001':'07_HANDOVER',
+  'PJ-ASB-001':'07_HANDOVER',
+  'PJ-OMM-001':'07_HANDOVER',
+  'PJ-ACC-001':'07_HANDOVER',
+  'PJ-CLOSE-001':'07_HANDOVER',
+  'PJ-HANDOVER-AUDIT-001':'07_HANDOVER',
+  'PJ-AS-BUILT-001':'07_HANDOVER',
+  'PJ-ASB-LAY-001':'07_HANDOVER',
+  'PJ-ASB-DIA-001':'07_HANDOVER',
+  'PJ-OAM-001':'07_HANDOVER',
+  'PJ-SPARE-001':'07_HANDOVER',
+  'PJ-CLIENT-SIG-001':'07_HANDOVER',
+  'PJ-RELEASE-NOTE-POST-001':'07_HANDOVER',
+  'PJ-EQUIP-LIST-001':'07_HANDOVER',
+  'PJ-EQUIP-CHK-001':'07_HANDOVER',
+  'PJ-WORK-COMPLETE-001':'07_HANDOVER',
+  'PJ-WCR-001':'07_HANDOVER',
+  'PJ-CONST-PHOTOS-POST-001':'07_HANDOVER',
+  'PJ-FINAL-INSP-001':'07_HANDOVER',
+  'PJ-REMOVAL-LIST-001':'07_HANDOVER',
+  'PJ-TRN-001':'07_HANDOVER',
+
+  'PJ-DLP-001':'08_WARRANTY',
+  'PJ-WARRANTY-001':'08_WARRANTY'
+};
+
+function docLifecycleStage(t) {
+  t = t || {};
+  var code = String(t.TemplateCode || '').trim().toUpperCase();
+  var name = String(t.TemplateName || '').trim().toUpperCase();
+  var moduleName = String(t.Module || '').trim().toUpperCase();
+  if (DOC_LIFECYCLE_EXACT[code]) return DOC_LIFECYCLE_EXACT[code];
+
+  if (/WARRANTY|DLP|DEFECT LIABILITY/.test(code + ' ' + name + ' ' + moduleName)) return '08_WARRANTY';
+  if (/HANDOVER|HO-|HNDOVER|CLOSE|CLOSURE|ASB|AS-BUILT|O&M|OMM|OAM|ACCEPTANCE|CERTIFICATE|SPARE|FINAL|REMOVAL|WCR|WORK-COMPLETE|WORK COMPLETION|EQUIP.*CHECK|EQUIP.*LIST|RELEASE-NOTE-POST/.test(code + ' ' + name + ' ' + moduleName)) return '07_HANDOVER';
+  if (/TEST|COMMISSION|COM-RPT|SAT|FAT|READINESS|POINT-CHECK|FUNC-CHECK|UNIT-CHECK/.test(code + ' ' + name + ' ' + moduleName)) return '06_TESTING';
+  if (/CONSTRUCTION|INSTALL|INS-|DWR|DAILY.*CON|WEEKLY.*CON|WORK-PERMIT|INSPECTION|QA|HSE|NCR|PUNCH|SITE-ISSUE|CONST-PHOTO|JSA-CON|ITP|ITR/.test(code + ' ' + name + ' ' + moduleName)) return '05_CONSTRUCTION';
+  if (/PROCURE|PRC|PURCHASE|PO-|GRN|MATERIAL|MAT-|INV-|STOCK|STK|EQUIP-PLAN/.test(code + ' ' + name + ' ' + moduleName)) return '04_PROCUREMENT';
+  if (/DESIGN|ENGINEERING|ENG|DRAWING|DRW|RFI|RFA|TECH|SUBMITTAL|SHOP|DATASHEET|SPEC|CALC|METHOD|SEQUENCE|POINT-LIST|CALIB/.test(code + ' ' + name + ' ' + moduleName)) return '03_DESIGN';
+  if (/PLAN|SCHEDULE|BUDGET|RISK|RACI|MOM|MEETING|KICKOFF|CONTROL|CLAIM|PAYMENT|ORG|CASHFLOW|DAILY.*PRE|WEEKLY.*PRE|INSURANCE|JSA-PRE/.test(code + ' ' + name + ' ' + moduleName)) return '02_PLANNING';
+  if (/HND|HANDOVER FORM|SALES|START|CHARTER|CODE REQUEST|INITIATION/.test(code + ' ' + name + ' ' + moduleName)) return '01_INITIATION';
+
+  var cat = String(t.DocCategory || t.Phase || '').toLowerCase();
+  if (cat.indexOf('post') >= 0) return '07_HANDOVER';
+  if (cat.indexOf('construction') >= 0) return '05_CONSTRUCTION';
+  if (cat.indexOf('pre') >= 0) return '02_PLANNING';
+  return '02_PLANNING';
+}
+
+function docLifecycleLabel(key) {
+  return DOC_LIFECYCLE_LABELS_TH[key] || key || '';
+}
+
+function sortTemplatesByLifecycle(a, b) {
+  var ia = DOC_LIFECYCLE_STAGES.findIndex(function(s){ return s.key === docLifecycleStage(a); });
+  var ib = DOC_LIFECYCLE_STAGES.findIndex(function(s){ return s.key === docLifecycleStage(b); });
+  if (ia !== ib) return ia - ib;
+  return String(a.TemplateCode || '').localeCompare(String(b.TemplateCode || ''));
+}
+
+function updateDocCategoryHint() {
+  var el = document.getElementById('docCategoryHint');
+  if (!el) return;
+  if (!currentTemplate) {
+    el.innerHTML = '<b>Document lifecycle:</b> Select a document type';
+    return;
+  }
+  var key = docLifecycleStage(currentTemplate);
+  el.innerHTML = '<b>Document lifecycle:</b> ' + esc(docLifecycleLabel(key)) +
+    '<div style="margin-top:4px;color:#6b7f90">ใช้สำหรับแยกเอกสารตามลำดับงานตั้งแต่เริ่มโครงการ → วางแผน → ออกแบบ → จัดซื้อ → ติดตั้ง → ทดสอบ → ส่งมอบ → Warranty/DLP</div>';
+}
+
+
 /* ─── Server wrapper ─────────────────────────────────────── */
 function server(fn, args) {
   return new Promise(function(resolve, reject) {
@@ -571,7 +771,7 @@ function renderA4Workflow() {
   current = 'A4_WORKFLOW';
   markNav();
   document.getElementById('pageTitle').textContent = 'Documents & Forms — A4 Workflow';
-  document.getElementById('pageSub').textContent = 'V20 Smart Document Engine · validation alias fix + A4 master + AI assist + auto deploy';
+  document.getElementById('pageSub').textContent = 'V21 Smart Document Engine · lifecycle document grouping from project start to handover';
   document.getElementById('content').innerHTML =
     '<div class="tabs" id="phaseTabs"></div>' +
     '<div class="workflow">' +
@@ -582,6 +782,7 @@ function renderA4Workflow() {
     (!serverConnected ? '<div class="server-banner" style="margin-bottom:8px"><b>Server not connected</b><div style="margin-top:6px;color:#6b7f90;font-size:12px">A4 preview will work once connected. Click Reconnect below.</div><button class="primary sm" style="margin-top:8px" onclick="reconnectAndWorkflow()">Reconnect</button></div>' : '') +
     '<label>Project <span class="req">*</span></label><select id="projectSelect" onchange="projectChanged()"></select>' +
     '<label>Document Type <span class="req">*</span></label><select id="templateSelect" onchange="templateChanged()"></select>' +
+    '<div class="hint" id="docCategoryHint" style="margin-top:8px;padding:8px 10px;font-size:11px"></div>' +
     '<div class="panel"><div class="panel-title"><span>Issue Control</span><span>Real Document Run</span></div>' +
     '<div class="panel-body">' +
     '<div class="status-line"><span>Status</span><span class="pill" id="statusPill">Draft / Not Issued</span></div>' +
@@ -622,17 +823,17 @@ async function reconnectAndWorkflow() {
   renderA4Workflow();
 }
 
+
 function renderPhaseTabs() {
-  var tabs = ['All', 'Pre-construction', 'Construction', 'Post-construction'];
   var el = document.getElementById('phaseTabs');
   if (!el) return;
-  el.innerHTML = tabs.map(function(t) {
-    return '<button class="' + (t === phaseFilter ? 'active' : '') + '" onclick="setPhase(\'' + t + '\')">' + esc(t) + '</button>';
+  el.innerHTML = DOC_LIFECYCLE_STAGES.map(function(s) {
+    return '<button class="' + (s.key === phaseFilter ? 'active' : '') + '" onclick="setPhase(\'' + s.key + '\')">' + esc(s.label) + '</button>';
   }).join('');
 }
 
 function setPhase(p) {
-  phaseFilter = p;
+  phaseFilter = p || 'All';
   renderPhaseTabs();
   renderTemplatesSelect();
   templateChanged();
@@ -650,12 +851,36 @@ function renderProjectsSelect() {
 function renderTemplatesSelect() {
   var sel = document.getElementById('templateSelect');
   if (!sel) return;
-  var list = (APP.templates || []).filter(function(t) {
-    return phaseFilter === 'All' || String(t.DocCategory || '') === phaseFilter;
+
+  var previous = sel.value || (currentTemplate && currentTemplate.TemplateCode) || '';
+  var allTemplates = (APP.templates || []).slice().sort(sortTemplatesByLifecycle);
+  var filtered = allTemplates.filter(function(t) {
+    return phaseFilter === 'All' || docLifecycleStage(t) === phaseFilter;
   });
-  sel.innerHTML = list.length
-    ? list.map(function(t) { return '<option value="' + esc(t.TemplateCode) + '">' + esc(t.TemplateCode) + ' — ' + esc(t.TemplateName) + '</option>'; }).join('')
-    : '<option value="">— No templates loaded (reconnect) —</option>';
+
+  if (!filtered.length) {
+    sel.innerHTML = '<option value="">— No templates loaded (reconnect) —</option>';
+    updateDocCategoryHint();
+    return;
+  }
+
+  var html = '';
+  DOC_LIFECYCLE_STAGES.forEach(function(stage) {
+    if (stage.key === 'All') return;
+    var items = filtered.filter(function(t) { return docLifecycleStage(t) === stage.key; });
+    if (!items.length) return;
+    html += '<optgroup label="' + esc(docLifecycleLabel(stage.key)) + '">';
+    html += items.map(function(t) {
+      return '<option value="' + esc(t.TemplateCode) + '">' + esc(t.TemplateCode) + ' — ' + esc(t.TemplateName) + '</option>';
+    }).join('');
+    html += '</optgroup>';
+  });
+  sel.innerHTML = html;
+
+  if (previous && filtered.some(function(t){ return t.TemplateCode === previous; })) {
+    sel.value = previous;
+  }
+  updateDocCategoryHint();
 }
 
 async function projectChanged() { await loadPreview(); }
@@ -663,6 +888,7 @@ async function projectChanged() { await loadPreview(); }
 async function templateChanged() {
   var code = document.getElementById('templateSelect') && document.getElementById('templateSelect').value;
   currentTemplate = (APP.templates || []).find(function(t) { return t.TemplateCode === code; }) || null;
+  updateDocCategoryHint();
   if (!currentRecord) currentData = {};
   await loadPreview();
 }
