@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AETERLINK Documentation Control V10</title>
+  <style>
+    :root{
+      --ink:#1e3446;--muted:#6b7f90;--line:#d9e6ee;--soft:#f3f8fb;--soft2:#eaf3f8;
+      --primary:#244963;--primary2:#17395d;--accent:#d5b467;--danger:#d87d7d;--ok:#d9eadf;
+      --paper:#f5f7f8;--card:#ffffff;--bg:#f6f9fb;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,"Noto Sans Thai",sans-serif;background:linear-gradient(180deg,#f8fbfd,#eef5f8);color:var(--ink)}
+    .app{display:grid;grid-template-columns:286px 1fr;min-height:100vh}
+    aside{background:#fff;border-right:1px solid var(--line);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto}
+    .brand{display:flex;align-items:center;gap:10px;margin:0 0 18px}
+    .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#dbeef4,#fff);display:flex;align-items:center;justify-content:center;color:var(--primary2);font-weight:900;border:1px solid var(--line)}
+    .brand h1{font-size:15px;margin:0;color:var(--primary2);line-height:1.18}
+    .brand small{display:block;color:var(--muted);margin-top:4px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .nav button{display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;padding:11px 12px;border-radius:14px;color:#25465b;cursor:pointer;text-align:left;margin:3px 0;font-size:14px}
+    .nav button:hover,.nav button.active{background:#eaf3f8;color:#17395d;font-weight:800}
+    .nav .sep{height:1px;background:#edf3f6;margin:10px 4px}
+    main{padding:16px;overflow:auto}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+    .title h2{margin:0;color:var(--primary2);font-size:21px}
+    .title p{margin:4px 0 0;color:var(--muted);font-size:12px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    button,.btn{font-family:inherit;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 11px;cursor:pointer;color:#243746}
+    button:hover{filter:brightness(.98)}
+    button.primary{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700}
+    button.gold{background:#d8b962;color:#243746;border-color:#d8b962;font-weight:700}
+    button.danger{background:#fff5f5;color:#bd5757;border-color:#f0d4d4}
+    button.soft{background:#f0f7fb;color:#244963}
+    button.sm{padding:5px 9px;font-size:12px}
+    input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 9px;background:#fff;font-family:inherit;color:var(--ink)}
+    textarea{min-height:84px;resize:vertical}
+    label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#596b78;font-weight:800;margin:10px 0 5px;display:block}
+    .req{color:#d36f6f}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 10px 24px rgba(23,57,93,.04)}
+    .kpi .label{color:var(--muted);font-size:12px}
+    .kpi .value{font-size:25px;font-weight:900;color:var(--primary2);margin-top:5px}
+    .hint{background:#f7fbfd;border:1px solid var(--line);border-radius:14px;padding:11px;color:#6b7f90;font-size:12px;line-height:1.45}
+    .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+    .toolbar input{max-width:340px}
+    .table-wrap{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:auto;max-height:70vh}
+    table.data,table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
+    th,td{padding:8px 9px;border-bottom:1px solid #edf2f5;text-align:left;vertical-align:middle;white-space:nowrap}
+    th{position:sticky;top:0;background:#edf6f9;color:#17395d;z-index:1}
+    tr:hover td{background:#fbfdfe}
+    .pill{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:4px 9px;font-size:11px;background:#f7fbfd;font-weight:800;color:#466176}
+    .pill.Approved{background:#d7ead8}.pill.Rejected{background:#fadadd}.pill.Draft{background:#eef2f5}
+    .pill.Pending,.pill.Submitted,.pill.InReview{background:#fff2cc}.pill.Issued{background:#dceef8}
+    .modal{position:fixed;inset:0;background:rgba(28,45,58,.40);display:none;align-items:center;justify-content:center;padding:18px;z-index:60}
+    .modal.open{display:flex}
+    .dialog{width:min(1120px,96vw);max-height:92vh;background:#fff;border-radius:18px;overflow:auto;border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.18)}
+    .dialog-head{display:flex;justify-content:space-between;align-items:center;background:#eef6fb;border-bottom:1px solid var(--line);padding:12px 14px;position:sticky;top:0;z-index:3}
+    .dialog-body{padding:14px}
+    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:11px}
+    .field.full{grid-column:1/-1}
+    .toast{position:fixed;right:20px;bottom:20px;background:#17395d;color:#fff;padding:12px 14px;border-radius:12px;display:none;z-index:90}
+    .toast.show{display:block}
+    iframe.preview{width:100%;height:72vh;border:1px solid var(--line);border-radius:14px;background:white}
+    .tabs{display:flex;gap:6px;align-items:center;margin:0 0 10px}
+    .tabs button{background:#f9fcfe;border-color:#cfe0e8;color:#5a7487;font-weight:700;min-width:120px}
+    .tabs button.active{background:#244963;color:#fff;border-color:#244963}
+    .workflow{display:grid;grid-template-columns:410px 1fr;gap:14px;align-items:start}
+    .side,.preview-card{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 10px 28px rgba(23,57,93,.05)}
+    .side-head,.preview-head{display:flex;align-items:center;justify-content:space-between;background:#e8f3f9;border-bottom:1px solid var(--line);padding:11px 14px;font-weight:800;color:#264a63}
+    .side-body{padding:12px}
+    .panel{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:12px}
+    .panel-title{background:#e9f3f9;display:flex;justify-content:space-between;padding:9px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.7px;font-weight:800;color:#254a63}
+    .panel-body{padding:10px}
+    .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .readbox{background:#f7fbfd;border:1px solid #e2edf3;border-radius:10px;padding:8px;font-size:11px;color:#617488}
+    .readbox b{display:block;color:#2a485d;margin-bottom:3px}
+    .status-line{display:flex;align-items:center;justify-content:space-between;margin:10px 0}
+    .button-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    .button-grid button{width:100%;padding:11px}
+    .paper-stage{background:#777;overflow:auto;padding:12px;max-height:calc(100vh - 148px)}
+    #a4preview{min-width:210mm;transform-origin:top left}
+    .records{display:none;background:#fff;border-top:1px solid var(--line);padding:14px}
+    .records.open{display:block}
+    .server-banner{background:#fff8f8;border:1px solid #f0d4d4;border-radius:14px;padding:14px;margin-bottom:14px}
+    .server-banner b{color:#bd5757}
+    .server-banner pre{white-space:pre-wrap;color:#884444;font-size:11px;margin:8px 0 0;background:#fff2f2;padding:8px;border-radius:8px;border:1px solid #f5d4d4}
+    .connecting-badge{display:inline-flex;align-items:center;gap:6px;background:#fff9ec;border:1px solid #f0d898;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;color:#8a6c1a}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spinner{width:12px;height:12px;border:2px solid #d0b96a;border-top-color:#8a6c1a;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+    @media(max-width:1150px){
+      .app{grid-template-columns:1fr}
+      aside{height:auto;position:relative}
+      .grid{grid-template-columns:1fr 1fr}
+      .workflow{grid-template-columns:1fr}
+      .paper-stage{max-height:none}
+      #a4preview{transform:scale(.82);min-height:297mm}
+      .form-grid{grid-template-columns:1fr}
+    }
+    @media print{
+      @page{size:A4 portrait;margin:0}
+      html,body{margin:0!important;padding:0!important;background:#fff!important;width:210mm!important}
+      aside,.topbar,.nav,.toast,.modal,.print-hidden,.workflow .side,.preview-head,.tabs,.records{display:none!important}
+      .app{display:block!important;min-height:auto!important}
+      main{padding:0!important;margin:0!important;overflow:visible!important}
+      .workflow{display:block!important}
+      .preview-card{border:0!important;box-shadow:none!important;background:#fff!important;overflow:visible!important}
+      .paper-stage{background:#fff!important;padding:0!important;overflow:visible!important;max-height:none!important}
+      #a4preview{transform:none!important;min-width:auto!important;width:210mm!important}
+      #a4preview .a4-root{background:#fff!important;padding:0!important;margin:0!important}
+      #a4preview .a4-page{margin:0!important;box-shadow:none!important;border:0!important}
+    }
+
+    body.printing-a4 .photo-actions,body.printing-a4 .row-actions{display:none!important}
+    @media print{
+      @page{size:A4 portrait;margin:0}
+      body{background:#fff!important}
+      .a4-page{width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;overflow:hidden!important;break-after:page!important;page-break-after:always!important}
+      .photo-page .photo-list{height:202mm!important;overflow:hidden!important}
+      .photo-page .photo-row{height:98mm!important;min-height:98mm!important;max-height:98mm!important;page-break-inside:avoid!important;break-inside:avoid!important}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <div class="logo">A</div>
+      <div>
+        <h1>AETERLINK<br>Documentation Control</h1>
+        <small id="versionBadge">Starting up...</small>
+      </div>
+    </div>
+    <div class="nav" id="nav"></div>
+  </aside>
+  <main>
+    <div class="topbar">
+      <div class="title">
+        <h2 id="pageTitle">Dashboard</h2>
+        <p id="pageSub">V19 Smart Engine · Loading...</p>
+      </div>
+      <div class="actions">
+        <button class="soft" onclick="healthCheck()">Health</button>
+        <button class="soft" onclick="doRefresh()">Refresh</button>
+        <button class="primary" onclick="openQuickCreate()">+ Create Form</button>
+      </div>
+    </div>
+    <div id="content"><div class="card" style="text-align:center;padding:32px"><div class="spinner" style="width:24px;height:24px;margin:0 auto 12px"></div><div style="color:var(--muted)">Connecting to server…</div></div></div>
+  </main>
+</div>
+
+<div class="modal" id="modal">
+  <div class="dialog">
+    <div class="dialog-head"><b id="modalTitle">Record</b><button onclick="closeModal()">✕</button></div>
+    <div class="dialog-body" id="modalBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─── State ─────────────────────────────────────────────── */
+var APP = null;
+var current = 'DASHBOARD';
+var currentRows = [];
+var phaseFilter = 'All';
+var currentTemplate = null;
+var currentRecord = null;
+var currentData = {};
+var dirty = false;
+var serverConnected = false;
+var lastServerError = '';
+var connectAttempts = 0;
+
+/* ─── Server wrapper ─────────────────────────────────────── */
+function server(fn, args) {
+  return new Promise(function(resolve, reject) {
+    try {
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        reject(new Error('google.script.run is not available. Make sure this page is served from a Google Apps Script Web App deployment, not opened directly as a file.'));
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        [fn].apply(null, args || []);
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+function serverT(fn, args, ms) {
+  return Promise.race([
+    server(fn, args || []),
+    new Promise(function(_, reject) {
+      setTimeout(function() { reject(new Error(fn + ' timed out after ' + Math.round((ms || 15000) / 1000) + 's')); }, ms || 15000);
+    })
+  ]);
+}
+
+/* ─── Fallback data (so UI renders before server) ────────── */
+function fallbackApp() {
+  return {
+    app: { name: 'AETERLINK Documentation Control', version: 'V16 — offline (server not connected)' },
+    modules: {
+      FORM_TEMPLATES: { label: 'Form Templates', icon: '📄', editable: true },
+      FORM_RECORDS: { label: 'Form Records / PDF', icon: '🧾', editable: true },
+      DOCUMENT_REGISTER: { label: 'Document Register', icon: '🗂️', editable: true },
+      CLIENT_SUBMITTALS: { label: 'Client Submittals', icon: '📨', editable: true },
+      MODULE_DOCUMENT_RULES: { label: 'Module Document Rules', icon: '📋', editable: true },
+      RECORD_LINKS: { label: 'Record Links', icon: '🔗', editable: true },
+      PROJECTS: { label: 'Projects', icon: '📁', editable: true },
+      SETTINGS: { label: 'Settings', icon: '⚙️', editable: true },
+      LISTS: { label: 'Lists', icon: '☑️', editable: true },
+      USERS: { label: 'Users', icon: '👤', editable: true },
+      AUDIT_LOG: { label: 'Audit Log', icon: '🛡️', editable: false },
+      RECYCLE_BIN: { label: 'Recycle Bin', icon: '♻️', editable: false }
+    },
+    schemas: {
+      FORM_TEMPLATES: ['TemplateCode','TemplateName','PhaseNo','Module','Description','FieldsJson','Active','Phase','DocCategory'],
+      FORM_RECORDS: ['FormRecordId','ProjectCode','TemplateCode','DocumentNo','RevisionNo','Status','DataJson','PdfUrl','SubmittedBy','SubmittedAt','DocumentStatus','LockedAfterPdf','ReviewComment'],
+      DOCUMENT_REGISTER: ['DocumentId','ProjectCode','DocumentCode','DocumentTitle','Revision','Status','Module','FileUrl','FormRecordId','ClientStatus','DocCategory'],
+      CLIENT_SUBMITTALS: ['SubmittalId','ProjectCode','DocumentCode','Title','Revision','SubmittedDate','ClientStatus','FileUrl'],
+      MODULE_DOCUMENT_RULES: ['RuleId','TableName','ModuleGroup','DocumentCode','DocumentTitle','Active'],
+      RECORD_LINKS: ['LinkId','ProjectCode','FromTable','FromRecordId','ToTable','ToRecordId','LinkType','Description'],
+      PROJECTS: ['ProjectCode','ProjectName','Client','ProjectManager','StartDate','TargetFinish','Status','MainContractor'],
+      SETTINGS: ['Key','Value','Description'],
+      LISTS: ['ListName','Value','SortOrder','Active'],
+      USERS: ['UserId','Email','DisplayName','Role','Status'],
+      AUDIT_LOG: ['AuditId','DateTime','UserEmail','Action','TableName','RecordId','Message'],
+      RECYCLE_BIN: ['RecycleId','DateTime','UserEmail','TableName','RecordId','Reason']
+    },
+    projects: [{ ProjectCode: 'ATL-LKL-001', ProjectName: "Lotus's Klong Luang", Client: 'MKY', MainContractor: 'KYOUEI / SAAN' }],
+    activeProjectCode: 'ATL-LKL-001',
+    templates: [],
+    lists: {},
+    dashboard: { totalTemplates: '–', totalDocuments: '–', totalRecords: '–', draft: '–', issued: '–', approved: '–', clientPending: '–', recentDocs: [], recentRecords: [] }
+  };
+}
+
+/* ─── Boot ───────────────────────────────────────────────── */
+function boot() {
+  APP = fallbackApp();
+  renderNav();
+  renderDashboard(APP.dashboard, false); // render offline state immediately
+  tryConnect();
+}
+
+function tryConnect() {
+  connectAttempts++;
+  setVersionBadge('Connecting… (attempt ' + connectAttempts + ')');
+  serverT('apiInitV8', [], 18000)
+    .then(function(res) {
+      APP = res || fallbackApp();
+      serverConnected = true;
+      lastServerError = '';
+      setVersionBadge((APP.app && APP.app.version) || 'V8');
+      renderNav();
+      if (current === 'DASHBOARD') renderDashboard(APP.dashboard || {}, true);
+      else if (current === 'A4_WORKFLOW') renderA4Workflow();
+      toast('Server connected');
+    })
+    .catch(function(err) {
+      serverConnected = false;
+      lastServerError = (err && err.message) ? err.message : String(err || 'Unknown error');
+      setVersionBadge('Offline — server not connected');
+      if (current === 'DASHBOARD') renderDashboard(APP.dashboard || {}, false);
+    });
+}
+
+function setVersionBadge(text) {
+  var el = document.getElementById('versionBadge');
+  if (el) el.textContent = text;
+}
+
+/* ─── Nav ────────────────────────────────────────────────── */
+function renderNav() {
+  var nav = document.getElementById('nav');
+  if (!nav) return;
+  var app = APP || fallbackApp();
+  var items = [
+    { key: 'DASHBOARD', label: 'Dashboard', icon: '📊' },
+    { key: 'A4_WORKFLOW', label: 'Documents & Forms A4', icon: '📝' },
+    { sep: true }
+  ];
+  Object.keys(app.modules || {}).forEach(function(k) {
+    items.push({ key: k, label: app.modules[k].label, icon: app.modules[k].icon });
+  });
+  nav.innerHTML = items.map(function(m) {
+    if (m.sep) return '<div class="sep"></div>';
+    return '<button onclick="goto(\'' + m.key + '\')" id="nav-' + m.key + '"><span>' + m.icon + '</span>' + esc(m.label) + '</button>';
+  }).join('');
+  markNav();
+}
+
+function markNav() {
+  document.querySelectorAll('.nav button').forEach(function(b) { b.classList.remove('active'); });
+  var el = document.getElementById('nav-' + current);
+  if (el) el.classList.add('active');
+}
+
+/* ─── Routing ────────────────────────────────────────────── */
+async function goto(key) {
+  current = key;
+  markNav();
+  if (key === 'DASHBOARD') { renderDashboard(APP.dashboard || {}, serverConnected); return; }
+  if (key === 'A4_WORKFLOW') { renderA4Workflow(); return; }
+  if (!serverConnected) {
+    showConnectPrompt(key);
+    return;
+  }
+  await loadTable(key);
+}
+
+function showConnectPrompt(key) {
+  document.getElementById('pageTitle').textContent = (APP.modules[key] || {}).label || key;
+  document.getElementById('content').innerHTML =
+    '<div class="server-banner"><b>Server not connected</b>' +
+    '<pre>' + esc(lastServerError || 'Click Reconnect to retry.') + '</pre>' +
+    '<div style="margin-top:10px;display:flex;gap:8px">' +
+    '<button class="primary" onclick="reconnectAndLoad(\'' + key + '\')">Reconnect & Load</button>' +
+    '<button onclick="doRefresh()">Refresh Page</button></div></div>';
+}
+
+async function reconnectAndLoad(key) {
+  await tryConnectPromise();
+  if (serverConnected) await loadTable(key);
+  else showConnectPrompt(key);
+}
+
+function tryConnectPromise() {
+  connectAttempts++;
+  setVersionBadge('Connecting…');
+  return serverT('apiInitV8', [], 18000)
+    .then(function(res) {
+      APP = res || fallbackApp();
+      serverConnected = true;
+      lastServerError = '';
+      setVersionBadge((APP.app && APP.app.version) || 'V8');
+      renderNav();
+      toast('Connected');
+    })
+    .catch(function(err) {
+      serverConnected = false;
+      lastServerError = (err && err.message) ? err.message : String(err || 'Unknown error');
+      setVersionBadge('Offline');
+    });
+}
+
+async function doRefresh() {
+  await tryConnectPromise();
+  if (current === 'DASHBOARD') renderDashboard(APP.dashboard || {}, serverConnected);
+  else if (current === 'A4_WORKFLOW') renderA4Workflow();
+  else if (serverConnected) await loadTable(current);
+}
+
+/* ─── Dashboard ──────────────────────────────────────────── */
+function renderDashboard(d, connected) {
+  document.getElementById('pageTitle').textContent = 'Dashboard';
+  document.getElementById('pageSub').textContent = 'AETERLINK Documentation Control — V19 Smart Document Engine';
+
+  var banner = '';
+  if (!connected) {
+    banner = '<div class="server-banner">' +
+      '<b>Server connecting in background</b>' +
+      (lastServerError ? '<pre>' + esc(lastServerError) + '</pre>' : '') +
+      '<div style="margin-top:10px;color:#6b7f90;font-size:12px">KPI numbers will appear once the server responds. The page is fully functional offline for navigation.</div>' +
+      '<div style="margin-top:8px;display:flex;gap:8px">' +
+      '<button class="primary" onclick="tryConnect()">Reconnect</button>' +
+      '<button onclick="healthCheck()">Health Check</button></div>' +
+      (!lastServerError ? '<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;color:#8a6c1a;font-size:11px"><div class="spinner"></div> Attempting to connect…</div>' : '') +
+      '</div>';
+  }
+
+  document.getElementById('content').innerHTML = banner +
+    '<div class="grid">' + kpi('Templates', d.totalTemplates || 0) + kpi('Documents', d.totalDocuments || 0) + kpi('Records', d.totalRecords || 0) + kpi('Issued', d.issued || 0) + '</div>' +
+    '<div class="grid">' + kpi('Draft', d.draft || 0) + kpi('Approved', d.approved || 0) + kpi('Client Pending', d.clientPending || 0) + kpi('Projects', (APP.projects || []).length) + '</div>' +
+    '<div class="card"><h3 style="margin-top:0;color:#17395d">Main Actions</h3>' +
+    '<div class="toolbar">' +
+    '<button class="primary" onclick="goto(\'A4_WORKFLOW\')">Open A4 Workflow</button>' +
+    '<button onclick="goto(\'FORM_TEMPLATES\')">Form Templates</button>' +
+    '<button onclick="goto(\'FORM_RECORDS\')">Form Records / PDF</button>' +
+    '<button onclick="goto(\'DOCUMENT_REGISTER\')">Document Register</button>' +
+    '</div>' +
+    '<div class="hint">V16: WCR / Equipment Checklist table text uses contenteditable cells, so all columns align on the same visual line; auto wrap and binding margin are preserved. Google Sheets data loads in the background.</div></div>' +
+    '<div class="card"><h3 style="margin-top:0;color:#17395d">Recent Documents</h3>' + simpleTable(d.recentDocs || [], ['DocumentId','DocumentCode','DocumentTitle','Revision','Status','ClientStatus']) + '</div>';
+}
+
+function kpi(label, value) {
+  return '<div class="card kpi"><div class="label">' + esc(label) + '</div><div class="value">' + esc(value) + '</div></div>';
+}
+
+/* ─── Table view ─────────────────────────────────────────── */
+async function loadTable(table) {
+  document.getElementById('pageTitle').textContent = (APP.modules[table] || {}).label || table;
+  document.getElementById('pageSub').textContent = table;
+  document.getElementById('content').innerHTML = '<div class="card">Loading ' + esc(table) + '…</div>';
+  try {
+    var res = await serverT('apiGetTable', [table, { maxRows: 2000 }], 20000);
+    currentRows = res.rows || [];
+    renderTable(table, res.headers, currentRows);
+  } catch (e) {
+    document.getElementById('content').innerHTML =
+      '<div class="server-banner"><b>Failed to load ' + esc(table) + '</b><pre>' + esc((e && e.message) || e) + '</pre>' +
+      '<button class="primary" onclick="loadTable(\'' + table + '\')">Retry</button></div>';
+  }
+}
+
+function renderTable(table, headers, rows) {
+  var editable = (APP.modules[table] || {}).editable;
+  document.getElementById('content').innerHTML =
+    '<div class="toolbar"><input id="search" placeholder="Search ' + esc(table) + '…" oninput="filterTable(\'' + table + '\')">' +
+    (editable ? '<button class="primary" onclick="openEdit(\'' + table + '\')">+ New</button>' : '') +
+    (table === 'FORM_RECORDS' ? '<button onclick="goto(\'A4_WORKFLOW\')">Open A4 Workflow</button>' : '') +
+    '</div><div id="tableBox">' + tableHtml(table, headers, rows) + '</div>';
+}
+
+function filterTable(table) {
+  var q = document.getElementById('search').value.toLowerCase();
+  var rows = currentRows.filter(function(r) { return JSON.stringify(r).toLowerCase().indexOf(q) >= 0; });
+  document.getElementById('tableBox').innerHTML = tableHtml(table, (APP.schemas || {})[table], rows);
+}
+
+function tableHtml(table, headers, rows) {
+  return '<div class="table-wrap"><table class="data"><thead><tr><th>Action</th>' +
+    (headers || []).map(function(h) { return '<th>' + esc(h) + '</th>'; }).join('') +
+    '</tr></thead><tbody>' +
+    (rows || []).map(function(r) {
+      return '<tr><td>' + rowActions(table, r) + '</td>' +
+        (headers || []).map(function(h) { return cell(table, h, r[h]); }).join('') + '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
+}
+
+function rowActions(table, r) {
+  var idField = ((APP.schemas || {})[table] || [])[0] || '';
+  var id = r[idField] || '';
+  var a = '';
+  if ((APP.modules[table] || {}).editable) a += '<button class="sm" onclick="openEdit(\'' + table + '\',\'' + esc(id) + '\')">Edit</button> ';
+  if (table === 'FORM_RECORDS') a += '<button class="sm" onclick="openA4Record(\'' + esc(id) + '\')">A4</button> <button class="sm" onclick="generatePdf(\'' + esc(id) + '\')">PDF</button>';
+  if (table === 'DOCUMENT_REGISTER') a += '<button class="sm" onclick="createSubmittal(\'' + esc(id) + '\')">Submittal</button>';
+  return a || '–';
+}
+
+function cell(table, h, v) {
+  if (/Url$/i.test(h) && v) return '<td><a href="' + esc(v) + '" target="_blank">Open</a></td>';
+  if (h === 'Status' || h === 'ClientStatus' || h === 'DocumentStatus') {
+    var cls = String(v || '').replace(/\s+/g, '');
+    return '<td><span class="pill ' + esc(cls) + '">' + esc(v) + '</span></td>';
+  }
+  var s = String(v == null ? '' : v);
+  return '<td title="' + esc(s) + '">' + esc(s.length > 80 ? s.slice(0, 80) + '…' : s) + '</td>';
+}
+
+function simpleTable(rows, headers) {
+  if (!rows || !rows.length) return '<div class="hint">No records yet.</div>';
+  return '<div class="table-wrap" style="max-height:320px"><table class="data"><thead><tr>' +
+    headers.map(function(h) { return '<th>' + esc(h) + '</th>'; }).join('') +
+    '</tr></thead><tbody>' +
+    rows.map(function(r) { return '<tr>' + headers.map(function(h) { return cell('', h, r[h]); }).join('') + '</tr>'; }).join('') +
+    '</tbody></table></div>';
+}
+
+/* ─── Edit / Save ────────────────────────────────────────── */
+async function openEdit(table, id) {
+  var headers = (APP.schemas || {})[table] || [];
+  var rec = {};
+  if (id) {
+    try { var res = await server('apiGetRecord', [table, id]); rec = res.record || {}; }
+    catch (e) { toast('Could not load record: ' + ((e && e.message) || e)); return; }
+  }
+  var fields = headers.map(function(h) {
+    var val = rec[h] || '';
+    var full = ['FieldsJson','DataJson','BeforeJson','AfterJson','RecordJson','Description','Remarks','Message'].indexOf(h) >= 0;
+    var input = full
+      ? '<textarea data-k="' + esc(h) + '">' + esc(val) + '</textarea>'
+      : '<input data-k="' + esc(h) + '" value="' + esc(val) + '">';
+    return '<div class="field ' + (full ? 'full' : '') + '"><label>' + esc(h) + '</label>' + input + '</div>';
+  }).join('');
+  openModal((id ? 'Edit ' : 'New ') + table,
+    '<div class="form-grid">' + fields + '</div>' +
+    '<div class="hint" style="margin-top:10px">For DataJson / FieldsJson, paste valid JSON.</div><br>' +
+    '<button class="primary" onclick="saveEdit(\'' + table + '\')">Save</button>');
+}
+
+async function saveEdit(table) {
+  var rec = {};
+  document.querySelectorAll('#modalBody [data-k]').forEach(function(el) { rec[el.dataset.k] = el.value; });
+  try {
+    await server('apiSaveRecord', [table, rec]);
+    closeModal();
+    if (current === table) await loadTable(table);
+    toast('Saved');
+  } catch (e) { toast('Save failed: ' + ((e && e.message) || e)); }
+}
+
+/* ─── Quick Create ───────────────────────────────────────── */
+function openQuickCreate() {
+  var tpls = (APP.templates || []).filter(function(t) { return String(t.Active || 'TRUE').toUpperCase() !== 'FALSE'; });
+  if (!tpls.length) {
+    openModal('Create Form', '<div class="server-banner"><b>Templates not loaded yet</b><div style="margin-top:8px;color:#6b7f90">Click Reconnect and wait for the server to load templates.</div><button class="primary" onclick="tryConnect();closeModal()">Reconnect</button></div>');
+    return;
+  }
+  var html = '<div class="form-grid">' +
+    '<div class="field"><label>Project <span class="req">*</span></label><select id="qcProject">' +
+    (APP.projects || []).map(function(p) { return '<option value="' + esc(p.ProjectCode) + '">' + esc(p.ProjectCode) + ' — ' + esc(p.ProjectName) + '</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="field"><label>Template <span class="req">*</span></label><select id="qcTpl">' +
+    tpls.map(function(t) { return '<option value="' + esc(t.TemplateCode) + '">' + esc(t.TemplateCode) + ' — ' + esc(t.TemplateName) + '</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="field full"><label>Initial DataJson (optional)</label><textarea id="qcData">{}</textarea></div></div>' +
+    '<button class="primary" onclick="quickCreate()">Create Draft</button>';
+  openModal('Create Form from Template', html);
+}
+
+async function quickCreate() {
+  var data = {};
+  try { data = JSON.parse(document.getElementById('qcData').value || '{}'); } catch (e) { toast('DataJson is not valid JSON'); return; }
+  var tpl = document.getElementById('qcTpl').value;
+  var pc = document.getElementById('qcProject').value;
+  try {
+    var res = await server('apiCreateFormRecordFromTemplate', [tpl, pc, data]);
+    closeModal();
+    current = 'FORM_RECORDS';
+    await loadTable('FORM_RECORDS');
+    toast('Created ' + ((res.formRecord && res.formRecord.DocumentNo) || ''));
+  } catch (e) { toast('Create failed: ' + ((e && e.message) || e)); }
+}
+
+/* ─── PDF / Submittal ────────────────────────────────────── */
+async function generatePdf(id) {
+  if (!confirm('Generate PDF for this record?')) return;
+  try {
+    var res = await server('apiGeneratePdfFromFormRecord', [id]);
+    if (current === 'FORM_RECORDS') await loadTable('FORM_RECORDS');
+    toast('PDF generated');
+    if (res.url) window.open(res.url, '_blank');
+  } catch (e) { toast('PDF failed: ' + ((e && e.message) || e)); }
+}
+
+async function previewPdf(id) {
+  try {
+    var res = await server('apiPreviewHtmlFromFormRecord', [id]);
+    openModal('A4 Preview', '<iframe class="preview" srcdoc="' + esc(res.html) + '"></iframe>');
+  } catch (e) { toast('Preview failed: ' + ((e && e.message) || e)); }
+}
+
+async function createSubmittal(documentId) {
+  try {
+    if (!documentId) throw new Error('DocumentId is empty. Please refresh Document Register and try again.');
+    toast('Creating submittal...');
+    var res = await server('apiCreateSubmittal', [documentId]);
+    if (!res) {
+      // Older deployed Code.gs versions may return null. Retry once after a short delay.
+      await new Promise(function(r){ setTimeout(r, 700); });
+      res = await server('apiCreateSubmittal', [documentId]);
+    }
+    if (!res) throw new Error('Server returned empty response. Please deploy Code.gs V12 as New Version.');
+    var sub = res.submittal || res.record || res;
+    if (!sub || !sub.SubmittalId) {
+      throw new Error('Submittal response is missing SubmittalId. Response: ' + JSON.stringify(res).slice(0, 500));
+    }
+    toast('Submittal created: ' + sub.SubmittalId);
+    if (current === 'DOCUMENT_REGISTER') await loadTable('DOCUMENT_REGISTER');
+  } catch (e) { toast('Submittal failed: ' + ((e && e.message) || e)); }
+}
+
+/* ─── A4 Workflow ────────────────────────────────────────── */
+function renderA4Workflow() {
+  current = 'A4_WORKFLOW';
+  markNav();
+  document.getElementById('pageTitle').textContent = 'Documents & Forms — A4 Workflow';
+  document.getElementById('pageSub').textContent = 'V20 Smart Document Engine · validation alias fix + A4 master + AI assist + auto deploy';
+  document.getElementById('content').innerHTML =
+    '<div class="tabs" id="phaseTabs"></div>' +
+    '<div class="workflow">' +
+    '<section class="side">' +
+    '<div class="side-head"><div>📄 Document Issue Control</div>' +
+    '<div><button class="sm" onclick="showRecordsPanel(\'FORM_RECORDS\')">Records</button> <button class="sm" onclick="showRecordsPanel(\'DOCUMENT_REGISTER\')">Register</button></div></div>' +
+    '<div class="side-body">' +
+    (!serverConnected ? '<div class="server-banner" style="margin-bottom:8px"><b>Server not connected</b><div style="margin-top:6px;color:#6b7f90;font-size:12px">A4 preview will work once connected. Click Reconnect below.</div><button class="primary sm" style="margin-top:8px" onclick="reconnectAndWorkflow()">Reconnect</button></div>' : '') +
+    '<label>Project <span class="req">*</span></label><select id="projectSelect" onchange="projectChanged()"></select>' +
+    '<label>Document Type <span class="req">*</span></label><select id="templateSelect" onchange="templateChanged()"></select>' +
+    '<div class="panel"><div class="panel-title"><span>Issue Control</span><span>Real Document Run</span></div>' +
+    '<div class="panel-body">' +
+    '<div class="status-line"><span>Status</span><span class="pill" id="statusPill">Draft / Not Issued</span></div>' +
+    '<div class="readbox"><b>Document No.</b><span id="docNo">Not issued – suffix XXX</span></div>' +
+    '<div class="mini-grid" style="margin-top:8px"><div class="readbox"><b>Issue No.</b><span id="issueNo">XXX</span></div><div class="readbox"><b>Revision No.</b><span id="revNo">00</span></div></div>' +
+    '<div class="readbox" style="margin-top:8px"><b>FormRecordId</b><span id="formId">Not saved yet</span></div>' +
+    '</div></div>' +
+    '<div class="panel" style="margin-top:10px"><div class="panel-title"><span>Revision</span></div>' +
+    '<div class="panel-body"><textarea id="revisionReason" placeholder="Revision reason (required before editing an issued document)"></textarea></div></div>' +
+    '<div class="button-grid">' +
+    '<button onclick="newDraft()">＋ New Draft</button>' +
+    '<button onclick="loadPreview()">↻ Refresh A4</button>' +
+    '<button onclick="validateDocV19()">✅ Validate</button>' +
+    '<button onclick="layoutCheckV19()">📐 Layout Check</button>' +
+    '<button onclick="aiAssistV19()">🧠 AI Assist</button>' +
+    '<button class="gold" onclick="saveDraft()">💾 Save Draft</button>' +
+    '<button class="primary" onclick="issueDoc()">🚀 Issue / Send</button>' +
+    '<button onclick="startRevision()">✎ Start Revision</button>' +
+    '<button class="danger" onclick="deleteDraft()">🗑 Delete</button>' +
+    '</div></div></section>' +
+    '<section class="preview-card">' +
+    '<div class="preview-head"><div>▣ A4 Preview · Direct Input · Print</div>' +
+    '<div style="display:flex;align-items:center;gap:8px"><small id="dirtyLabel" style="color:var(--muted);font-size:11px"></small><button class="primary sm" onclick="printA4()">🖨 Print / PDF</button></div></div>' +
+    '<div class="paper-stage"><div id="a4preview"><div style="background:white;padding:20px;min-height:200px;text-align:center;color:#888;font-size:13px">Select a template and click Refresh A4</div></div></div>' +
+    '<div class="records" id="recordsPanel"></div>' +
+    '</section></div>';
+
+  renderPhaseTabs();
+  renderProjectsSelect();
+  renderTemplatesSelect();
+  updateIssuePanel();
+  if (currentTemplate) loadPreview();
+  else templateChanged();
+}
+
+async function reconnectAndWorkflow() {
+  await tryConnectPromise();
+  renderA4Workflow();
+}
+
+function renderPhaseTabs() {
+  var tabs = ['All', 'Pre-construction', 'Construction', 'Post-construction'];
+  var el = document.getElementById('phaseTabs');
+  if (!el) return;
+  el.innerHTML = tabs.map(function(t) {
+    return '<button class="' + (t === phaseFilter ? 'active' : '') + '" onclick="setPhase(\'' + t + '\')">' + esc(t) + '</button>';
+  }).join('');
+}
+
+function setPhase(p) {
+  phaseFilter = p;
+  renderPhaseTabs();
+  renderTemplatesSelect();
+  templateChanged();
+}
+
+function renderProjectsSelect() {
+  var sel = document.getElementById('projectSelect');
+  if (!sel) return;
+  sel.innerHTML = (APP.projects || []).map(function(p) {
+    return '<option value="' + esc(p.ProjectCode) + '">' + esc(p.ProjectCode) + ' — ' + esc(p.ProjectName) + '</option>';
+  }).join('');
+  if (APP.activeProjectCode) sel.value = APP.activeProjectCode;
+}
+
+function renderTemplatesSelect() {
+  var sel = document.getElementById('templateSelect');
+  if (!sel) return;
+  var list = (APP.templates || []).filter(function(t) {
+    return phaseFilter === 'All' || String(t.DocCategory || '') === phaseFilter;
+  });
+  sel.innerHTML = list.length
+    ? list.map(function(t) { return '<option value="' + esc(t.TemplateCode) + '">' + esc(t.TemplateCode) + ' — ' + esc(t.TemplateName) + '</option>'; }).join('')
+    : '<option value="">— No templates loaded (reconnect) —</option>';
+}
+
+async function projectChanged() { await loadPreview(); }
+
+async function templateChanged() {
+  var code = document.getElementById('templateSelect') && document.getElementById('templateSelect').value;
+  currentTemplate = (APP.templates || []).find(function(t) { return t.TemplateCode === code; }) || null;
+  if (!currentRecord) currentData = {};
+  await loadPreview();
+}
+
+function newDraft(doPreview) {
+  currentRecord = null;
+  currentData = {};
+  updateIssuePanel();
+  if (doPreview !== false) loadPreview();
+}
+
+function updateIssuePanel() {
+  var get = function(id) { return document.getElementById(id); };
+  if (!get('statusPill')) return;
+  get('statusPill').textContent = (currentRecord && currentRecord.Status) || 'Draft / Not Issued';
+  get('docNo').textContent = (currentRecord && currentRecord.DocumentNo) || 'Not issued – suffix XXX';
+  get('issueNo').textContent = (currentRecord && currentRecord.IssueNo) || 'XXX';
+  get('revNo').textContent = (currentRecord && currentRecord.RevisionNo) || '00';
+  get('formId').textContent = (currentRecord && currentRecord.FormRecordId) || 'Not saved yet';
+}
+
+function setDirty(v) {
+  dirty = !!v;
+  var el = document.getElementById('dirtyLabel');
+  if (el) el.textContent = dirty ? '● Unsaved changes' : '';
+}
+
+async function loadPreview() {
+  var previewEl = document.getElementById('a4preview');
+  if (!previewEl) return;
+  if (!currentTemplate) {
+    previewEl.innerHTML = '<div style="background:white;padding:20px;text-align:center;color:#888;font-size:13px">Select a template to see the A4 preview</div>';
+    return;
+  }
+  if (!serverConnected) {
+    previewEl.innerHTML = '<div style="background:white;padding:20px;text-align:center;color:#888;font-size:13px">Server not connected — cannot render A4. Click Reconnect in the sidebar.</div>';
+    return;
+  }
+  try {
+    var projectCode = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
+    var html = await server('apiPreviewHtml', [currentTemplate.TemplateCode, projectCode, JSON.stringify(currentData || {}), { editable: true, record: currentRecord || {} }]);
+    previewEl.innerHTML = html;
+    bindA4Inputs();
+    updateIssuePanel();
+  } catch (e) {
+    previewEl.innerHTML = '<div style="background:white;padding:20px;color:#bd5757;font-size:12px"><b>Preview error</b><br>' + esc((e && e.message) || e) + '</div>';
+  }
+}
+
+function bindA4Inputs() {
+  document.querySelectorAll('#a4preview input,#a4preview textarea,#a4preview select,#a4preview [contenteditable=\"true\"]').forEach(function(el) {
+    el.addEventListener('input', function() { setDirty(true); });
+    el.addEventListener('change', function() { setDirty(true); });
+    if (el.getAttribute && el.getAttribute('contenteditable') === 'true') {
+      el.addEventListener('paste', function(e) {
+        e.preventDefault();
+        var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, text);
+      });
+      el.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); document.execCommand('insertText', false, ' '); }
+      });
+    }
+  });
+}
+
+function a4Value(el) {
+  if (!el) return '';
+  if (el.getAttribute && el.getAttribute('contenteditable') === 'true') {
+    return (el.innerText || el.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+$/g, '').replace(/^\s+$/g, '');
+  }
+  return el.value || '';
+}
+
+function collectA4() {
+  var data = Object.assign({}, currentData || {});
+  document.querySelectorAll('#a4preview [data-field]').forEach(function(el) {
+    data[el.getAttribute('data-field')] = a4Value(el);
+  });
+  var arrays = {};
+  document.querySelectorAll('#a4preview [data-array]').forEach(function(el) {
+    var arrName = el.getAttribute('data-array');
+    var idx = Number(el.getAttribute('data-index'));
+    var key = el.getAttribute('data-key');
+    if (!arrays[arrName]) arrays[arrName] = [];
+    if (!arrays[arrName][idx]) arrays[arrName][idx] = {};
+    arrays[arrName][idx][key] = a4Value(el);
+  });
+  Object.keys(arrays).forEach(function(k) { data[k] = JSON.stringify(arrays[k].filter(function(x) { return x; })); });
+  currentData = data;
+  return data;
+}
+
+async function saveDraft() {
+  if (!currentTemplate) { toast('Select a template first'); return; }
+  var data = collectA4();
+  var projectCode = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
+  try {
+    currentRecord = await server('apiSaveDraft', [currentTemplate.TemplateCode, projectCode, JSON.stringify(data), (currentRecord && currentRecord.FormRecordId) || '']);
+    updateIssuePanel();
+    setDirty(false);
+    toast('Draft saved');
+  } catch (e) { toast('Save failed: ' + ((e && e.message) || e)); }
+}
+
+function normalizeServerPayload(res) {
+  if (res === null || res === undefined) return null;
+  if (typeof res === 'string') {
+    try { return JSON.parse(res); } catch(e) { return { ok:false, message:res }; }
+  }
+  return res;
+}
+
+async function issueDoc() {
+  if (!currentTemplate) { toast('Select a template first'); return; }
+  var data = collectA4();
+  var projectCode = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
+  try {
+    toast('Issuing document number…');
+    var raw = await server('apiIssueRecord', [currentTemplate.TemplateCode, projectCode, JSON.stringify(data), (currentRecord && currentRecord.FormRecordId) || '']);
+    var r = normalizeServerPayload(raw);
+    if (!r || !r.record) {
+      // Defensive fallback for old deployments that write the row but return an empty payload.
+      try {
+        var latest = normalizeServerPayload(await server('apiFindLatestIssuedRecordV10', [currentTemplate.TemplateCode, projectCode]));
+        if (latest && latest.record) r = { ok:true, record: latest.record };
+      } catch(fallbackErr) {}
+    }
+    if (!r || !r.record) {
+      throw new Error('Server returned empty issue result. Please deploy Code.gs V10 as a New version, then refresh the WebApp.');
+    }
+    currentRecord = r.record;
+    try { currentData = JSON.parse(currentRecord.DataJson || '{}') || data; } catch(parseErr) { currentData = data; }
+    updateIssuePanel();
+    setDirty(false);
+    toast('Issued: ' + (currentRecord.DocumentNo || r.documentNo || 'Completed'));
+    await loadPreview();
+  } catch (e) { toast('Issue failed: ' + ((e && e.message) || e)); }
+}
+
+async function startRevision() {
+  if (!currentRecord || !currentRecord.FormRecordId) { toast('No issued record selected'); return; }
+  var reason = document.getElementById('revisionReason') ? document.getElementById('revisionReason').value.trim() : '';
+  if (!reason) { toast('Revision reason is required'); return; }
+  try {
+    currentRecord = await server('apiStartRevision', [currentRecord.FormRecordId, reason]);
+    updateIssuePanel();
+    setDirty(true);
+    toast('Revision started');
+  } catch (e) { toast('Revision failed: ' + ((e && e.message) || e)); }
+}
+
+async function deleteDraft() {
+  if (!currentRecord || !currentRecord.FormRecordId) { newDraft(); toast('Cleared'); return; }
+  if (!confirm('Delete this draft?')) return;
+  try {
+    await server('apiDeleteRecord', ['FORM_RECORDS', currentRecord.FormRecordId, 'Deleted from A4 workflow']);
+    newDraft();
+    toast('Deleted');
+  } catch (e) { toast('Delete failed: ' + ((e && e.message) || e)); }
+}
+
+function printA4() {
+  try { collectA4(); } catch(e) {}
+  document.body.classList.add('printing-a4');
+  setTimeout(function(){ window.print(); }, 80);
+}
+window.addEventListener('afterprint', function(){ document.body.classList.remove('printing-a4'); });
+
+/* ─── A4 row helpers (called from rendered HTML) ─────────── */
+function a4AddRow(arrName, idx) {
+  var data = collectA4();
+  var arr = parseArr(data[arrName]);
+  var sample = arr[idx] || arr[0] || {};
+  var empty = {};
+  Object.keys(sample).forEach(function(k) { empty[k] = ''; });
+  arr.splice(idx + 1, 0, empty);
+  data[arrName] = JSON.stringify(arr);
+  currentData = data;
+  loadPreview();
+}
+
+function a4DeleteRow(arrName, idx) {
+  var data = collectA4();
+  var arr = parseArr(data[arrName]);
+  if (arr.length > 1) arr.splice(idx, 1);
+  data[arrName] = JSON.stringify(arr);
+  currentData = data;
+  loadPreview();
+}
+
+function a4MoveRow(arrName, idx, delta) {
+  var data = collectA4();
+  var arr = parseArr(data[arrName]);
+  var ni = idx + delta;
+  if (ni < 0 || ni >= arr.length) return;
+  var item = arr.splice(idx, 1)[0];
+  arr.splice(ni, 0, item);
+  data[arrName] = JSON.stringify(arr);
+  currentData = data;
+  loadPreview();
+}
+
+function a4PickPhoto(idx) {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = function() {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function() {
+      var data = collectA4();
+      var arr = parseArr(data.PhotoItemsJson);
+      while (arr.length <= idx) arr.push({ ItemNo: '', Description: '', Note: '', ImageKey: '', ImageData: '' });
+      arr[idx].ImageData = String(reader.result || '');
+      arr[idx].ImageKey = '';
+      data.PhotoItemsJson = JSON.stringify(arr);
+      currentData = data;
+      setDirty(true);
+      loadPreview();
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function a4ClearPhoto(idx) {
+  var data = collectA4();
+  var arr = parseArr(data.PhotoItemsJson);
+  if (arr[idx]) { arr[idx].ImageData = ''; arr[idx].ImageKey = ''; }
+  data.PhotoItemsJson = JSON.stringify(arr);
+  currentData = data;
+  setDirty(true);
+  loadPreview();
+}
+
+function parseArr(v) { try { return JSON.parse(v || '[]') || []; } catch (e) { return []; } }
+
+async function openA4Record(id) {
+  if (current !== 'A4_WORKFLOW') { renderA4Workflow(); await new Promise(function(r) { setTimeout(r, 200); }); }
+  try {
+    var r = await server('apiOpenA4Record', [id, true]);
+    currentRecord = r.record;
+    currentTemplate = r.template;
+    var sel = document.getElementById('templateSelect');
+    if (sel) sel.value = r.record.TemplateCode;
+    currentData = parseArr(r.record.DataJson) instanceof Array ? {} : (JSON.parse(r.record.DataJson || '{}') || {});
+    try { currentData = JSON.parse(r.record.DataJson || '{}') || {}; } catch (e) { currentData = {}; }
+    document.getElementById('a4preview').innerHTML = r.html;
+    bindA4Inputs();
+    updateIssuePanel();
+    toast('Opened: ' + (r.record.DocumentNo || id));
+  } catch (e) { toast('Open failed: ' + ((e && e.message) || e)); }
+}
+
+async function showRecordsPanel(table) {
+  try {
+    var r = await server('apiGetTable', [table, { maxRows: 200 }]);
+    var panel = document.getElementById('recordsPanel');
+    if (panel) { panel.classList.add('open'); panel.innerHTML = '<b>' + esc(table) + '</b>' + tableHtml(table, r.headers, r.rows); }
+  } catch (e) { toast('Load failed: ' + ((e && e.message) || e)); }
+}
+
+/* ─── Health check ───────────────────────────────────────── */
+async function healthCheck() {
+  try {
+    var r = await serverT('apiDocumentModuleV8Health', [], 12000);
+    openModal('V8 Health Check', '<pre style="white-space:pre-wrap;font-size:11px">' + esc(JSON.stringify(r, null, 2)) + '</pre>');
+  } catch (e) {
+    openModal('Health Check — Server Error',
+      '<div class="server-banner"><b>Cannot reach server</b><pre>' + esc((e && e.message) || e) + '</pre>' +
+      '<div style="margin-top:8px;color:#6b7f90;font-size:12px">Steps to fix:<br>' +
+      '1. Replace Code.gs with the V8 Code.gs<br>' +
+      '2. Replace Index.html with this V8 Index.html<br>' +
+      '3. Click Save in Apps Script editor<br>' +
+      '4. Deploy → Manage deployments → Edit → New version → Deploy<br>' +
+      '5. Refresh this page</div></div>');
+  }
+}
+
+/* ─── Utilities ──────────────────────────────────────────── */
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(m) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+  });
+}
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2800);
+}
+
+function openModal(title, html) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+
+
+/* ─── V19 Smart Document Engine client patch ───────────────── */
+function currentProjectCodeV19() {
+  var el = document.getElementById('projectSelect');
+  return el ? el.value : '';
+}
+
+function currentFormRecordIdV19() {
+  return (currentRecord && currentRecord.FormRecordId) || '';
+}
+
+async function validateDocV19(showOk) {
+  if (!currentTemplate) { toast('Select a template first'); return null; }
+  var data = collectA4();
+  try {
+    var res = await server('apiValidateDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
+    if (showOk !== false) renderV19ReportModal('V19 Validation Result', res);
+    if (!res.ok) toast('Validation found required issues');
+    else if (res.warnings && res.warnings.length) toast('Validation passed with warnings');
+    else toast('Validation passed');
+    return res;
+  } catch (e) {
+    toast('Validation failed: ' + ((e && e.message) || e));
+    return null;
+  }
+}
+
+async function layoutCheckV19() {
+  if (!currentTemplate) { toast('Select a template first'); return; }
+  var data = collectA4();
+  try {
+    var res = await server('apiA4LayoutQaV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
+    renderV19ReportModal('V19 A4 Layout Check', res);
+    toast('Layout check completed');
+  } catch (e) { toast('Layout check failed: ' + ((e && e.message) || e)); }
+}
+
+async function aiAssistV19() {
+  if (!currentTemplate) { toast('Select a template first'); return; }
+  var data = collectA4();
+  try {
+    toast('AI Assist reviewing document…');
+    var res = await server('apiAIAssistDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), 'review']);
+    renderV19AssistModal(res);
+    toast('AI Assist completed');
+  } catch (e) { toast('AI Assist failed: ' + ((e && e.message) || e)); }
+}
+
+function renderV19ReportModal(title, res) {
+  res = res || {};
+  var html = '';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">' +
+    '<div class="readbox"><b>Status</b><span>' + esc(res.ok ? 'OK' : 'Need Fix') + '</span></div>' +
+    '<div class="readbox"><b>Can Issue</b><span>' + esc(res.canIssue === false ? 'No' : 'Yes') + '</span></div>' +
+    '<div class="readbox"><b>Pages</b><span>' + esc(res.metrics && res.metrics.totalPages || '-') + '</span></div>' +
+    '</div>';
+  html += v19ListBlock('Errors', res.errors, '#fff1f1');
+  html += v19ListBlock('Warnings', res.warnings, '#fff9e8');
+  html += v19ListBlock('Info', res.info, '#eef8ff');
+  if (res.metrics) html += '<h4>Pagination</h4><pre style="white-space:pre-wrap;font-size:11px;background:#f7fafc;border:1px solid #dbe7ef;border-radius:10px;padding:10px">' + esc(JSON.stringify(res.metrics, null, 2)) + '</pre>';
+  openModal(title, html);
+}
+
+function renderV19AssistModal(res) {
+  var s = (res && res.suggestions) || {};
+  var html = '<div class="server-banner" style="margin-bottom:10px"><b>AI Assist Layer</b><br>' +
+    'Mode: ' + esc(res.aiMode || 'local') + ' · Client status: <b>' + esc(s.suggestedClientStatus || '-') + '</b></div>';
+  html += '<h4>Suggested Remarks</h4><div class="readbox"><span>' + esc(s.suggestedRemarks || '-') + '</span></div>';
+  html += v19ListBlock('Suggested Linked Modules', s.suggestedLinkedModules, '#eef8ff');
+  html += v19ListBlock('Missing / Review Items', s.missingInformationSummary, '#fff9e8');
+  html += v19ListBlock('Wording Suggestions', s.wordingSuggestions, '#f4f7fb');
+  html += v19ListBlock('Next Actions', s.nextActions, '#eefbf3');
+  openModal('V19 AI Assist', html);
+}
+
+function v19ListBlock(title, items, bg) {
+  items = (items || []).filter(function(x){ return String(x || '').trim() !== ''; });
+  if (!items.length) {
+    return '<h4 style="margin:10px 0 6px">' + esc(title) + '</h4><div style="background:' + bg + ';border:1px solid #dbe7ef;border-radius:10px;padding:10px;color:#557085">None</div>';
+  }
+  return '<h4 style="margin:10px 0 6px">' + esc(title) + '</h4><div style="background:' + bg + ';border:1px solid #dbe7ef;border-radius:10px;padding:10px"><ul style="margin:0;padding-left:18px">' +
+    items.map(function(x){ return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+}
+
+async function issueDoc() {
+  if (!currentTemplate) { toast('Select a template first'); return; }
+  var data = collectA4();
+  var projectCode = currentProjectCodeV19();
+  try {
+    toast('Validating before issue…');
+    var validation = await server('apiValidateDocumentV19', [currentTemplate.TemplateCode, projectCode, JSON.stringify(data), currentFormRecordIdV19()]);
+    if (validation && validation.canIssue === false) {
+      renderV19ReportModal('Cannot Issue — Validation Required', validation);
+      toast('Issue blocked by validation');
+      return;
+    }
+    toast('Issuing document number…');
+    var raw = await server('apiIssueRecord', [currentTemplate.TemplateCode, projectCode, JSON.stringify(data), currentFormRecordIdV19()]);
+    var r = normalizeServerPayload(raw);
+    if (!r || !r.record) {
+      try {
+        var latest = normalizeServerPayload(await server('apiFindLatestIssuedRecordV10', [currentTemplate.TemplateCode, projectCode]));
+        if (latest && latest.record) r = { ok:true, record: latest.record };
+      } catch(fallbackErr) {}
+    }
+    if (!r || !r.record) throw new Error('Server returned empty issue result. Please deploy Code.gs V19 as a New version, then refresh the WebApp.');
+    currentRecord = r.record;
+    try { currentData = JSON.parse(currentRecord.DataJson || '{}') || data; } catch(parseErr) { currentData = data; }
+    updateIssuePanel();
+    setDirty(false);
+    toast('Issued: ' + (currentRecord.DocumentNo || r.documentNo || 'Completed'));
+    await loadPreview();
+  } catch (e) { toast('Issue failed: ' + ((e && e.message) || e)); }
+}
+
+/* ─── Start ──────────────────────────────────────────────── */
+boot();
+</script>
+</body>
+</html>
