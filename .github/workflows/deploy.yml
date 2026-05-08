@@ -20,116 +20,11 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Apply V22 English UI runner patch
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          pairs = {
-            '<title>AETERLINK Documentation Control V10</title>':'<title>AETERLINK Documentation Control V22</title>',
-            'V19 Smart Engine · Loading...':'V22 English UI · Loading...',
-            'V16 — offline (server not connected)':'V22 — offline (server not connected)',
-            "All: 'เอกสารทั้งหมด'":"All: 'All documents'",
-            "'01_INITIATION': '1. เริ่มโครงการ / รับมอบจากฝ่ายขาย'":"'01_INITIATION': '1. Project Start / Sales Handover'",
-            "'02_PLANNING': '2. วางแผนโครงการ / ควบคุมโครงการ'":"'02_PLANNING': '2. Project Planning / Control'",
-            "'03_DESIGN': '3. Design & Engineering / เอกสารขออนุมัติ'":"'03_DESIGN': '3. Design & Engineering / Approval Documents'",
-            "'07_HANDOVER': '7. Handover / Closeout / ส่งมอบงาน'":"'07_HANDOVER': '7. Handover / Closeout'",
-            "'08_WARRANTY': '8. Warranty / DLP / หลังส่งมอบ'":"'08_WARRANTY': '8. Warranty / DLP / Post-handover'",
-            'ใช้สำหรับแยกเอกสารตามลำดับงานตั้งแต่เริ่มโครงการ → วางแผน → ออกแบบ → จัดซื้อ → ติดตั้ง → ทดสอบ → ส่งมอบ → Warranty/DLP':'Used to group documents by project lifecycle: initiation → planning → design → procurement → installation → testing → handover → Warranty/DLP'
-          }
-          for name in ['Index.html','Code.gs']:
-            p = Path(name)
-            if not p.exists():
-              print(f"SKIP: {name} not found")
-              continue
-            s = p.read_text(encoding='utf-8')
-            changed = 0
-            for a,b in pairs.items():
-              if a in s:
-                s = s.replace(a,b)
-                changed += 1
-            s = s.replace('V21_DOCUMENT_LIFECYCLE_GROUPING','V22_ENGLISH_UI')
-            p.write_text(s, encoding='utf-8', newline='\n')
-            print(f"V22 patch: {name} — {changed} replacement(s)")
-          PY
+      - name: Apply V22 English UI patch
+        run: python3 scripts/patch_v22.py
 
       - name: Apply V23 A4 overflow and live layout check patch
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          p = Path('Index.html')
-          if not p.exists():
-            print("SKIP: Index.html not found")
-            exit(0)
-          s = p.read_text(encoding='utf-8')
-          patch = r'''
-
-/* V23_A4_OVERFLOW_GUARD: browser-accurate A4 fit and layout check. */
-function v23InstallA4CssGuard(){
-  if(document.getElementById('v23-a4-css-guard')) return;
-  var st=document.createElement('style'); st.id='v23-a4-css-guard';
-  st.textContent='\n#a4preview .a4-page{position:relative!important;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;box-sizing:border-box!important;overflow:hidden!important;}\n#a4preview .a4-page table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;}\n#a4preview .a4-page th,#a4preview .a4-page td{box-sizing:border-box!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;vertical-align:middle!important;line-height:1.14!important;padding:2.0mm 1.3mm!important;}\n#a4preview .a4-page tr{break-inside:avoid!important;page-break-inside:avoid!important;}\n#a4preview .a4-page .row-actions{display:flex!important;gap:2px!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:center!important;}\n#a4preview .a4-page .row-actions button{width:14px!important;height:14px!important;min-width:14px!important;padding:0!important;font-size:8px!important;line-height:12px!important;border-radius:3px!important;}\n#a4preview .a4-page .v23-a4-fit-wrap{transform-origin:top left!important;}\n#a4preview .a4-page[data-v23-fit="scaled"]:after{content:"A4 auto-fit";position:absolute;right:6mm;bottom:3mm;font-size:6px;color:#9aa;display:none;}\n@media print{#a4preview .a4-page .row-actions,#a4preview .a4-page .photo-actions,#a4preview .a4-page th:last-child,#a4preview .a4-page td:last-child{display:none!important;}#a4preview .a4-page{overflow:hidden!important;break-after:page!important;page-break-after:always!important;}}\n';
-  document.head.appendChild(st);
-}
-function v23A4FitPage(page){
-  if(!page || !page.clientHeight) return null;
-  var footer=page.querySelector('.a4-footer,[class*="footer"]');
-  var wrap=page.querySelector(':scope > .v23-a4-fit-wrap');
-  if(!wrap){
-    wrap=document.createElement('div'); wrap.className='v23-a4-fit-wrap';
-    Array.from(page.childNodes).forEach(function(n){ if(n!==footer) wrap.appendChild(n); });
-    page.insertBefore(wrap, footer || null);
-  }
-  wrap.style.transform='scale(1)'; wrap.style.width='100%';
-  var reserve=(footer?footer.offsetHeight:10)+10;
-  var target=Math.max(80,page.clientHeight-reserve);
-  var actual=wrap.scrollHeight;
-  var scale=actual>target?Math.max(0.82,Math.min(1,target/actual)):1;
-  if(scale<1){wrap.style.transform='scale('+scale+')';wrap.style.width=(100/scale)+'%';page.dataset.v23Fit='scaled';}
-  else page.dataset.v23Fit='ok';
-  return {page:0,target:Math.round(target),actual:Math.round(actual),scale:Number(scale.toFixed(3)),status:actual>target?'AUTO-FIT':'OK'};
-}
-function v23A4LayoutGuard(){
-  v23InstallA4CssGuard();
-  setTimeout(function(){document.querySelectorAll('#a4preview .a4-page').forEach(v23A4FitPage);},80);
-}
-function v23A4LiveLayoutReport(){
-  v23InstallA4CssGuard();
-  var rows=[]; document.querySelectorAll('#a4preview .a4-page').forEach(function(p,i){var r=v23A4FitPage(p)||{}; r.page=i+1; rows.push(r);});
-  var bad=rows.filter(function(r){return r.status!=='OK';}).length;
-  var html='<div class="hint" style="margin-bottom:10px"><b>Live A4 layout check:</b> '+(bad?'Auto-fit applied on '+bad+' page(s).':'All visible pages fit within A4 height.')+'<br><span style="color:#6b7f90">This check uses actual browser page height, not only row estimates.</span></div>';
-  html+='<pre style="white-space:pre-wrap;background:#f7fbfd;border:1px solid #dbe9f0;border-radius:12px;padding:12px">'+esc(JSON.stringify(rows,null,2))+'</pre>';
-  return html;
-}
-'''
-          changed = []
-          if 'V23_A4_OVERFLOW_GUARD' not in s:
-            if '\nboot();' in s:
-              s = s.replace('\nboot();', patch + '\nboot();')
-              changed.append('injected V23 functions before boot()')
-            else:
-              print("WARNING: boot() not found — V23 functions not injected")
-          else:
-            print("V23 functions already present, skipping injection")
-
-          old_catch = 'updateIssueBoxes();\n  } catch(e)'
-          new_catch = 'updateIssueBoxes();\n    v23A4LayoutGuard();\n  } catch(e)'
-          if old_catch in s:
-            s = s.replace(old_catch, new_catch)
-            changed.append('patched updateIssueBoxes catch block')
-          else:
-            print("WARNING: updateIssueBoxes catch pattern not found — skipped")
-
-          old_modal = "openModal('Layout / Pagination Check', '<pre"
-          new_modal = "openModal('Layout / Pagination Check', v23A4LiveLayoutReport() + '<pre"
-          if old_modal in s:
-            s = s.replace(old_modal, new_modal)
-            changed.append('patched Layout/Pagination modal')
-          else:
-            print("WARNING: Layout/Pagination Check modal pattern not found — skipped")
-
-          p.write_text(s, encoding='utf-8', newline='\n')
-          print(f"V23 patch complete: {', '.join(changed) if changed else 'nothing changed'}")
-          PY
+        run: python3 scripts/patch_v23.py
 
       - name: Install clasp
         run: npm install -g @google/clasp
@@ -140,11 +35,9 @@ function v23A4LiveLayoutReport(){
           test -s ~/.clasprc.json
 
       - name: Create clasp config
-        # BUG FIX: Use printf instead of heredoc to avoid leading-whitespace corruption in .clasp.json
         run: |
           printf '{\n  "scriptId": "%s",\n  "rootDir": "."\n}\n' "${{ secrets.SCRIPT_ID }}" > .clasp.json
-          echo "clasp.json contents:"
-          cat .clasp.json
+          echo "=== .clasp.json ===" && cat .clasp.json
 
       - name: Push code to Apps Script
         run: clasp --user default push --force
