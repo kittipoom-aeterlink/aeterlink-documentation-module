@@ -6,6 +6,13 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  BUILD_TIMESTAMP: ${{ github.run_id }}-${{ github.run_attempt }}
+
 jobs:
   deploy:
     name: Push and Deploy to Apps Script
@@ -15,29 +22,80 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
+      - name: Show build context
+        run: |
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch ref: $GITHUB_REF"
+          echo "Commit SHA: $GITHUB_SHA"
+          echo "Actor: $GITHUB_ACTOR"
+          echo "Build timestamp UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "Workflow run: $GITHUB_RUN_ID / attempt $GITHUB_RUN_ATTEMPT"
+
+      - name: Validate repository structure
+        run: |
+          test -f appsscript.json
+          test -f Code.gs
+          test -f Index.html
+          test -f Api.gs
+          test -f DataAccess.gs
+          test -f DocumentNumbering.gs
+          test -f PdfService.gs
+          test -f Styles.html
+          test -f Client_App.html
+          test -f A4_Layout.html
+          test -f Templates_WCR.html
+          test -f Templates_Checklist.html
+          echo "Apps Script files found:"
+          find . -maxdepth 1 \( -name '*.gs' -o -name '*.html' -o -name 'appsscript.json' \) -print | sort
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install clasp
-        run: npm install -g @google/clasp
+        run: |
+          npm install -g @google/clasp
+          clasp --version
+
+      - name: Validate required secrets
+        run: |
+          test -n "${{ secrets.CLASPRC_JSON_B64 }}"
+          test -n "${{ secrets.SCRIPT_ID }}"
+          test -n "${{ secrets.DEPLOYMENT_ID }}"
+          echo "Required secrets are configured."
+          echo "Apps Script project URL: https://script.google.com/d/${{ secrets.SCRIPT_ID }}/edit"
+          echo "Deployment ID is configured and will be used for existing deployment update."
 
       - name: Restore clasp credentials
         run: |
           echo "${{ secrets.CLASPRC_JSON_B64 }}" | base64 -d > ~/.clasprc.json
           test -s ~/.clasprc.json
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME + '/.clasprc.json','utf8')); console.log('clasp credentials JSON is valid')"
 
       - name: Create clasp config
         run: |
           printf '{\n  "scriptId": "%s",\n  "rootDir": "."\n}\n' "${{ secrets.SCRIPT_ID }}" > .clasp.json
-          cat .clasp.json
+          test -s .clasp.json
+          node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('.clasp.json','utf8')); if(!c.scriptId||c.rootDir!=='.') throw new Error('Invalid .clasp.json'); console.log('clasp config is valid; rootDir=' + c.rootDir);"
 
       - name: Push code to Apps Script
-        run: clasp --user default push --force
+        run: |
+          clasp --user default push --force
 
       - name: Deploy to existing Web App deployment
         run: |
           clasp --user default deploy \
             --deploymentId "${{ secrets.DEPLOYMENT_ID }}" \
             --description "Auto deploy from GitHub Actions - $GITHUB_SHA"
+
+      - name: Post-deploy summary
+        if: always()
+        run: |
+          echo "Deployment summary"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Commit SHA: $GITHUB_SHA"
+          echo "Build timestamp UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "Apps Script project URL: https://script.google.com/d/${{ secrets.SCRIPT_ID }}/edit"
+          echo "Existing deployment ID was used via --deploymentId."
