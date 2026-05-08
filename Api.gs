@@ -10,6 +10,12 @@
  * ============================================================
  */
 
+// Centralized app metadata (used by client UI via AETERLINK_API.init)
+var DMS = {
+  name: 'AETERLINK Documentation Control',
+  version: 'V25 — English UI'
+};
+
 var AETERLINK_API = (function() {
   function init() {
     return {
