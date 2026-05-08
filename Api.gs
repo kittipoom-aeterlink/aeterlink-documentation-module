@@ -11,7 +11,7 @@
  */
 
 var AETERLINK_BUILD = {
-  APP_VERSION: 'AETERLINK_DOCS_MODULAR_2026_05_08_R01',
+  APP_VERSION: 'AETERLINK_DOCS_MODULAR_2026_05_08_R02',
   BUILD_TIMESTAMP: '2026-05-08T00:00:00Z',
   SOURCE_BRANCH: 'main',
   DEPLOYMENT_MODE: 'GitHub Actions + clasp existing deployment',
@@ -89,6 +89,27 @@ var AETERLINK_API = (function() {
     return HtmlService.createHtmlOutputFromFile(fileName).getContent();
   }
 
+  function htmlOutput(fileName, title) {
+    return HtmlService
+      .createTemplateFromFile(fileName)
+      .evaluate()
+      .setTitle(title || 'AETERLINK Documentation Control')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
+  function routeWebApp(e) {
+    var params = (e && e.parameter) ? e.parameter : {};
+    var view = String(params.view || '').toLowerCase();
+    var modular = String(params.modular || '').toLowerCase();
+    var useModular = view === 'modular' || modular === '1' || modular === 'true';
+
+    if (useModular) {
+      return htmlOutput('Index_Modular', 'AETERLINK Documentation Control — Modular Test');
+    }
+
+    return htmlOutput('Index', 'AETERLINK Documentation Control');
+  }
+
   function activeUser() {
     var email = '';
     try {
@@ -108,9 +129,20 @@ var AETERLINK_API = (function() {
     buildInfo: buildInfo,
     getCounts: getCounts,
     include: include,
+    htmlOutput: htmlOutput,
+    routeWebApp: routeWebApp,
     activeUser: activeUser
   };
 })();
+
+/**
+ * Controlled WebApp entry point.
+ * - Default: existing Index.html
+ * - Test modular page: ?view=modular or ?modular=1
+ */
+function doGet(e) {
+  return AETERLINK_API.routeWebApp(e);
+}
 
 /**
  * Global Apps Script helper for future HTML partial templates:
