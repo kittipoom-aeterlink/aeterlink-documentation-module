@@ -11,11 +11,17 @@
  */
 
 var AETERLINK_BUILD = {
-  APP_VERSION: 'AETERLINK_DOCS_MODULAR_2026_05_08_R02',
+  APP_VERSION: 'AETERLINK_DOCS_MODULAR_2026_05_08_R03',
   BUILD_TIMESTAMP: '2026-05-08T00:00:00Z',
   SOURCE_BRANCH: 'main',
   DEPLOYMENT_MODE: 'GitHub Actions + clasp existing deployment',
   STRUCTURE_VERSION: 'ROOT_LEVEL_MODULAR_APPS_SCRIPT'
+};
+
+var AETERLINK_ROUTER = {
+  DEFAULT_VIEW_PROPERTY_KEY: 'AETERLINK_WEBAPP_DEFAULT_VIEW',
+  LEGACY_VIEW: 'legacy',
+  MODULAR_VIEW: 'modular'
 };
 
 // Keep DMS compatible with legacy Code.gs while preserving any existing fields.
@@ -38,6 +44,7 @@ var AETERLINK_API = (function() {
       ok: true,
       connected: true,
       build: buildInfo(),
+      routing: routingInfo(),
       appName: typeof DMS !== 'undefined' && DMS.name ? DMS.name : 'AETERLINK Documentation Control',
       version: typeof DMS !== 'undefined' && DMS.version ? DMS.version : AETERLINK_BUILD.APP_VERSION,
       serverTime: new Date().toISOString(),
@@ -53,6 +60,7 @@ var AETERLINK_API = (function() {
       ok: true,
       connected: true,
       build: buildInfo(),
+      routing: routingInfo(),
       spreadsheetId: ss ? ss.getId() : '',
       spreadsheetName: ss ? ss.getName() : '',
       serverTime: new Date().toISOString(),
@@ -99,15 +107,50 @@ var AETERLINK_API = (function() {
 
   function routeWebApp(e) {
     var params = (e && e.parameter) ? e.parameter : {};
-    var view = String(params.view || '').toLowerCase();
-    var modular = String(params.modular || '').toLowerCase();
-    var useModular = view === 'modular' || modular === '1' || modular === 'true';
+    var requestedView = normalizeView(params.view || params.modular);
+    var effectiveView = requestedView || getDefaultView();
 
-    if (useModular) {
+    if (effectiveView === AETERLINK_ROUTER.MODULAR_VIEW) {
       return htmlOutput('Index_Modular', 'AETERLINK Documentation Control — Modular Test');
     }
 
     return htmlOutput('Index', 'AETERLINK Documentation Control');
+  }
+
+  function normalizeView(value) {
+    value = String(value || '').trim().toLowerCase();
+    if (value === 'modular' || value === '1' || value === 'true') return AETERLINK_ROUTER.MODULAR_VIEW;
+    if (value === 'legacy' || value === '0' || value === 'false') return AETERLINK_ROUTER.LEGACY_VIEW;
+    return '';
+  }
+
+  function getDefaultView() {
+    var stored = '';
+    try {
+      stored = PropertiesService.getScriptProperties().getProperty(AETERLINK_ROUTER.DEFAULT_VIEW_PROPERTY_KEY) || '';
+    } catch (err) {
+      stored = '';
+    }
+    return normalizeView(stored) || AETERLINK_ROUTER.LEGACY_VIEW;
+  }
+
+  function setDefaultView(view) {
+    var normalized = normalizeView(view);
+    if (!normalized) throw new Error('Invalid default WebApp view: ' + view);
+    PropertiesService.getScriptProperties().setProperty(AETERLINK_ROUTER.DEFAULT_VIEW_PROPERTY_KEY, normalized);
+    return routingInfo();
+  }
+
+  function routingInfo() {
+    return {
+      defaultView: getDefaultView(),
+      propertyKey: AETERLINK_ROUTER.DEFAULT_VIEW_PROPERTY_KEY,
+      availableViews: [AETERLINK_ROUTER.LEGACY_VIEW, AETERLINK_ROUTER.MODULAR_VIEW],
+      testUrls: {
+        legacy: '?view=legacy',
+        modular: '?view=modular'
+      }
+    };
   }
 
   function activeUser() {
@@ -131,13 +174,18 @@ var AETERLINK_API = (function() {
     include: include,
     htmlOutput: htmlOutput,
     routeWebApp: routeWebApp,
+    normalizeView: normalizeView,
+    getDefaultView: getDefaultView,
+    setDefaultView: setDefaultView,
+    routingInfo: routingInfo,
     activeUser: activeUser
   };
 })();
 
 /**
  * Controlled WebApp entry point.
- * - Default: existing Index.html
+ * - Default view is stored in ScriptProperties, defaulting to legacy.
+ * - Force legacy: ?view=legacy
  * - Test modular page: ?view=modular or ?modular=1
  */
 function doGet(e) {
@@ -165,4 +213,19 @@ function apiBuildInfo() {
  */
 function apiModularHealth() {
   return AETERLINK_API.health();
+}
+
+/**
+ * Global endpoint for checking and controlling WebApp routing.
+ */
+function apiWebAppRoutingInfo() {
+  return AETERLINK_API.routingInfo();
+}
+
+function setWebAppDefaultViewLegacy() {
+  return AETERLINK_API.setDefaultView('legacy');
+}
+
+function setWebAppDefaultViewModular() {
+  return AETERLINK_API.setDefaultView('modular');
 }
