@@ -6557,3 +6557,152 @@ function apiDocumentModuleV21Health() {
   h.sheetChangeRequired = false;
   return h;
 }
+
+function apiInitV8() {
+  var startedAt = new Date();
+
+  var payload = {
+    ok: true,
+    connected: true,
+    serverTime: startedAt.toISOString(),
+    appName: typeof DMS !== 'undefined' && DMS.name ? DMS.name : 'AETERLINK Documentation Control',
+    title: typeof DMS !== 'undefined' && DMS.title ? DMS.title : 'Documents & Forms — A4 Workflow',
+    version: (typeof DMS !== 'undefined' && DMS.version ? DMS.version : 'V8_COMPAT') + ' + COMPAT_BOOT_2026_05_08',
+    timezone: typeof DMS !== 'undefined' && DMS.tz ? DMS.tz : Session.getScriptTimeZone(),
+    user: _apiCompatUser_(),
+    modules: typeof MODULES !== 'undefined' ? MODULES : {},
+    schema: typeof SCHEMA !== 'undefined' ? SCHEMA : {},
+    projects: [],
+    templates: [],
+    formTemplates: [],
+    records: [],
+    formRecords: [],
+    documentRegister: [],
+    clientSubmittals: [],
+    lists: [],
+    settings: {},
+    counts: {},
+    warnings: []
+  };
+
+  try {
+    payload.projects = _apiCompatReadRows_('PROJECTS');
+    payload.templates = _apiCompatActiveRows_('FORM_TEMPLATES');
+    payload.formTemplates = payload.templates;
+    payload.records = _apiCompatActiveRows_('FORM_RECORDS');
+    payload.formRecords = payload.records;
+    payload.documentRegister = _apiCompatActiveRows_('DOCUMENT_REGISTER');
+    payload.clientSubmittals = _apiCompatActiveRows_('CLIENT_SUBMITTALS');
+    payload.lists = _apiCompatActiveRows_('LISTS');
+    payload.settings = _apiCompatSettings_();
+
+    payload.counts = {
+      projects: payload.projects.length,
+      templates: payload.templates.length,
+      formRecords: payload.formRecords.length,
+      documentRegister: payload.documentRegister.length,
+      clientSubmittals: payload.clientSubmittals.length
+    };
+  } catch (err) {
+    payload.ok = false;
+    payload.connected = false;
+    payload.error = err && err.message ? err.message : String(err);
+    payload.warnings.push('apiInitV8 returned with a backend warning.');
+  }
+
+  return payload;
+}
+
+function apiHealthV8() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return {
+    ok: true,
+    connected: true,
+    appName: typeof DMS !== 'undefined' && DMS.name ? DMS.name : 'AETERLINK Documentation Control',
+    version: typeof DMS !== 'undefined' && DMS.version ? DMS.version : 'V8_COMPAT',
+    spreadsheetId: ss ? ss.getId() : '',
+    spreadsheetName: ss ? ss.getName() : '',
+    serverTime: new Date().toISOString(),
+    user: _apiCompatUser_()
+  };
+}
+
+function apiHealth() {
+  return apiHealthV8();
+}
+
+function _apiCompatReadRows_(sheetName) {
+  sheetName = String(sheetName || '').trim();
+  if (!sheetName) return [];
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) return [];
+
+  var sh = ss.getSheetByName(sheetName);
+  if (!sh) return [];
+
+  var values = sh.getDataRange().getDisplayValues();
+  if (!values || values.length < 2) return [];
+
+  var headers = values[0].map(function(h) {
+    return String(h || '').trim();
+  });
+
+  var rows = [];
+
+  for (var r = 1; r < values.length; r++) {
+    var obj = {};
+    var hasValue = false;
+
+    for (var c = 0; c < headers.length; c++) {
+      if (!headers[c]) continue;
+      obj[headers[c]] = values[r][c];
+      if (values[r][c] !== '') hasValue = true;
+    }
+
+    if (hasValue) rows.push(obj);
+  }
+
+  return rows;
+}
+
+function _apiCompatActiveRows_(sheetName) {
+  return _apiCompatReadRows_(sheetName).filter(function(row) {
+    var isDeleted = String(row.IsDeleted || '').toUpperCase();
+    var active = String(row.Active || '').toUpperCase();
+    return isDeleted !== 'TRUE' &&
+           isDeleted !== 'YES' &&
+           active !== 'FALSE' &&
+           active !== 'NO';
+  });
+}
+
+function _apiCompatSettings_() {
+  var rows = _apiCompatReadRows_('SETTINGS');
+  var settings = {};
+
+  rows.forEach(function(row) {
+    var key = String(row.Key || '').trim();
+    if (key) settings[key] = row.Value || '';
+  });
+
+  return settings;
+}
+
+function _apiCompatUser_() {
+  var email = '';
+
+  try {
+    email = Session.getActiveUser().getEmail() ||
+            Session.getEffectiveUser().getEmail() ||
+            '';
+  } catch (err) {
+    email = '';
+  }
+
+  return {
+    email: email,
+    displayName: email ? email.split('@')[0] : 'User',
+    role: 'User'
+  };
+}
