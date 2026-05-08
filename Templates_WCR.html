@@ -8,28 +8,27 @@
     sections:{documentInformation:'DOCUMENT INFORMATION',scopeStatus:'SCOPE OF WORK — COMPLETION STATUS',scopeContinued:'SCOPE OF WORK — CONTINUED',photoReport:'PHOTO REPORT',approval:'APPROVAL / ACCEPTANCE'},
     rules:{photosPerPage:2,hideActionColumnOnPrint:true,useMasterA4Layout:true,preventFooterOverlap:true,paginateScopeRows:true,continuedPageTitle:'SCOPE OF WORK — CONTINUED'},
     columns:{scope:[
-      {key:'Package',label:'Package',width:'17mm'},
-      {key:'Item',label:'Item',width:'13mm'},
-      {key:'WorkDescription',label:'Work Description',width:'48mm'},
-      {key:'Qty',label:'Qty.',width:'12mm'},
-      {key:'Unit',label:'Unit',width:'12mm'},
-      {key:'Status',label:'Status',width:'18mm'},
-      {key:'Remarks',label:'Remarks',width:'30mm'},
-      {key:'Action',label:'Action',width:'16mm'}
+      {key:'Package',label:'Package',width:'18mm'},
+      {key:'Item',label:'Item',width:'14mm'},
+      {key:'WorkDescription',label:'Work Description',width:'56mm'},
+      {key:'Qty',label:'Qty.',width:'13mm'},
+      {key:'Unit',label:'Unit',width:'13mm'},
+      {key:'Status',label:'Status',width:'23mm'},
+      {key:'Remarks',label:'Remarks',width:'52mm'}
     ],photos:[{key:'PhotoUrl',label:'Photo'},{key:'Caption',label:'Caption / Description'}]}
   };
   window.AETERLINK_TEMPLATES.WCR.sampleData=function(){return{ProjectCode:'TEST-PJ',ProjectName:'Modular A4 Layout Check',Client:'Sample Client',MainContractor:'AETERLINK',DocumentNo:'TEST-WCR-0001',RevisionNo:'R00',Status:'Draft',ContractNo:'-',PurchaseOrderNo:'-',WorkType:'Equipment Purchasing / Installation / Implementation / BMS',CompletionDate:'30 April 2026',ReferenceDocuments:'Equipment Checklist / Work Completion Evidence',Remarks:'Work completion data and photo evidence imported from the uploaded Work Completion Report workbook.',ScopeRows:[
-    {Package:'Step 1',Item:'A',WorkDescription:'Chiller',Qty:'',Unit:'',Status:'',Remarks:'',Action:''},
-    {Package:'Step 1',Item:'A.1',WorkDescription:'DDC',Qty:'1',Unit:'ea.',Status:'Done',Remarks:'',Action:''},
-    {Package:'Step 1',Item:'A.2',WorkDescription:'Piping and pressure gauge',Qty:'2',Unit:'ea.',Status:'Done',Remarks:'',Action:''},
-    {Package:'Step 1',Item:'A.3',WorkDescription:'Flow meter',Qty:'1',Unit:'ea.',Status:'Done',Remarks:'',Action:''},
-    {Package:'Step 1',Item:'A.4',WorkDescription:'Temperature sensor (Pipe surface)',Qty:'2',Unit:'ea.',Status:'Done',Remarks:'',Action:''},
-    {Package:'Step 1',Item:'B',WorkDescription:'Environment Sensor',Qty:'',Unit:'',Status:'',Remarks:'',Action:''},
-    {Package:'Step 1',Item:'B.1',WorkDescription:'Summit',Qty:'1',Unit:'ea.',Status:'Done',Remarks:'',Action:''},
-    {Package:'Step 1',Item:'B.2',WorkDescription:'PowerTX',Qty:'10',Unit:'ea.',Status:'Done',Remarks:'',Action:''},
-    {Package:'Step 1',Item:'B.3',WorkDescription:'Sense-T',Qty:'36',Unit:'ea.',Status:'Done',Remarks:'',Action:''},
-    {Package:'Step 1',Item:'B.4',WorkDescription:'Temperature and humidity sensor (Battery type)',Qty:'5',Unit:'ea.',Status:'Done',Remarks:'',Action:''},
-    {Package:'Step 1',Item:'B.5',WorkDescription:'Temperature and humidity gateway',Qty:'1',Unit:'ea.',Status:'Done',Remarks:'',Action:''}
-  ],Photos:[{PhotoUrl:'',Caption:'Photo 1 - work area before completion review'},{PhotoUrl:'',Caption:'Photo 2 - work area after completion review'}]};};
+    {Package:'Step 1',Item:'A',WorkDescription:'Chiller',Qty:'',Unit:'',Status:'',Remarks:''},
+    {Package:'Step 1',Item:'A.1',WorkDescription:'DDC',Qty:'1',Unit:'ea.',Status:'Done',Remarks:''},
+    {Package:'Step 1',Item:'A.2',WorkDescription:'Piping and pressure gauge',Qty:'2',Unit:'ea.',Status:'Done',Remarks:''},
+    {Package:'Step 1',Item:'A.3',WorkDescription:'Flow meter',Qty:'1',Unit:'ea.',Status:'Done',Remarks:''},
+    {Package:'Step 1',Item:'A.4',WorkDescription:'Temperature sensor (Pipe surface)',Qty:'2',Unit:'ea.',Status:'Done',Remarks:''},
+    {Package:'Step 1',Item:'B',WorkDescription:'Environment Sensor',Qty:'',Unit:'',Status:'',Remarks:''},
+    {Package:'Step 1',Item:'B.1',WorkDescription:'Summit',Qty:'1',Unit:'ea.',Status:'Done',Remarks:''},
+    {Package:'Step 1',Item:'B.2',WorkDescription:'PowerTX',Qty:'10',Unit:'ea.',Status:'Done',Remarks:''},
+    {Package:'Step 1',Item:'B.3',WorkDescription:'Sense-T',Qty:'36',Unit:'ea.',Status:'Done',Remarks:''},
+    {Package:'Step 1',Item:'B.4',WorkDescription:'Temperature and humidity sensor (Battery type)',Qty:'5',Unit:'ea.',Status:'Done',Remarks:''},
+    {Package:'Step 1',Item:'B.5',WorkDescription:'Temperature and humidity gateway',Qty:'1',Unit:'ea.',Status:'Done',Remarks:''}
+  ],Photos:[{PhotoUrl:'',ItemNo:'A.1',Description:'Photo 1 - work area before completion review',Note:''},{PhotoUrl:'',ItemNo:'A.2',Description:'Photo 2 - work area after completion review',Note:''}]};};
   window.AETERLINK_TEMPLATES.WCR.render=function(data,options){data=Object.assign(window.AETERLINK_TEMPLATES.WCR.sampleData(),data||{});options=options||{};var tpl=window.AETERLINK_TEMPLATES.WCR;var rows=data.ScopeRows||[];var html='';html+=AETERLINK_A4_RENDERER.page({title:tpl.title,subtitle:tpl.subtitle,documentNo:data.DocumentNo||'',revisionNo:data.RevisionNo||'0',status:data.Status||'Draft',data:data,content:AETERLINK_A4_RENDERER.documentInfo(data)+AETERLINK_A4_RENDERER.section(tpl.sections.scopeStatus)+AETERLINK_A4_RENDERER.table(tpl.columns.scope,rows,'a4-scope-table')});var photos=data.Photos||[];for(var i=0;i<photos.length;i+=tpl.rules.photosPerPage){html+=AETERLINK_A4_RENDERER.page({title:tpl.title,subtitle:tpl.subtitle,documentNo:data.DocumentNo||'',revisionNo:data.RevisionNo||'0',status:data.Status||'Draft',data:data,content:AETERLINK_A4_RENDERER.section(tpl.sections.photoReport)+AETERLINK_A4_RENDERER.photoGrid(photos.slice(i,i+tpl.rules.photosPerPage))});}return '<div class="a4-root a4-print-area" id="a4PrintArea">'+html+'</div>';};
 </script>
