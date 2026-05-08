@@ -1,0 +1,131 @@
+<!-- AETERLINK Documentation Module — A4_Production_Next.html -->
+<style id="a4-production-next-style">
+  .production-mode #view-documents>.mod-panel:first-child,
+  .production-mode #view-documents>.mod-panel:nth-child(2){display:none!important;}
+  .prod-paper-stage #a4Preview{min-width:210mm;margin:0 auto;}
+  .prod-inline-editor{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0;}
+  .prod-inline-editor button{border:1px solid var(--aeterlink-line);background:#fff;border-radius:9px;padding:6px 9px;cursor:pointer;font-size:12px;}
+  .prod-inline-editor button.primary{background:var(--aeterlink-primary);border-color:var(--aeterlink-primary);color:#fff;font-weight:800;}
+  #a4Preview [contenteditable="true"]{outline:0;cursor:text;}
+  #a4Preview [contenteditable="true"]:focus{box-shadow:inset 0 0 0 1.5px #4aa3d8;background:#f8fdff;}
+  #a4Preview .a4-scope-table{table-layout:fixed!important;width:100%!important;}
+  #a4Preview .a4-scope-table th,#a4Preview .a4-scope-table td{border:0!important;border-right:.18mm solid #666!important;border-bottom:.18mm solid #666!important;}
+  #a4Preview .a4-scope-table thead tr:first-child>*{border-top:.18mm solid #666!important;}
+  #a4Preview .a4-scope-table tr>*:first-child{border-left:.18mm solid #666!important;}
+  #a4Preview .a4-scope-table tr>*:last-child{border-right:.18mm solid #666!important;}
+  #a4Preview .a4-scope-table tbody tr:last-child>*{border-bottom:.18mm solid #666!important;}
+</style>
+<script id="a4-production-next-script">
+(function(){
+  function byId(id){return document.getElementById(id);}
+  function area(){return byId('a4Preview')||document;}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function msg(t){var e=byId('prodStatusMsg')||byId('saveStatus'); if(e)e.textContent=t;}
+  function normalizeBorders(){
+    var root=area();
+    root.querySelectorAll('table.a4-scope-table').forEach(function(table){
+      table.style.borderCollapse='separate'; table.style.borderSpacing='0'; table.style.tableLayout='fixed'; table.style.width='100%';
+      table.querySelectorAll('th,td').forEach(function(cell){cell.style.border='0';cell.style.borderRight='.18mm solid #666';cell.style.borderBottom='.18mm solid #666';cell.style.boxShadow='none';});
+      table.querySelectorAll('thead tr:first-child>*').forEach(function(cell){cell.style.borderTop='.18mm solid #666';});
+      table.querySelectorAll('tr>*:first-child').forEach(function(cell){cell.style.borderLeft='.18mm solid #666';});
+      table.querySelectorAll('tr>*:last-child').forEach(function(cell){cell.style.borderRight='.18mm solid #666';});
+      table.querySelectorAll('tbody tr:last-child>*').forEach(function(cell){cell.style.borderBottom='.18mm solid #666';});
+    });
+  }
+  function getRowsFromPreview(){
+    var table=area().querySelector('table.a4-scope-table');
+    if(!table||!table.tBodies[0])return null;
+    var heads=[].map.call(table.querySelectorAll('thead th'),function(th){return th.textContent.trim();});
+    if(!heads.length) heads=['Package','Item','WorkDescription','Qty','Unit','Status','Remarks'];
+    return [].map.call(table.tBodies[0].rows,function(tr){
+      var obj={};
+      [].forEach.call(tr.cells,function(td,i){
+        var h=heads[i]||('Col'+i);
+        var key=h.replace(/\s+/g,'').replace('Description','WorkDescription').replace('Qty.','Qty').replace('Remark','Remarks');
+        var sel=td.querySelector('select');
+        obj[key]=sel?sel.value:td.textContent.trim();
+      });
+      return obj;
+    });
+  }
+  function syncRowsToHidden(){var rows=getRowsFromPreview(); if(rows&&byId('fRows'))byId('fRows').value=JSON.stringify(rows,null,2);}
+  function makePreviewEditable(){
+    var root=area(); if(!root)return;
+    root.querySelectorAll('.a4-project-grid td,.a4-info-table td,.a4-meta-row span,.a4-title,.a4-subtitle,table.a4-scope-table td').forEach(function(el){
+      if(el.querySelector('select,button,img'))return;
+      el.contentEditable='true'; el.spellcheck=false;
+    });
+    var table=root.querySelector('table.a4-scope-table');
+    if(table&&!root.querySelector('.prod-inline-editor')){
+      var bar=document.createElement('div');
+      bar.className='prod-inline-editor a4-no-print';
+      bar.innerHTML='<button type="button" onclick="AETERLINK_PROD_NEXT.addPreviewRow()">+ Add Row</button><button type="button" onclick="AETERLINK_PROD_NEXT.deletePreviewRow()">- Delete Last Row</button><button type="button" class="primary" onclick="AETERLINK_PROD_NEXT.savePreviewData()">Save Preview Data</button>';
+      table.parentNode.insertBefore(bar,table.nextSibling);
+    }
+    normalizeBorders();
+  }
+  function addPreviewRow(){
+    var table=area().querySelector('table.a4-scope-table');
+    if(!table||!table.tBodies[0])return;
+    var heads=[].map.call(table.querySelectorAll('thead th'),function(th){return th.textContent.trim();});
+    if(!heads.length)heads=['Package','Item','Work Description','Qty.','Unit','Status','Remarks'];
+    var tr=table.tBodies[0].insertRow(-1);
+    heads.forEach(function(h,i){
+      var td=tr.insertCell(-1);
+      if(/status/i.test(h)){
+        td.innerHTML='<select class="a4-status-select"><option></option><option>Not Started</option><option>In Progress</option><option selected>Pending</option><option>Done</option><option>Issue</option><option>N/A</option></select><span class="a4-status-print">Pending</span>';
+      }else{
+        td.textContent=/package/i.test(h)?'Step 1':'';
+        td.contentEditable='true'; td.spellcheck=false;
+      }
+    });
+    syncRowsToHidden();
+    setTimeout(function(){makePreviewEditable(); if(window.AETERLINK_REPAGINATE_A4)window.AETERLINK_REPAGINATE_A4();},100);
+  }
+  function deletePreviewRow(){
+    var table=area().querySelector('table.a4-scope-table');
+    if(table&&table.tBodies[0]&&table.tBodies[0].rows.length)table.tBodies[0].deleteRow(table.tBodies[0].rows.length-1);
+    syncRowsToHidden();
+    if(window.AETERLINK_REPAGINATE_A4)window.AETERLINK_REPAGINATE_A4();
+    normalizeBorders();
+  }
+  function savePreviewData(){
+    syncRowsToHidden();
+    if(window.prodSaveDraft)window.prodSaveDraft();
+    else if(window.saveCurrentForm)window.saveCurrentForm();
+    else msg('Preview data captured, but save function is not available.');
+  }
+  function patchPreview(){
+    if(!window.previewCurrentForm||window.previewCurrentForm.__prodNextPatched)return;
+    var old=window.previewCurrentForm;
+    window.previewCurrentForm=function(){
+      var r=old.apply(this,arguments);
+      setTimeout(makePreviewEditable,180);
+      setTimeout(function(){normalizeBorders(); if(window.AETERLINK_REPAGINATE_A4)window.AETERLINK_REPAGINATE_A4();},280);
+      return r;
+    };
+    window.previewCurrentForm.__prodNextPatched=true;
+  }
+  function patchTableLoader(){
+    if(!window.loadTable||window.loadTable.__prodNextRobust)return;
+    var old=window.loadTable;
+    window.loadTable=function(n,id){
+      var r=old.apply(this,arguments);
+      setTimeout(function(){
+        var target=byId(id);
+        if(target&&/not available|error|undefined/i.test(target.textContent||'')){
+          target.innerHTML='<div class="aeterlink-muted" style="padding:12px;border:1px solid var(--aeterlink-line);border-radius:12px;background:#f7fbfd;">Table '+esc(n)+' is not available yet or has no rows.</div>';
+        }
+      },1200);
+      return r;
+    };
+    window.loadTable.__prodNextRobust=true;
+  }
+  function boot(){patchPreview();patchTableLoader();makePreviewEditable();normalizeBorders();}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,500);setTimeout(boot,1500);});
+  document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#a4Preview')){syncRowsToHidden();normalizeBorders();}});
+  document.addEventListener('change',function(e){if(e.target&&e.target.closest&&e.target.closest('#a4Preview')){syncRowsToHidden();normalizeBorders();}});
+  var t=setInterval(boot,1000); setTimeout(function(){clearInterval(t);boot();},10000);
+  window.AETERLINK_PROD_NEXT={addPreviewRow:addPreviewRow,deletePreviewRow:deletePreviewRow,savePreviewData:savePreviewData,makePreviewEditable:makePreviewEditable,normalizeBorders:normalizeBorders};
+})();
+</script>
