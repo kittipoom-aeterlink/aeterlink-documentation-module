@@ -6,6 +6,9 @@
   .prod-inline-editor{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0;}
   .prod-inline-editor button{border:1px solid var(--aeterlink-line);background:#fff;border-radius:9px;padding:6px 9px;cursor:pointer;font-size:12px;}
   .prod-inline-editor button.primary{background:var(--aeterlink-primary);border-color:var(--aeterlink-primary);color:#fff;font-weight:800;}
+  /* Hide old renderer row action bar so the production direct-edit bar is the only row control shown. */
+  #a4Preview .row-actions,
+  #a4Preview .a4-preview-actions:not(.prod-inline-editor){display:none!important;}
   #a4Preview [contenteditable="true"]{outline:0;cursor:text;}
   #a4Preview [contenteditable="true"]:focus{box-shadow:inset 0 0 0 1.5px #4aa3d8;background:#f8fdff;}
   #a4Preview .a4-scope-table{table-layout:fixed!important;width:100%!important;}
@@ -14,13 +17,95 @@
   #a4Preview .a4-scope-table tr>*:first-child{border-left:.18mm solid #666!important;}
   #a4Preview .a4-scope-table tr>*:last-child{border-right:.18mm solid #666!important;}
   #a4Preview .a4-scope-table tbody tr:last-child>*{border-bottom:.18mm solid #666!important;}
+  .prod-field-panel{border:1px solid var(--aeterlink-line);border-radius:14px;margin-top:12px;overflow:hidden;background:#fff;}
+  .prod-field-panel-title{background:#e9f3f9;padding:9px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.7px;font-weight:900;color:#254a63;display:flex;justify-content:space-between;gap:8px;align-items:center;}
+  .prod-field-panel-body{padding:10px;display:grid;grid-template-columns:1fr;gap:8px;max-height:310px;overflow:auto;}
+  .prod-dyn-field label{display:block;font-size:11px;font-weight:800;color:#466176;margin-bottom:4px;}
+  .prod-dyn-field input,.prod-dyn-field textarea,.prod-dyn-field select{width:100%;border:1px solid var(--aeterlink-line);border-radius:10px;padding:8px 9px;background:#fff;font-family:inherit;color:#1e3446;}
+  .prod-dyn-field textarea{min-height:64px;resize:vertical;}
+  .prod-workflow-badge{font-size:10px;border:1px solid var(--aeterlink-line);border-radius:999px;padding:3px 7px;background:#f7fbfd;color:#466176;white-space:nowrap;}
+  .prod-hidden-json{display:none!important;}
 </style>
 <script id="a4-production-next-script">
 (function(){
+  var state={currentRecordId:'',lastSavedDocumentNo:'',fieldValues:{}};
+  var FALLBACK_FIELDS={
+    WCR:[
+      {key:'ContractNo',label:'Contract No.',type:'text',defaultValue:'-'},
+      {key:'PurchaseOrderNo',label:'Purchase Order No.',type:'text',defaultValue:'-'},
+      {key:'WorkType',label:'Work Type',type:'text',defaultValue:'Equipment Purchasing / Installation / Implementation / BMS'},
+      {key:'CompletionDate',label:'Completion Date',type:'text',defaultValue:'30 April 2026'},
+      {key:'ReferenceDocuments',label:'Reference Documents',type:'text',defaultValue:'Equipment Checklist / Work Completion Evidence'},
+      {key:'Remarks',label:'Remarks / Additional Notes',type:'textarea',defaultValue:'Work completion data and photo evidence imported from the uploaded Work Completion Report workbook.'}
+    ],
+    CHECKLIST:[
+      {key:'ChecklistTitle',label:'Checklist Title',type:'text',defaultValue:'Equipment Checklist'},
+      {key:'InspectionArea',label:'Inspection Area',type:'text',defaultValue:'Main Plant Room'},
+      {key:'InspectionDate',label:'Inspection Date',type:'text',defaultValue:'30 April 2026'},
+      {key:'ReferenceDocuments',label:'Reference Documents',type:'text',defaultValue:'Work Completion Report / Inspection Evidence'},
+      {key:'Remarks',label:'Remarks / Additional Notes',type:'textarea',defaultValue:'Equipment checklist data is rendered using the shared A4 controlled layout.'}
+    ],
+    GENERIC:[
+      {key:'Subject',label:'Subject',type:'text',defaultValue:''},
+      {key:'Description',label:'Description',type:'textarea',defaultValue:''},
+      {key:'PreparedBy',label:'Prepared By',type:'text',defaultValue:''},
+      {key:'CheckedBy',label:'Checked By',type:'text',defaultValue:''},
+      {key:'ApprovedBy',label:'Approved By',type:'text',defaultValue:''},
+      {key:'Remarks',label:'Remarks',type:'textarea',defaultValue:''}
+    ]
+  };
   function byId(id){return document.getElementById(id);}
   function area(){return byId('a4Preview')||document;}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function msg(t){var e=byId('prodStatusMsg')||byId('saveStatus'); if(e)e.textContent=t;}
+  function templateCode(){return (byId('fTemplate')&&byId('fTemplate').value)||(byId('prodDocType')&&byId('prodDocType').value)||'PJ-WCR-001';}
+  function templateKind(){var c=String(templateCode()).toUpperCase(); if(c==='PJ-EQUIP-CHK-001'||/CHECK/.test(c))return 'CHECKLIST'; if(c==='PJ-WCR-001'||c==='PJ-WORK-COMPLETE-001'||/WCR|WORK.*COMPLETE/.test(c))return 'WCR'; return 'GENERIC';}
+  function getTemplateRows(){return (window.APP_STATE&&APP_STATE.tables&&APP_STATE.tables.FORM_TEMPLATES)||[];}
+  function getTemplate(){var code=templateCode();var rows=getTemplateRows();for(var i=0;i<rows.length;i++){if(String(rows[i].TemplateCode||'')===code)return rows[i];}return {TemplateCode:code,TemplateName:code,FieldsJson:''};}
+  function keyOf(f,i){return String(f.key||f.Key||f.field||f.Field||f.name||f.Name||f.id||f.Id||('Field'+(i+1))).replace(/\s+/g,'');}
+  function labelOf(f,i){return String(f.label||f.Label||f.title||f.Title||f.name||f.Name||f.key||('Field '+(i+1)));}
+  function fieldType(f){var t=String(f.type||f.Type||f.inputType||'text').toLowerCase(); if(/textarea|long|multi|note|remark|description/.test(t))return 'textarea'; if(/select|dropdown|list/.test(t))return 'select'; if(/date/.test(t))return 'date'; return 'text';}
+  function parseOptions(f){var o=f.options||f.Options||f.values||f.Values||''; if(Array.isArray(o))return o.map(String); return String(o||'').split(/[|,]/).map(function(x){return x.trim();}).filter(Boolean);}
+  function normalizeFields(arr){return arr.map(function(f,i){return {key:keyOf(f,i),label:labelOf(f,i),type:fieldType(f),options:parseOptions(f),defaultValue:f.defaultValue||f.DefaultValue||f.default||f.Default||''};});}
+  function parseTemplateFields(){
+    var t=getTemplate(), raw=t.FieldsJson||t.FieldJson||t.Fields||t.TemplateFields||'';
+    if(raw){
+      try{var parsed=JSON.parse(raw); if(parsed&&parsed.fields)parsed=parsed.fields; if(parsed&&parsed.Fields)parsed=parsed.Fields; if(Array.isArray(parsed)&&parsed.length)return normalizeFields(parsed);}catch(e){}
+    }
+    return normalizeFields(FALLBACK_FIELDS[templateKind()]||FALLBACK_FIELDS.GENERIC);
+  }
+  function defaultFieldValues(fields){var out={};fields.forEach(function(f){out[f.key]=state.fieldValues[f.key]!==undefined?state.fieldValues[f.key]:(f.defaultValue||'');});return out;}
+  function renderFieldPanel(){
+    var side=document.querySelector('.prod-side-body'); if(!side)return;
+    var panel=byId('prodFieldPanel');
+    if(!panel){
+      panel=document.createElement('div'); panel.id='prodFieldPanel'; panel.className='prod-field-panel';
+      var anchor=byId('prodLifecycleHint');
+      if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(panel,anchor.nextSibling); else side.insertBefore(panel,side.firstChild);
+    }
+    var fields=parseTemplateFields(), values=defaultFieldValues(fields);
+    panel.innerHTML='<div class="prod-field-panel-title"><span>Document Fields</span><span class="prod-workflow-badge">Mapped from Form Templates</span></div><div class="prod-field-panel-body">'+fields.map(function(f){
+      var val=values[f.key]||'';
+      var common=' data-field-key="'+esc(f.key)+'" data-field-label="'+esc(f.label)+'"';
+      if(f.type==='textarea')return '<div class="prod-dyn-field"><label>'+esc(f.label)+'</label><textarea'+common+'>'+esc(val)+'</textarea></div>';
+      if(f.type==='select')return '<div class="prod-dyn-field"><label>'+esc(f.label)+'</label><select'+common+'>'+[''].concat(f.options||[]).map(function(o){return '<option value="'+esc(o)+'" '+(o===val?'selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></div>';
+      return '<div class="prod-dyn-field"><label>'+esc(f.label)+'</label><input type="'+(f.type==='date'?'date':'text')+'" value="'+esc(val)+'"'+common+'></div>';
+    }).join('')+'</div>';
+    panel.querySelectorAll('[data-field-key]').forEach(function(el){el.addEventListener('input',onFieldChanged);el.addEventListener('change',onFieldChanged);});
+  }
+  function collectFieldValues(){var out={};document.querySelectorAll('#prodFieldPanel [data-field-key]').forEach(function(el){out[el.dataset.fieldKey]=el.value||'';});state.fieldValues=Object.assign(state.fieldValues,out);return out;}
+  function fieldRows(fields,values){return fields.map(function(f,i){return {Package:'Document',Item:String(i+1),WorkDescription:f.label,Qty:'',Unit:'',Status:values[f.key]?'Done':'Pending',Remarks:values[f.key]||''};});}
+  function applyFieldsToData(data){
+    var fields=parseTemplateFields(), values=collectFieldValues(); data=data||{}; data.TemplateFields=values; data.TemplateFieldList=fields;
+    ['ContractNo','PurchaseOrderNo','WorkType','CompletionDate','ReferenceDocuments','Remarks'].forEach(function(k){if(values[k]!==undefined)data[k]=values[k];});
+    if(templateKind()==='GENERIC')data.ScopeRows=fieldRows(fields,values);
+    if(templateKind()==='CHECKLIST'){
+      data.ReferenceDocuments=values.ReferenceDocuments||data.ReferenceDocuments; data.Remarks=values.Remarks||data.Remarks;
+      if(!data.ChecklistRows||!data.ChecklistRows.length)data.ChecklistRows=fieldRows(fields,values);
+    }
+    if(templateKind()==='WCR'&&(!data.ScopeRows||!data.ScopeRows.length))data.ScopeRows=fieldRows(fields,values);
+    return data;
+  }
   function normalizeBorders(){
     var root=area();
     root.querySelectorAll('table.a4-scope-table').forEach(function(table){
@@ -32,100 +117,110 @@
       table.querySelectorAll('tbody tr:last-child>*').forEach(function(cell){cell.style.borderBottom='.18mm solid #666';});
     });
   }
+  function removeDuplicateButtons(){area().querySelectorAll('.row-actions,.a4-preview-actions:not(.prod-inline-editor)').forEach(function(n){n.style.display='none';});}
   function getRowsFromPreview(){
-    var table=area().querySelector('table.a4-scope-table');
-    if(!table||!table.tBodies[0])return null;
+    var table=area().querySelector('table.a4-scope-table'); if(!table||!table.tBodies[0])return null;
     var heads=[].map.call(table.querySelectorAll('thead th'),function(th){return th.textContent.trim();});
     if(!heads.length) heads=['Package','Item','WorkDescription','Qty','Unit','Status','Remarks'];
-    return [].map.call(table.tBodies[0].rows,function(tr){
-      var obj={};
-      [].forEach.call(tr.cells,function(td,i){
-        var h=heads[i]||('Col'+i);
-        var key=h.replace(/\s+/g,'').replace('Description','WorkDescription').replace('Qty.','Qty').replace('Remark','Remarks');
-        var sel=td.querySelector('select');
-        obj[key]=sel?sel.value:td.textContent.trim();
-      });
-      return obj;
-    });
+    return [].map.call(table.tBodies[0].rows,function(tr){var obj={};[].forEach.call(tr.cells,function(td,i){var h=heads[i]||('Col'+i);var key=h.replace(/\s+/g,'').replace('Description','WorkDescription').replace('Qty.','Qty').replace('Remark','Remarks');var sel=td.querySelector('select');obj[key]=sel?sel.value:td.textContent.trim();});return obj;});
   }
   function syncRowsToHidden(){var rows=getRowsFromPreview(); if(rows&&byId('fRows'))byId('fRows').value=JSON.stringify(rows,null,2);}
   function makePreviewEditable(){
     var root=area(); if(!root)return;
-    root.querySelectorAll('.a4-project-grid td,.a4-info-table td,.a4-meta-row span,.a4-title,.a4-subtitle,table.a4-scope-table td').forEach(function(el){
-      if(el.querySelector('select,button,img'))return;
-      el.contentEditable='true'; el.spellcheck=false;
-    });
+    removeDuplicateButtons();
+    root.querySelectorAll('.a4-project-grid td,.a4-info-table td,.a4-meta-row span,.a4-title,.a4-subtitle,table.a4-scope-table td').forEach(function(el){if(el.querySelector('select,button,img'))return;el.contentEditable='true'; el.spellcheck=false;});
     var table=root.querySelector('table.a4-scope-table');
     if(table&&!root.querySelector('.prod-inline-editor')){
-      var bar=document.createElement('div');
-      bar.className='prod-inline-editor a4-no-print';
+      var bar=document.createElement('div'); bar.className='prod-inline-editor a4-no-print';
       bar.innerHTML='<button type="button" onclick="AETERLINK_PROD_NEXT.addPreviewRow()">+ Add Row</button><button type="button" onclick="AETERLINK_PROD_NEXT.deletePreviewRow()">- Delete Last Row</button><button type="button" class="primary" onclick="AETERLINK_PROD_NEXT.savePreviewData()">Save Preview Data</button>';
       table.parentNode.insertBefore(bar,table.nextSibling);
     }
     normalizeBorders();
   }
   function addPreviewRow(){
-    var table=area().querySelector('table.a4-scope-table');
-    if(!table||!table.tBodies[0])return;
-    var heads=[].map.call(table.querySelectorAll('thead th'),function(th){return th.textContent.trim();});
-    if(!heads.length)heads=['Package','Item','Work Description','Qty.','Unit','Status','Remarks'];
+    var table=area().querySelector('table.a4-scope-table'); if(!table||!table.tBodies[0])return;
+    var heads=[].map.call(table.querySelectorAll('thead th'),function(th){return th.textContent.trim();}); if(!heads.length)heads=['Package','Item','Work Description','Qty.','Unit','Status','Remarks'];
     var tr=table.tBodies[0].insertRow(-1);
-    heads.forEach(function(h,i){
-      var td=tr.insertCell(-1);
-      if(/status/i.test(h)){
-        td.innerHTML='<select class="a4-status-select"><option></option><option>Not Started</option><option>In Progress</option><option selected>Pending</option><option>Done</option><option>Issue</option><option>N/A</option></select><span class="a4-status-print">Pending</span>';
-      }else{
-        td.textContent=/package/i.test(h)?'Step 1':'';
-        td.contentEditable='true'; td.spellcheck=false;
-      }
-    });
-    syncRowsToHidden();
-    setTimeout(function(){makePreviewEditable(); if(window.AETERLINK_REPAGINATE_A4)window.AETERLINK_REPAGINATE_A4();},100);
+    heads.forEach(function(h){var td=tr.insertCell(-1); if(/status/i.test(h)){td.innerHTML='<select class="a4-status-select"><option></option><option>Not Started</option><option>In Progress</option><option selected>Pending</option><option>Done</option><option>Issue</option><option>N/A</option></select><span class="a4-status-print">Pending</span>';}else{td.textContent=/package/i.test(h)?'Step 1':'';td.contentEditable='true';td.spellcheck=false;}});
+    syncRowsToHidden(); setTimeout(function(){makePreviewEditable(); if(window.AETERLINK_REPAGINATE_A4)window.AETERLINK_REPAGINATE_A4();},100);
   }
-  function deletePreviewRow(){
-    var table=area().querySelector('table.a4-scope-table');
-    if(table&&table.tBodies[0]&&table.tBodies[0].rows.length)table.tBodies[0].deleteRow(table.tBodies[0].rows.length-1);
-    syncRowsToHidden();
-    if(window.AETERLINK_REPAGINATE_A4)window.AETERLINK_REPAGINATE_A4();
-    normalizeBorders();
+  function deletePreviewRow(){var table=area().querySelector('table.a4-scope-table'); if(table&&table.tBodies[0]&&table.tBodies[0].rows.length)table.tBodies[0].deleteRow(table.tBodies[0].rows.length-1); syncRowsToHidden(); if(window.AETERLINK_REPAGINATE_A4)window.AETERLINK_REPAGINATE_A4(); normalizeBorders();}
+  function savePreviewData(){syncRowsToHidden(); if(window.prodSaveDraft)window.prodSaveDraft(); else if(window.saveCurrentForm)window.saveCurrentForm(); else msg('Preview data captured, but save function is not available.');}
+  function onFieldChanged(){collectFieldValues(); if(window.prodRefreshA4)window.prodRefreshA4();}
+  function patchCollectFormData(){
+    if(!window.collectFormData||window.collectFormData.__prodFieldsPatched)return;
+    var old=window.collectFormData;
+    window.collectFormData=function(){var data=old.apply(this,arguments); return applyFieldsToData(data);};
+    window.collectFormData.__prodFieldsPatched=true;
   }
-  function savePreviewData(){
-    syncRowsToHidden();
-    if(window.prodSaveDraft)window.prodSaveDraft();
-    else if(window.saveCurrentForm)window.saveCurrentForm();
-    else msg('Preview data captured, but save function is not available.');
+  function patchTemplateChange(){
+    if(!window.loadSampleForTemplate||window.loadSampleForTemplate.__prodFieldsPatched)return;
+    var old=window.loadSampleForTemplate;
+    window.loadSampleForTemplate=function(){var r=old.apply(this,arguments); setTimeout(function(){renderFieldPanel(); if(window.previewCurrentForm)window.previewCurrentForm();},120); return r;};
+    window.loadSampleForTemplate.__prodFieldsPatched=true;
   }
   function patchPreview(){
     if(!window.previewCurrentForm||window.previewCurrentForm.__prodNextPatched)return;
     var old=window.previewCurrentForm;
-    window.previewCurrentForm=function(){
-      var r=old.apply(this,arguments);
-      setTimeout(makePreviewEditable,180);
-      setTimeout(function(){normalizeBorders(); if(window.AETERLINK_REPAGINATE_A4)window.AETERLINK_REPAGINATE_A4();},280);
-      return r;
-    };
+    window.previewCurrentForm=function(){var r=old.apply(this,arguments);setTimeout(makePreviewEditable,180);setTimeout(function(){normalizeBorders();removeDuplicateButtons(); if(window.AETERLINK_REPAGINATE_A4)window.AETERLINK_REPAGINATE_A4();},280);return r;};
     window.previewCurrentForm.__prodNextPatched=true;
   }
-  function patchTableLoader(){
-    if(!window.loadTable||window.loadTable.__prodNextRobust)return;
-    var old=window.loadTable;
-    window.loadTable=function(n,id){
-      var r=old.apply(this,arguments);
-      setTimeout(function(){
-        var target=byId(id);
-        if(target&&/not available|error|undefined/i.test(target.textContent||'')){
-          target.innerHTML='<div class="aeterlink-muted" style="padding:12px;border:1px solid var(--aeterlink-line);border-radius:12px;background:#f7fbfd;">Table '+esc(n)+' is not available yet or has no rows.</div>';
-        }
-      },1200);
-      return r;
+  function richSave(statusOverride){
+    if(!window.collectFormData)return msg('Cannot save: form data collector is not available.');
+    var data=window.collectFormData(), status=statusOverride||(byId('prodStatus')&&byId('prodStatus').value)||(byId('fStatus')&&byId('fStatus').value)||'Draft';
+    if(byId('fStatus'))byId('fStatus').value=status; if(byId('prodStatus'))byId('prodStatus').value=status;
+    var now=new Date().toISOString();
+    var payload={
+      FormRecordId:state.currentRecordId||'',
+      ProjectCode:data.ProjectCode,
+      TemplateCode:templateCode(),
+      DocumentNo:data.DocumentNo||state.lastSavedDocumentNo||'',
+      RevisionNo:data.RevisionNo||'R00',
+      Status:status,
+      DocumentStatus:status,
+      Data:data,
+      RevisionReason:(byId('prodRevisionReason')&&byId('prodRevisionReason').value)||'',
+      SubmittedAt:(status==='Submitted'||status==='Issued')?now:'',
+      LockedAfterPdf:status==='Issued'?'TRUE':'FALSE'
     };
-    window.loadTable.__prodNextRobust=true;
+    msg('Saving '+status+' workflow record...');
+    if(typeof google==='undefined'||!google.script||!google.script.run)return msg('Cannot save: google.script.run is not available.');
+    google.script.run.withSuccessHandler(function(r){
+      if(r&&r.record){state.currentRecordId=r.record.FormRecordId||state.currentRecordId;state.lastSavedDocumentNo=r.record.DocumentNo||state.lastSavedDocumentNo;if(byId('fDocumentNo'))byId('fDocumentNo').value=state.lastSavedDocumentNo;if(byId('prodDocumentNo'))byId('prodDocumentNo').value=state.lastSavedDocumentNo;var box=byId('prodDocNoBox');if(box)box.textContent=state.lastSavedDocumentNo;var fr=byId('prodRecordIdBox');if(fr)fr.textContent=state.currentRecordId;msg(status+' saved successfully: '+state.lastSavedDocumentNo);if(window.refreshData)window.refreshData();if(window.previewCurrentForm)window.previewCurrentForm();}
+      else msg('Save completed, but no record was returned.');
+    }).withFailureHandler(function(e){msg('Save failed: '+(e&&e.message?e.message:String(e)));}).apiModularSaveFormRecord(payload);
   }
-  function boot(){patchPreview();patchTableLoader();makePreviewEditable();normalizeBorders();}
+  function startRevision(){
+    var reason=(byId('prodRevisionReason')&&byId('prodRevisionReason').value||'').trim();
+    if(!reason){msg('Revision reason is required before starting a revision.'); if(byId('prodRevisionReason'))byId('prodRevisionReason').focus(); return;}
+    var rev=byId('prodRevisionNo')||byId('fRevisionNo'), v=rev?String(rev.value||'R00'):'R00', n=parseInt(v.replace(/\D/g,''),10); if(isNaN(n))n=0;
+    var next='R'+('00'+(n+1)).slice(-2); if(byId('prodRevisionNo'))byId('prodRevisionNo').value=next; if(byId('fRevisionNo'))byId('fRevisionNo').value=next;
+    if(byId('prodStatus'))byId('prodStatus').value='Draft'; if(byId('fStatus'))byId('fStatus').value='Draft';
+    state.currentRecordId='';
+    msg('Revision started: '+next+'. Save Draft will create a new revision record while keeping the document number.');
+    if(window.previewCurrentForm)window.previewCurrentForm();
+  }
+  function validateWorkflow(){
+    var missing=[]; ['prodProjectCode','prodDocType'].forEach(function(id){var e=byId(id); if(!e||!e.value)missing.push(id);});
+    parseTemplateFields().forEach(function(f){ if(!collectFieldValues()[f.key]&&/subject|description|worktype|completiondate/i.test(f.key))missing.push(f.label); });
+    msg(missing.length?'Validation warning: missing '+missing.join(', '):'Validation passed: document fields, A4 preview, and workflow status are ready.');
+  }
+  function patchWorkflowButtons(){
+    window.prodSaveDraft=function(){richSave('Draft');};
+    window.prodIssueSend=function(){richSave('Issued');};
+    window.prodStartRevision=startRevision;
+    window.prodValidate=validateWorkflow;
+    window.prodNewDraft=function(){state.currentRecordId='';state.lastSavedDocumentNo='';if(byId('fDocumentNo'))byId('fDocumentNo').value='';if(byId('prodDocumentNo'))byId('prodDocumentNo').value='';if(byId('prodStatus'))byId('prodStatus').value='Draft';if(byId('fStatus'))byId('fStatus').value='Draft';if(window.loadSampleForTemplate)window.loadSampleForTemplate();msg('New draft created.');};
+    window.prodDeleteDraft=function(){msg('Draft delete is protected. Use Recycle Bin workflow after delete permission rules are finalized.');};
+    window.saveCurrentForm=function(){richSave((byId('prodStatus')&&byId('prodStatus').value)||(byId('fStatus')&&byId('fStatus').value)||'Draft');};
+  }
+  function patchTableLoader(){if(!window.loadTable||window.loadTable.__prodNextRobust)return;var old=window.loadTable;window.loadTable=function(n,id){var r=old.apply(this,arguments);setTimeout(function(){var target=byId(id);if(target&&/not available|error|undefined/i.test(target.textContent||'')){target.innerHTML='<div class="aeterlink-muted" style="padding:12px;border:1px solid var(--aeterlink-line);border-radius:12px;background:#f7fbfd;">Table '+esc(n)+' is not available yet or has no rows.</div>'; }},1200);return r;};window.loadTable.__prodNextRobust=true;}
+  function hideJsonEditor(){var f=byId('fRows');if(f)f.closest('label').classList.add('prod-hidden-json');}
+  function boot(){patchCollectFormData();patchTemplateChange();patchPreview();patchTableLoader();patchWorkflowButtons();renderFieldPanel();hideJsonEditor();makePreviewEditable();normalizeBorders();}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,500);setTimeout(boot,1500);});
-  document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#a4Preview')){syncRowsToHidden();normalizeBorders();}});
-  document.addEventListener('change',function(e){if(e.target&&e.target.closest&&e.target.closest('#a4Preview')){syncRowsToHidden();normalizeBorders();}});
+  document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#a4Preview')){syncRowsToHidden();normalizeBorders();} if(e.target&&e.target.matches&&e.target.matches('#prodFieldPanel [data-field-key]'))collectFieldValues();});
+  document.addEventListener('change',function(e){if(e.target&&e.target.closest&&e.target.closest('#a4Preview')){syncRowsToHidden();normalizeBorders();} if(e.target&&e.target.matches&&e.target.matches('#prodDocType'))setTimeout(function(){renderFieldPanel();},80);});
   var t=setInterval(boot,1000); setTimeout(function(){clearInterval(t);boot();},10000);
-  window.AETERLINK_PROD_NEXT={addPreviewRow:addPreviewRow,deletePreviewRow:deletePreviewRow,savePreviewData:savePreviewData,makePreviewEditable:makePreviewEditable,normalizeBorders:normalizeBorders};
+  window.AETERLINK_PROD_NEXT={addPreviewRow:addPreviewRow,deletePreviewRow:deletePreviewRow,savePreviewData:savePreviewData,makePreviewEditable:makePreviewEditable,normalizeBorders:normalizeBorders,renderFieldPanel:renderFieldPanel,richSave:richSave,startRevision:startRevision};
 })();
 </script>
