@@ -1,71 +1,29 @@
-<!--
-  AETERLINK Documentation Module — Templates_Checklist.html
-  Equipment Checklist template partial for modular WebApp.
--->
+<!-- AETERLINK Documentation Module — Templates_Checklist.html -->
 <script>
   window.AETERLINK_TEMPLATES = window.AETERLINK_TEMPLATES || {};
-
   window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST = {
-    templateCodes: ['PJ-EQUIP-CHK-001'],
-    title: 'EQUIPMENT CHECKLIST',
-    displayName: 'Equipment Checklist',
-    sections: {
-      documentInformation: 'DOCUMENT INFORMATION',
-      checklist: 'EQUIPMENT CHECKLIST',
-      inspectionResult: 'INSPECTION RESULT',
-      approval: 'APPROVAL / ACCEPTANCE'
-    },
-    rules: {
-      hideActionColumnOnPrint: true,
-      useMasterA4Layout: true,
-      preventFooterOverlap: true,
-      paginateRows: true,
-      keepHeaderOnEachPage: true
-    },
-    columns: [
-      { key: 'No', label: 'No.', width: '9mm' },
-      { key: 'EquipmentTag', label: 'Equipment Tag', width: '26mm' },
-      { key: 'Description', label: 'Description', width: 'auto' },
-      { key: 'Location', label: 'Location', width: '24mm' },
-      { key: 'CheckItem', label: 'Check Item', width: '34mm' },
-      { key: 'Status', label: 'Status', width: '20mm' },
-      { key: 'Remark', label: 'Remark', width: '28mm' }
+    templateCodes:['PJ-EQUIP-CHK-001'],
+    title:'EQUIPMENT CHECKLIST',
+    displayName:'Equipment Checklist',
+    subtitle:'Installation / Inspection / Verification',
+    sections:{documentInformation:'DOCUMENT INFORMATION',checklist:'EQUIPMENT CHECKLIST',inspectionResult:'INSPECTION RESULT',approval:'APPROVAL / ACCEPTANCE'},
+    rules:{hideActionColumnOnPrint:true,useMasterA4Layout:true,preventFooterOverlap:true,paginateRows:true,keepHeaderOnEachPage:true},
+    columns:[
+      {key:'No',label:'No.',width:'9mm'},
+      {key:'EquipmentTag',label:'Equipment Tag',width:'24mm'},
+      {key:'Description',label:'Description',width:'34mm'},
+      {key:'Location',label:'Location',width:'23mm'},
+      {key:'CheckItem',label:'Check Item',width:'45mm'},
+      {key:'Status',label:'Status',width:'18mm'},
+      {key:'Remark',label:'Remark',width:'25mm'}
     ]
   };
-
-  window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.sampleData = function() {
-    return {
-      ProjectCode: 'TEST-PJ',
-      ProjectName: 'Modular A4 Layout Check',
-      Client: 'Sample Client',
-      MainContractor: 'AETERLINK',
-      DocumentNo: 'TEST-EQUIP-CHK-0001',
-      RevisionNo: 'R00',
-      Status: 'Draft',
-      ChecklistRows: [
-        { No:'1', EquipmentTag:'AHU-01', Description:'Air Handling Unit', Location:'Level 1', CheckItem:'Nameplate and installation condition', Status:'Done', Remark:'OK' },
-        { No:'2', EquipmentTag:'PCHP-01', Description:'Primary Chilled Water Pump', Location:'Plant Room', CheckItem:'Cable termination and rotation check', Status:'Done', Remark:'OK' },
-        { No:'3', EquipmentTag:'CT-01', Description:'Cooling Tower', Location:'Roof', CheckItem:'General visual inspection', Status:'Pending', Remark:'Client witness required' }
-      ]
-    };
-  };
-
-  window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.render = function(data, options) {
-    data = Object.assign(window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.sampleData(), data || {});
-    options = options || {};
-    var tpl = window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST;
-    var rows = data.ChecklistRows || [];
-
-    return '<div class="a4-root a4-print-area" id="a4PrintArea">' +
-      AETERLINK_A4_RENDERER.page({
-        title: tpl.title,
-        documentNo: data.DocumentNo || '',
-        revisionNo: data.RevisionNo || 'R00',
-        status: data.Status || 'Draft',
-        content: AETERLINK_A4_RENDERER.documentInfo(data) +
-          AETERLINK_A4_RENDERER.section(tpl.sections.checklist) +
-          AETERLINK_A4_RENDERER.table(tpl.columns, rows)
-      }) +
-      '</div>';
-  };
+  window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.sampleData=function(){return{ProjectCode:'TEST-PJ',ProjectName:'Modular A4 Layout Check',Client:'Sample Client',MainContractor:'AETERLINK',DocumentNo:'TEST-EQUIP-CHK-0001',RevisionNo:'R00',Status:'Draft',ContractNo:'-',PurchaseOrderNo:'-',WorkType:'Equipment Installation / Inspection / Verification',CompletionDate:'30 April 2026',ReferenceDocuments:'Work Completion Report / Inspection Evidence',Remarks:'Equipment checklist data is rendered using the shared A4 controlled layout.',ChecklistRows:[
+    {No:'1',EquipmentTag:'AHU-01',Description:'Air Handling Unit',Location:'Level 1',CheckItem:'Nameplate and installation condition',Status:'Done',Remark:'OK'},
+    {No:'2',EquipmentTag:'PCHP-01',Description:'Primary Chilled Water Pump',Location:'Plant Room',CheckItem:'Cable termination and rotation check',Status:'Done',Remark:'OK'},
+    {No:'3',EquipmentTag:'CT-01',Description:'Cooling Tower',Location:'Roof',CheckItem:'General visual inspection',Status:'Pending',Remark:'Client witness required'},
+    {No:'4',EquipmentTag:'DDC-01',Description:'DDC Panel',Location:'Control Panel',CheckItem:'Panel label and wiring condition',Status:'Done',Remark:'OK'},
+    {No:'5',EquipmentTag:'FM-01',Description:'Flow Meter',Location:'Pipe Header',CheckItem:'Sensor installation and cable routing',Status:'Done',Remark:'OK'}
+  ]};};
+  window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.render=function(data,options){data=Object.assign(window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.sampleData(),data||{});options=options||{};var tpl=window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST;var rows=data.ChecklistRows||[];return '<div class="a4-root a4-print-area" id="a4PrintArea">'+AETERLINK_A4_RENDERER.page({title:tpl.title,subtitle:tpl.subtitle,documentNo:data.DocumentNo||'',revisionNo:data.RevisionNo||'0',status:data.Status||'Draft',data:data,content:AETERLINK_A4_RENDERER.documentInfo(data)+AETERLINK_A4_RENDERER.section(tpl.sections.checklist)+AETERLINK_A4_RENDERER.table(tpl.columns,rows,'a4-scope-table')})+'</div>';};
 </script>
