@@ -1,6 +1,6 @@
 <!--
   AETERLINK Documentation Module — Templates_Checklist.html
-  Equipment Checklist template partial for future modular Index.html refactor.
+  Equipment Checklist template partial for modular Index.html refactor.
 -->
 <script>
   window.AETERLINK_TEMPLATES = window.AETERLINK_TEMPLATES || {};
@@ -9,11 +9,27 @@
     templateCodes: ['PJ-EQUIP-CHK-001'],
     title: 'EQUIPMENT CHECKLIST',
     displayName: 'Equipment Checklist',
+    sections: {
+      documentInformation: 'DOCUMENT INFORMATION',
+      checklist: 'EQUIPMENT CHECKLIST',
+      inspectionResult: 'INSPECTION RESULT',
+      approval: 'APPROVAL / ACCEPTANCE'
+    },
     rules: {
       hideActionColumnOnPrint: true,
       useMasterA4Layout: true,
       preventFooterOverlap: true,
-      paginateRows: true
-    }
+      paginateRows: true,
+      keepHeaderOnEachPage: true
+    },
+    columns: [
+      { key: 'No', label: 'No.', width: '9mm' },
+      { key: 'EquipmentTag', label: 'Equipment Tag', width: '26mm' },
+      { key: 'Description', label: 'Description', width: 'auto' },
+      { key: 'Location', label: 'Location', width: '24mm' },
+      { key: 'CheckItem', label: 'Check Item', width: '34mm' },
+      { key: 'Status', label: 'Status', width: '20mm' },
+      { key: 'Remark', label: 'Remark', width: '28mm' }
+    ]
   };
 </script>
