@@ -10,11 +10,21 @@
  * ============================================================
  */
 
-// Centralized app metadata (used by client UI via AETERLINK_API.init)
-var DMS = {
-  name: 'AETERLINK Documentation Control',
-  version: 'V25 — English UI'
-};
+// Ensure we do not redeclare DMS (some files may already declare it).
+(function(){
+  try {
+    if (typeof DMS === 'undefined' || !DMS) {
+      DMS = { name: 'AETERLINK Documentation Control', version: 'V25 — English UI' };
+    } else {
+      // update version while preserving any existing name
+      DMS.version = 'V25 — English UI';
+      DMS.name = DMS.name || 'AETERLINK Documentation Control';
+    }
+  } catch (e) {
+    // In case accessing DMS throws (very unlikely), create it safely
+    DMS = { name: 'AETERLINK Documentation Control', version: 'V25 — English UI' };
+  }
+})();
 
 var AETERLINK_API = (function() {
   function init() {
