@@ -1,0 +1,136 @@
+<!-- AETERLINK Documentation Module — A4_Pagination_Fix.html -->
+<script>
+(function(){
+  function renderer(){ return window.AETERLINK_A4_RENDERER; }
+  function pageOf(node){ return node ? node.closest('.a4-page') : null; }
+  function bodyOf(table){ return table && table.tBodies && table.tBodies.length ? table.tBodies[0] : null; }
+  function rowCount(page){ return page ? page.querySelectorAll('table.a4-scope-table tbody tr').length : 0; }
+  function rowBottomWithinPage(row,page){
+    var r=row.getBoundingClientRect(), p=page.getBoundingClientRect();
+    return r.bottom-p.top;
+  }
+  function safeLimit(page){
+    var p=page.getBoundingClientRect();
+    return p.height-72;
+  }
+  function isContinued(page){ return page && page.classList.contains('a4-scope-continued-page'); }
+  function removeEmptyContinuedPages(){
+    document.querySelectorAll('.a4-scope-continued-page').forEach(function(page){
+      if(rowCount(page)===0) page.remove();
+    });
+  }
+  function nearestNextScopePage(page){
+    var n=page ? page.nextElementSibling : null;
+    while(n){
+      if(isContinued(n)) return n;
+      if(n.classList && n.classList.contains('a4-photo-report-page')) return null;
+      n=n.nextElementSibling;
+    }
+    return null;
+  }
+  function createContinuedPage(basePage,sourceTable){
+    var rr=renderer();
+    var page=document.createElement('div');
+    page.className='a4-page a4-scope-continued-page';
+    var inner=document.createElement('div');
+    inner.className='a4-page-inner';
+    ['.a4-header','.a4-project-grid'].forEach(function(sel){
+      var n=basePage.querySelector(sel);
+      if(n) inner.appendChild(n.cloneNode(true));
+    });
+    var content=document.createElement('div');
+    content.className='a4-content';
+    var sec=document.createElement('div');
+    sec.innerHTML=rr.section ? rr.section('SCOPE OF WORK — CONTINUED') : '<div class="a4-section-title">SCOPE OF WORK — CONTINUED</div>';
+    content.appendChild(sec.firstChild);
+    var table=sourceTable.cloneNode(false);
+    table.appendChild(sourceTable.tHead.cloneNode(true));
+    table.appendChild(document.createElement('tbody'));
+    content.appendChild(table);
+    var actions=document.createElement('div');
+    actions.className='a4-preview-actions a4-no-print';
+    actions.innerHTML='<button type="button" onclick="AETERLINK_A4_RENDERER.addRow(this)">+ Add Row</button><button type="button" onclick="AETERLINK_A4_RENDERER.deleteLastRow(this)">- Delete Last Row</button>';
+    content.appendChild(actions);
+    inner.appendChild(content);
+    var footer=basePage.querySelector('.a4-footer');
+    if(footer) inner.appendChild(footer.cloneNode(true));
+    page.appendChild(inner);
+    return page;
+  }
+  function getOrCreateNextPage(currentPage,sourceTable){
+    var next=nearestNextScopePage(currentPage);
+    if(next) return next;
+    next=createContinuedPage(currentPage,sourceTable);
+    currentPage.parentNode.insertBefore(next,currentPage.nextElementSibling);
+    return next;
+  }
+  function paginateTable(table,depth){
+    depth=depth||0;
+    if(depth>40) return;
+    var page=pageOf(table), body=bodyOf(table);
+    if(!page||!body) return;
+    if(body.rows.length===0){ removeEmptyContinuedPages(); return; }
+
+    var limit=safeLimit(page);
+    var moved=[];
+    var guard=0;
+    while(body.rows.length>1 && rowBottomWithinPage(body.rows[body.rows.length-1],page)>limit && guard<80){
+      guard++;
+      moved.unshift(body.rows[body.rows.length-1]);
+      body.removeChild(moved[0]);
+    }
+    if(!moved.length){ removeEmptyContinuedPages(); return; }
+
+    var next=getOrCreateNextPage(page,table);
+    var nextBody=bodyOf(next.querySelector('table.a4-scope-table'));
+    moved.forEach(function(row){ nextBody.insertBefore(row,nextBody.firstChild); });
+    paginateTable(next.querySelector('table.a4-scope-table'),depth+1);
+    removeEmptyContinuedPages();
+  }
+  function repaginateAll(){
+    var firstTables=[];
+    document.querySelectorAll('.a4-scope-table').forEach(function(table){
+      var page=pageOf(table);
+      if(page && !isContinued(page)) firstTables.push(table);
+    });
+    firstTables.forEach(function(table){ paginateTable(table,0); });
+    removeEmptyContinuedPages();
+  }
+  function install(){
+    var rr=renderer();
+    if(!rr || rr.__noBlankPaginationFix) return false;
+    rr.__noBlankPaginationFix=true;
+    rr.paginateScopeFrom=function(table){ paginateTable(table,0); };
+    rr.paginateAllScopeTables=function(){ repaginateAll(); };
+    var oldAdd=rr.addRow;
+    rr.addRow=function(btn){
+      if(typeof oldAdd==='function') oldAdd.call(rr,btn);
+      setTimeout(repaginateAll,80);
+    };
+    var oldDelete=rr.deleteLastRow;
+    rr.deleteLastRow=function(btn){
+      if(typeof oldDelete==='function') oldDelete.call(rr,btn);
+      setTimeout(removeEmptyContinuedPages,50);
+    };
+    if(typeof window.previewCurrentForm==='function' && !window.__noBlankPreviewPatch){
+      window.__noBlankPreviewPatch=true;
+      var original=window.previewCurrentForm;
+      window.previewCurrentForm=function(){
+        original.apply(this,arguments);
+        setTimeout(repaginateAll,160);
+        setTimeout(removeEmptyContinuedPages,320);
+      };
+    }
+    setTimeout(repaginateAll,200);
+    setTimeout(removeEmptyContinuedPages,500);
+    return true;
+  }
+  var tries=0;
+  function boot(){
+    tries++;
+    if(!install() && tries<30) setTimeout(boot,100);
+  }
+  document.addEventListener('DOMContentLoaded',boot);
+  boot();
+})();
+</script>
