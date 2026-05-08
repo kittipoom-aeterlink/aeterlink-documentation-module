@@ -5,7 +5,7 @@
 <script>
 (function () {
   var client = window.AETERLINK_CLIENT = window.AETERLINK_CLIENT || {};
-  client.version = 'CLIENT_APP_MODULAR_2026_05_08_R04';
+  client.version = 'CLIENT_APP_MODULAR_2026_05_08_R05';
   client.buildTimestamp = new Date().toISOString();
 
   client.lifecycleStages = [
@@ -60,10 +60,6 @@
   }
 
   client.editor = {
-    photos: [
-      { PhotoUrl: '', ItemNo: 'A.1', Description: "Chiller's DDC.", Note: '' },
-      { PhotoUrl: '', ItemNo: 'A.2', Description: 'Piping and pressure gauge.', Note: '' }
-    ],
     getActiveTemplate: function () {
       var input = document.getElementById('fTemplate');
       return input && input.value === 'PJ-EQUIP-CHK-001' ? 'CHECKLIST' : 'WCR';
@@ -99,90 +95,6 @@
       this.setRows(rows);
       if (typeof previewCurrentForm === 'function') previewCurrentForm();
     },
-    addPhotoPage: function () {
-      var next = this.photos.length + 1;
-      this.photos.push({ PhotoUrl: '', ItemNo: '', Description: 'Photo ' + next + ' description', Note: '' });
-      this.renderPhotoEditor();
-      if (typeof previewCurrentForm === 'function') previewCurrentForm();
-    },
-    deleteLastPhoto: function () {
-      if (this.photos.length > 0) this.photos.pop();
-      this.renderPhotoEditor();
-      if (typeof previewCurrentForm === 'function') previewCurrentForm();
-    },
-    clearPhoto: function (index) {
-      if (!this.photos[index]) return;
-      this.photos[index].PhotoUrl = '';
-      this.renderPhotoEditor();
-      if (typeof previewCurrentForm === 'function') previewCurrentForm();
-    },
-    readPhotoFile: function (index, file) {
-      if (!file) return;
-      if (!/^image\//.test(file.type)) {
-        alert('Please select an image file.');
-        return;
-      }
-      var reader = new FileReader();
-      reader.onload = function (event) {
-        client.editor.photos[index].PhotoUrl = event.target.result;
-        client.editor.renderPhotoEditor();
-        if (typeof previewCurrentForm === 'function') previewCurrentForm();
-      };
-      reader.readAsDataURL(file);
-    },
-    updatePhotoField: function (index, field, value) {
-      if (!this.photos[index]) return;
-      this.photos[index][field] = value;
-      if (typeof previewCurrentForm === 'function') previewCurrentForm();
-    },
-    renderPhotoEditor: function () {
-      var wrap = document.getElementById('photoEditorRows');
-      if (!wrap) return;
-      wrap.innerHTML = '';
-      this.photos.forEach(function (photo, index) {
-        var card = el('div', { style: 'display:grid;grid-template-columns:210px 1fr;gap:10px;margin:10px 0;padding:10px;border:1px solid var(--aeterlink-line);border-radius:12px;background:#fff;' });
-        var left = el('div');
-        if (photo.PhotoUrl) {
-          left.appendChild(el('img', { src: photo.PhotoUrl, style: 'width:100%;height:116px;object-fit:cover;border-radius:8px;border:1px solid #d9e6ee;' }));
-        } else {
-          left.appendChild(el('div', { style: 'height:116px;border:1px dashed #b8cbd7;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#6b7f90;background:#f7fbfd;' }, 'No image'));
-        }
-        var fileInput = el('input', { type: 'file', accept: 'image/*', style: 'display:none' });
-        fileInput.addEventListener('change', function () {
-          client.editor.readPhotoFile(index, fileInput.files && fileInput.files[0]);
-        });
-        left.appendChild(fileInput);
-        var buttons = el('div', { className: 'mod-actions', style: 'margin-top:8px;gap:5px;' });
-        var replaceBtn = el('button', { type: 'button', className: 'mod-btn' }, 'Add / Replace');
-        replaceBtn.addEventListener('click', function () { fileInput.click(); });
-        var clearBtn = el('button', { type: 'button', className: 'mod-btn' }, 'Clear');
-        clearBtn.addEventListener('click', function () { client.editor.clearPhoto(index); });
-        buttons.appendChild(replaceBtn);
-        buttons.appendChild(clearBtn);
-        left.appendChild(buttons);
-
-        var right = el('div', { className: 'form-grid', style: 'grid-template-columns:160px 1fr;gap:8px;margin:0;' });
-        var itemLabel = el('label', {}, 'Item No.');
-        var itemInput = el('input', { value: photo.ItemNo || '' });
-        itemInput.addEventListener('input', function () { client.editor.updatePhotoField(index, 'ItemNo', itemInput.value); });
-        itemLabel.appendChild(itemInput);
-        var descLabel = el('label', {}, 'Description');
-        var descInput = el('input', { value: photo.Description || photo.Caption || '' });
-        descInput.addEventListener('input', function () { client.editor.updatePhotoField(index, 'Description', descInput.value); });
-        descLabel.appendChild(descInput);
-        var noteLabel = el('label', { style: 'grid-column:1 / span 2;' }, 'Note');
-        var noteInput = el('textarea', { style: 'min-height:56px' });
-        noteInput.value = photo.Note || '';
-        noteInput.addEventListener('input', function () { client.editor.updatePhotoField(index, 'Note', noteInput.value); });
-        noteLabel.appendChild(noteInput);
-        right.appendChild(itemLabel);
-        right.appendChild(descLabel);
-        right.appendChild(noteLabel);
-        card.appendChild(left);
-        card.appendChild(right);
-        wrap.appendChild(card);
-      });
-    },
     injectControls: function () {
       var rows = document.getElementById('fRows');
       if (!rows || document.getElementById('modExtraEditorControls')) return;
@@ -192,25 +104,15 @@
       addRowBtn.addEventListener('click', this.addRow.bind(this));
       var deleteRowBtn = el('button', { type: 'button', className: 'mod-btn' }, '- Delete Last Row');
       deleteRowBtn.addEventListener('click', this.deleteLastRow.bind(this));
-      var addPhotoBtn = el('button', { type: 'button', className: 'mod-btn' }, '+ Add Photo');
-      addPhotoBtn.addEventListener('click', this.addPhotoPage.bind(this));
-      var deletePhotoBtn = el('button', { type: 'button', className: 'mod-btn' }, '- Delete Last Photo');
-      deletePhotoBtn.addEventListener('click', this.deleteLastPhoto.bind(this));
       actionRow.appendChild(addRowBtn);
       actionRow.appendChild(deleteRowBtn);
-      actionRow.appendChild(addPhotoBtn);
-      actionRow.appendChild(deletePhotoBtn);
 
       var infoPanel = el('div', { style: 'border:1px solid var(--aeterlink-line);border-radius:12px;padding:10px;background:#f7fbfd;margin-bottom:10px;' });
       infoPanel.innerHTML = '<b style="color:#17395d;">Document Information</b><div class="form-grid" style="margin-top:8px;"><label>Contract No.<input id="fContractNo" value="-"></label><label>Purchase Order No.<input id="fPurchaseOrderNo" value="-"></label><label>Work Type<input id="fWorkType" value="Equipment Purchasing / Installation / Implementation / BMS"></label><label>Completion Date<input id="fCompletionDate" value="30 April 2026"></label><label style="grid-column:span 2;">Reference Documents<input id="fReferenceDocuments" value="Equipment Checklist / Work Completion Evidence"></label><label style="grid-column:span 2;">Remarks / Additional Notes<input id="fRemarks" value="Work completion data and photo evidence imported from the uploaded Work Completion Report workbook."></label></div>';
 
-      var photoPanel = el('div', { id: 'photoEditorPanel', style: 'border:1px solid var(--aeterlink-line);border-radius:12px;padding:10px;background:#fff;' });
-      photoPanel.innerHTML = '<b style="color:#17395d;">Photo Report</b><div class="aeterlink-muted" style="font-size:12px;margin-top:4px;">Upload images directly from your computer. Two photos are placed on each A4 photo report page.</div><div id="photoEditorRows"></div>';
       holder.appendChild(actionRow);
       holder.appendChild(infoPanel);
-      holder.appendChild(photoPanel);
       rows.parentNode.insertBefore(holder, rows.nextSibling);
-      this.renderPhotoEditor();
     },
     patchCollectFormData: function () {
       if (window.__aeterlinkCollectPatched || typeof collectFormData !== 'function') return;
@@ -222,7 +124,6 @@
           var input = document.getElementById('f' + key);
           if (input) data[key] = input.value;
         });
-        data.Photos = (client.editor.photos || []).slice();
         return data;
       };
     },
@@ -238,8 +139,6 @@
           var input = document.getElementById(id);
           if (input) input.value = data[map[id]] || input.value || '';
         });
-        client.editor.photos = (data.Photos || client.editor.photos || []).slice();
-        client.editor.renderPhotoEditor();
       };
     },
     boot: function () {
