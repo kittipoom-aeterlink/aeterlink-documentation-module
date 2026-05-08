@@ -1,21 +1,18 @@
 /**
  * AETERLINK Documentation Module — ZZZZ_LegacyRestoreRouter.gs
  *
- * Final router shim:
- * - Default/legacy view uses the original V24 Index.html UI and injects
- *   A4_Legacy_Workflow_Restore.html after the legacy page content.
- * - Modular and smoke test URLs remain available for diagnostics.
+ * Production router:
+ * - Default WebApp URL now serves Index_Modular_Full as the real production UI.
+ * - Production UI combines modular modules with the legacy Document Issue Control workflow.
+ * - Work Completion Report A4 master layout is used by all document types.
+ * - Legacy page remains available via ?view=legacy for rollback/reference.
  */
 function doGet(e) {
   var params = (e && e.parameter) ? e.parameter : {};
   var view = String(params.view || params.modular || '').trim().toLowerCase();
 
-  if (view === 'modular' || view === '1' || view === 'true' || view === 'full') {
-    return HtmlService
-      .createTemplateFromFile('Index_Modular_Full')
-      .evaluate()
-      .setTitle('AETERLINK Documentation Control — Modular Full')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  if (view === 'legacy' || view === '0' || view === 'false') {
+    return renderLegacyRestoredWebApp_();
   }
 
   if (view === 'smoke' || view === 'test') {
@@ -26,7 +23,11 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
 
-  return renderLegacyRestoredWebApp_();
+  return HtmlService
+    .createTemplateFromFile('Index_Modular_Full')
+    .evaluate()
+    .setTitle('AETERLINK Documentation Control — Production')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function renderLegacyRestoredWebApp_() {
@@ -40,6 +41,6 @@ function renderLegacyRestoredWebApp_() {
   }
   return HtmlService
     .createHtmlOutput(html)
-    .setTitle('AETERLINK Documentation Control')
+    .setTitle('AETERLINK Documentation Control — Legacy')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
