@@ -20,6 +20,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Apply V25 Index cleanup
+        run: python3 scripts/patch_v25_index.py
+
       - name: Install clasp
         run: npm install -g @google/clasp
 
