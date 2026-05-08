@@ -1,45 +1,136 @@
 <!--
   AETERLINK Documentation Module — A4_Layout.html
-  Shared A4 layout partial for future modular Index.html refactor.
+  Shared A4 layout partial for modular Index.html refactor.
 -->
 <style>
   .a4-root {
     background: #777;
+    padding: 12px;
   }
 
   .a4-page {
     position: relative;
     width: 210mm;
+    height: 297mm;
     min-height: 297mm;
+    max-height: 297mm;
     box-sizing: border-box;
     background: #fff;
+    overflow: hidden;
     page-break-after: always;
     break-after: page;
   }
 
+  .a4-page-inner {
+    position: relative;
+    height: 100%;
+    padding: 12mm 11mm 13mm;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .a4-header {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 42mm 1fr 34mm;
+    gap: 4mm;
+    align-items: center;
+    border-bottom: 1px solid #244963;
+    padding-bottom: 4mm;
+  }
+
+  .a4-logo {
+    max-width: 38mm;
+    max-height: 16mm;
+    object-fit: contain;
+  }
+
+  .a4-title {
+    font-size: 14pt;
+    font-weight: 900;
+    text-align: center;
+    color: #17395d;
+    letter-spacing: .8px;
+  }
+
+  .a4-meta {
+    font-size: 7.5pt;
+    color: #334;
+    line-height: 1.35;
+  }
+
+  .a4-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-top: 5mm;
+    overflow: hidden;
+  }
+
+  .a4-footer {
+    flex: 0 0 auto;
+    border-top: 1px solid #d9e6ee;
+    padding-top: 2mm;
+    font-size: 7pt;
+    color: #6b7f90;
+    display: flex;
+    justify-content: space-between;
+    gap: 4mm;
+  }
+
+  .a4-section-title {
+    margin: 0 0 2mm;
+    padding: 1.8mm 2.2mm;
+    background: #eaf3f8;
+    border: 1px solid #d9e6ee;
+    color: #17395d;
+    font-size: 8pt;
+    font-weight: 900;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+  }
+
   .a4-page table {
     width: 100%;
+    max-width: 100%;
     table-layout: fixed;
     border-collapse: collapse;
+    font-size: 7.2pt;
   }
 
   .a4-page th,
   .a4-page td {
     box-sizing: border-box;
+    border: 1px solid #d9e6ee;
     white-space: normal;
     overflow-wrap: break-word;
-    vertical-align: middle;
+    word-break: normal;
+    vertical-align: top;
+    line-height: 1.18;
+    padding: 1.35mm 1.1mm;
   }
 
-  .a4-section-title {
-    font-weight: 800;
-    letter-spacing: .4px;
-    text-transform: uppercase;
+  .a4-page thead th {
+    background: #edf6f9;
+    color: #17395d;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+
+  .a4-page tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .a4-page-break {
     page-break-after: always;
     break-after: page;
+  }
+
+  .a4-no-print,
+  .a4-action-column,
+  .row-actions,
+  .photo-actions {
+    display: initial;
   }
 
   @media print {
@@ -48,8 +139,17 @@
       margin: 0;
     }
 
+    html,
+    body {
+      width: 210mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+    }
+
     .a4-root {
       background: #fff !important;
+      padding: 0 !important;
     }
 
     .a4-page {
@@ -61,6 +161,15 @@
       margin: 0 !important;
       box-shadow: none !important;
       border: 0 !important;
+    }
+
+    .a4-no-print,
+    .a4-action-column,
+    .row-actions,
+    .photo-actions,
+    th.a4-action-column,
+    td.a4-action-column {
+      display: none !important;
     }
   }
 </style>
