@@ -1,7 +1,11 @@
 <!-- AETERLINK Documentation Module — A4_Production_Next.html -->
 <style>
   #prodFieldPanel,.prod-field-panel,.prod-dyn-field,.prod-workflow-badge{display:none!important;}
-  #a4Preview .row-actions,#a4Preview .a4-preview-actions:not(.prod-inline-editor){display:none!important;}
+  /* Hide only the duplicated scope-table row action bar. Keep photo buttons visible. */
+  #a4Preview .row-actions,
+  #a4Preview .a4-scope-table + .a4-preview-actions:not(.prod-inline-editor){display:none!important;}
+  #a4Preview .a4-photo-block .a4-preview-actions,
+  #a4Preview .a4-photo-grid + .a4-preview-actions{display:flex!important;visibility:visible!important;}
   .prod-inline-editor{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0;}
   .prod-inline-editor button{border:1px solid var(--aeterlink-line);background:#fff;border-radius:9px;padding:6px 9px;cursor:pointer;font-size:12px;}
   .prod-inline-editor button.primary{background:var(--aeterlink-primary);border-color:var(--aeterlink-primary);color:#fff;font-weight:800;}
@@ -22,9 +26,11 @@
   function msg(t){var e=byId('prodStatusMsg')||byId('saveStatus'); if(e)e.textContent=t;}
   function code(){return (byId('fTemplate')&&byId('fTemplate').value)||(byId('prodDocType')&&byId('prodDocType').value)||'PJ-WCR-001';}
   function removeFieldPanel(){document.querySelectorAll('#prodFieldPanel,.prod-field-panel').forEach(function(n){n.remove();});}
+  function restorePhotoButtons(){area().querySelectorAll('.a4-photo-block .a4-preview-actions,.a4-photo-grid + .a4-preview-actions').forEach(function(n){n.style.display='flex';n.style.visibility='visible';});}
   function normalize(){
     removeFieldPanel();
-    area().querySelectorAll('.row-actions,.a4-preview-actions:not(.prod-inline-editor)').forEach(function(n){n.style.display='none';});
+    area().querySelectorAll('.row-actions,.a4-scope-table + .a4-preview-actions:not(.prod-inline-editor)').forEach(function(n){n.style.display='none';});
+    restorePhotoButtons();
     var bars=[].slice.call(area().querySelectorAll('.prod-inline-editor')); bars.forEach(function(b,i){if(i>0)b.remove();});
     area().querySelectorAll('table.a4-scope-table').forEach(function(t){
       t.style.borderCollapse='separate';t.style.borderSpacing='0';t.style.tableLayout='fixed';t.style.width='100%';
@@ -53,11 +59,11 @@
   function saveAs(status){syncRows();if(!window.collectFormData)return msg('Cannot save: form data collector is not available.');var d=window.collectFormData();status=status||((byId('prodStatus')&&byId('prodStatus').value)||(byId('fStatus')&&byId('fStatus').value)||'Draft');if(byId('fStatus'))byId('fStatus').value=status;if(byId('prodStatus'))byId('prodStatus').value=status;var p={FormRecordId:state.recordId,ProjectCode:d.ProjectCode,TemplateCode:code(),DocumentNo:d.DocumentNo||state.documentNo,RevisionNo:d.RevisionNo||'R00',Status:status,DocumentStatus:status,Data:d,RevisionReason:(byId('prodRevisionReason')&&byId('prodRevisionReason').value)||'',SubmittedAt:status==='Issued'?new Date().toISOString():'',LockedAfterPdf:status==='Issued'?'TRUE':'FALSE'};msg('Saving '+status+'...');google.script.run.withSuccessHandler(function(r){if(r&&r.record){state.recordId=r.record.FormRecordId||state.recordId;state.documentNo=r.record.DocumentNo||state.documentNo;if(byId('fDocumentNo'))byId('fDocumentNo').value=state.documentNo;if(byId('prodDocumentNo'))byId('prodDocumentNo').value=state.documentNo;var box=byId('prodDocNoBox');if(box)box.textContent=state.documentNo;var fr=byId('prodRecordIdBox');if(fr)fr.textContent=state.recordId;msg(status+' saved: '+state.documentNo);if(window.refreshData)window.refreshData();if(window.previewCurrentForm)window.previewCurrentForm();}}).withFailureHandler(function(e){msg('Save failed: '+(e&&e.message?e.message:String(e)));}).apiModularSaveFormRecord(p);}
   function revision(){var r=(byId('prodRevisionReason')&&byId('prodRevisionReason').value||'').trim();if(!r){msg('Revision reason is required before starting revision.');return;}var e=byId('prodRevisionNo')||byId('fRevisionNo');var n=parseInt(String(e?e.value:'R00').replace(/\D/g,''),10);if(isNaN(n))n=0;var next='R'+('00'+(n+1)).slice(-2);if(byId('prodRevisionNo'))byId('prodRevisionNo').value=next;if(byId('fRevisionNo'))byId('fRevisionNo').value=next;state.recordId='';if(byId('prodStatus'))byId('prodStatus').value='Draft';if(byId('fStatus'))byId('fStatus').value='Draft';msg('Revision started: '+next);if(window.previewCurrentForm)window.previewCurrentForm();}
   function patch(){if(window.previewCurrentForm&&!window.previewCurrentForm.__a4ProdOriginalInput){var old=window.previewCurrentForm;window.previewCurrentForm=function(){removeFieldPanel();var r=old.apply(this,arguments);setTimeout(editable,150);setTimeout(normalize,280);return r;};window.previewCurrentForm.__a4ProdOriginalInput=true;}window.prodSaveDraft=function(){saveAs('Draft');};window.prodIssueSend=function(){saveAs('Issued');};window.prodStartRevision=revision;window.prodValidate=function(){msg('Validation passed: original workflow form and A4 preview are ready.');};window.saveCurrentForm=function(){saveAs((byId('prodStatus')&&byId('prodStatus').value)||(byId('fStatus')&&byId('fStatus').value)||'Draft');};}
-  function boot(){patch();removeFieldPanel();editable();normalize();}
+  function boot(){patch();removeFieldPanel();editable();normalize();restorePhotoButtons();}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,300);setTimeout(boot,1000);});
   document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#a4Preview')){syncRows();normalize();}});
   document.addEventListener('change',function(e){if(e.target&&e.target.closest&&e.target.closest('#a4Preview')){syncRows();normalize();}});
   var timer=setInterval(boot,900);setTimeout(function(){clearInterval(timer);boot();},9000);
-  window.AETERLINK_PROD_NEXT={addPreviewRow:addRow,deletePreviewRow:delRow,savePreviewData:function(){saveAs('Draft');},makePreviewEditable:editable,normalizeBorders:normalize,richSave:saveAs,startRevision:revision};
+  window.AETERLINK_PROD_NEXT={addPreviewRow:addRow,deletePreviewRow:delRow,savePreviewData:function(){saveAs('Draft');},makePreviewEditable:editable,normalizeBorders:normalize,richSave:saveAs,startRevision:revision,restorePhotoButtons:restorePhotoButtons};
 })();
 </script>
