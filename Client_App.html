@@ -1,0 +1,20 @@
+<!--
+  AETERLINK Documentation Module — Client_App.html
+  Client-side JavaScript partial for future modular Index.html refactor.
+  Current Index.html remains the active WebApp entry until migration is completed.
+-->
+<script>
+  window.AETERLINK_CLIENT = window.AETERLINK_CLIENT || {};
+
+  window.AETERLINK_CLIENT.version = 'CLIENT_APP_SCAFFOLD_2026_05_08';
+  window.AETERLINK_CLIENT.buildTimestamp = new Date().toISOString();
+
+  window.AETERLINK_CLIENT.debugInfo = function() {
+    return {
+      version: window.AETERLINK_CLIENT.version,
+      buildTimestamp: window.AETERLINK_CLIENT.buildTimestamp,
+      userAgent: navigator.userAgent,
+      href: window.location.href
+    };
+  };
+</script>
