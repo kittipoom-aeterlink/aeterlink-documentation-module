@@ -1,175 +1,92 @@
 <!--
   AETERLINK Documentation Module — A4_Layout.html
-  Shared A4 layout partial for modular Index.html refactor.
+  Shared A4 layout partial for modular WebApp refactor.
 -->
 <style>
-  .a4-root {
-    background: #777;
-    padding: 12px;
-  }
-
-  .a4-page {
-    position: relative;
-    width: 210mm;
-    height: 297mm;
-    min-height: 297mm;
-    max-height: 297mm;
-    box-sizing: border-box;
-    background: #fff;
-    overflow: hidden;
-    page-break-after: always;
-    break-after: page;
-  }
-
-  .a4-page-inner {
-    position: relative;
-    height: 100%;
-    padding: 12mm 11mm 13mm;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .a4-header {
-    flex: 0 0 auto;
-    display: grid;
-    grid-template-columns: 42mm 1fr 34mm;
-    gap: 4mm;
-    align-items: center;
-    border-bottom: 1px solid #244963;
-    padding-bottom: 4mm;
-  }
-
-  .a4-logo {
-    max-width: 38mm;
-    max-height: 16mm;
-    object-fit: contain;
-  }
-
-  .a4-title {
-    font-size: 14pt;
-    font-weight: 900;
-    text-align: center;
-    color: #17395d;
-    letter-spacing: .8px;
-  }
-
-  .a4-meta {
-    font-size: 7.5pt;
-    color: #334;
-    line-height: 1.35;
-  }
-
-  .a4-content {
-    flex: 1 1 auto;
-    min-height: 0;
-    padding-top: 5mm;
-    overflow: hidden;
-  }
-
-  .a4-footer {
-    flex: 0 0 auto;
-    border-top: 1px solid #d9e6ee;
-    padding-top: 2mm;
-    font-size: 7pt;
-    color: #6b7f90;
-    display: flex;
-    justify-content: space-between;
-    gap: 4mm;
-  }
-
-  .a4-section-title {
-    margin: 0 0 2mm;
-    padding: 1.8mm 2.2mm;
-    background: #eaf3f8;
-    border: 1px solid #d9e6ee;
-    color: #17395d;
-    font-size: 8pt;
-    font-weight: 900;
-    letter-spacing: .4px;
-    text-transform: uppercase;
-  }
-
-  .a4-page table {
-    width: 100%;
-    max-width: 100%;
-    table-layout: fixed;
-    border-collapse: collapse;
-    font-size: 7.2pt;
-  }
-
-  .a4-page th,
-  .a4-page td {
-    box-sizing: border-box;
-    border: 1px solid #d9e6ee;
-    white-space: normal;
-    overflow-wrap: break-word;
-    word-break: normal;
-    vertical-align: top;
-    line-height: 1.18;
-    padding: 1.35mm 1.1mm;
-  }
-
-  .a4-page thead th {
-    background: #edf6f9;
-    color: #17395d;
-    font-weight: 900;
-    line-height: 1.1;
-  }
-
-  .a4-page tr {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  .a4-page-break {
-    page-break-after: always;
-    break-after: page;
-  }
-
-  .a4-no-print,
-  .a4-action-column,
-  .row-actions,
-  .photo-actions {
-    display: initial;
-  }
-
+  .a4-root { background:#777; padding:12px; }
+  .a4-page { position:relative; width:210mm; height:297mm; min-height:297mm; max-height:297mm; box-sizing:border-box; background:#fff; overflow:hidden; page-break-after:always; break-after:page; margin:0 auto 10px; }
+  .a4-page-inner { position:relative; height:100%; padding:12mm 11mm 13mm; display:flex; flex-direction:column; }
+  .a4-header { flex:0 0 auto; display:grid; grid-template-columns:42mm 1fr 34mm; gap:4mm; align-items:center; border-bottom:1px solid #244963; padding-bottom:4mm; }
+  .a4-logo { max-width:38mm; max-height:16mm; object-fit:contain; }
+  .a4-title { font-size:14pt; font-weight:900; text-align:center; color:#17395d; letter-spacing:.8px; }
+  .a4-meta { font-size:7.5pt; color:#334; line-height:1.35; }
+  .a4-content { flex:1 1 auto; min-height:0; padding-top:5mm; overflow:hidden; }
+  .a4-footer { flex:0 0 auto; border-top:1px solid #d9e6ee; padding-top:2mm; font-size:7pt; color:#6b7f90; display:flex; justify-content:space-between; gap:4mm; }
+  .a4-section-title { margin:0 0 2mm; padding:1.8mm 2.2mm; background:#eaf3f8; border:1px solid #d9e6ee; color:#17395d; font-size:8pt; font-weight:900; letter-spacing:.4px; text-transform:uppercase; }
+  .a4-page table { width:100%; max-width:100%; table-layout:fixed; border-collapse:collapse; font-size:7.2pt; }
+  .a4-page th,.a4-page td { box-sizing:border-box; border:1px solid #d9e6ee; white-space:normal; overflow-wrap:break-word; word-break:normal; vertical-align:top; line-height:1.18; padding:1.35mm 1.1mm; }
+  .a4-page thead th { background:#edf6f9; color:#17395d; font-weight:900; line-height:1.1; }
+  .a4-page tr { break-inside:avoid; page-break-inside:avoid; }
+  .a4-photo-grid { display:grid; grid-template-columns:1fr; gap:7mm; height:230mm; }
+  .a4-photo-block { border:1px solid #d9e6ee; min-height:105mm; display:grid; grid-template-rows:1fr auto; background:#fff; }
+  .a4-photo-box { display:flex; align-items:center; justify-content:center; background:#f7fbfd; color:#6b7f90; font-size:9pt; overflow:hidden; }
+  .a4-photo-box img { width:100%; height:100%; object-fit:contain; display:block; }
+  .a4-photo-caption { border-top:1px solid #d9e6ee; padding:2mm; font-size:7.5pt; color:#334; min-height:9mm; }
+  .a4-page-break { page-break-after:always; break-after:page; }
+  .a4-no-print,.a4-action-column,.row-actions,.photo-actions { display:initial; }
+  .a4-print-only { display:none; }
   @media print {
-    @page {
-      size: A4 portrait;
-      margin: 0;
-    }
-
-    html,
-    body {
-      width: 210mm !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      background: #fff !important;
-    }
-
-    .a4-root {
-      background: #fff !important;
-      padding: 0 !important;
-    }
-
-    .a4-page {
-      width: 210mm !important;
-      height: 297mm !important;
-      min-height: 297mm !important;
-      max-height: 297mm !important;
-      overflow: hidden !important;
-      margin: 0 !important;
-      box-shadow: none !important;
-      border: 0 !important;
-    }
-
-    .a4-no-print,
-    .a4-action-column,
-    .row-actions,
-    .photo-actions,
-    th.a4-action-column,
-    td.a4-action-column {
-      display: none !important;
-    }
+    @page { size:A4 portrait; margin:0; }
+    html, body { width:210mm !important; margin:0 !important; padding:0 !important; background:#fff !important; }
+    body * { visibility:hidden; }
+    .a4-print-area, .a4-print-area * { visibility:visible; }
+    .a4-print-area { position:absolute; left:0; top:0; width:210mm !important; background:#fff !important; padding:0 !important; }
+    .a4-root { background:#fff !important; padding:0 !important; }
+    .a4-page { width:210mm !important; height:297mm !important; min-height:297mm !important; max-height:297mm !important; overflow:hidden !important; margin:0 !important; box-shadow:none !important; border:0 !important; }
+    .a4-no-print,.a4-action-column,.row-actions,.photo-actions,th.a4-action-column,td.a4-action-column { display:none !important; }
+    .a4-print-only { display:initial !important; }
   }
 </style>
+<script>
+  window.AETERLINK_A4_RENDERER = {
+    escapeHtml: function(value) {
+      return String(value == null ? '' : value).replace(/[&<>'"]/g, function(c) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+      });
+    },
+    section: function(title) {
+      return '<div class="a4-section-title">' + this.escapeHtml(title) + '</div>';
+    },
+    page: function(config) {
+      config = config || {};
+      return '<div class="a4-page"><div class="a4-page-inner">' +
+        '<header class="a4-header">' +
+          '<div style="font-weight:900;color:#17395d;">AETERLINK</div>' +
+          '<div class="a4-title">' + this.escapeHtml(config.title || '') + '</div>' +
+          '<div class="a4-meta">Doc No.: ' + this.escapeHtml(config.documentNo || '') + '<br>Rev.: ' + this.escapeHtml(config.revisionNo || 'R00') + '<br>Status: ' + this.escapeHtml(config.status || 'Draft') + '</div>' +
+        '</header>' +
+        '<div class="a4-content">' + (config.content || '') + '</div>' +
+        '<footer class="a4-footer"><span>AETERLINK Documentation Control</span><span>Page layout: A4 portrait</span></footer>' +
+      '</div></div>';
+    },
+    documentInfo: function(data) {
+      data = data || {};
+      return this.section('DOCUMENT INFORMATION') + '<table><tbody>' +
+        '<tr><th>Project Code</th><td>' + this.escapeHtml(data.ProjectCode || '') + '</td><th>Client</th><td>' + this.escapeHtml(data.Client || '') + '</td></tr>' +
+        '<tr><th>Project Name / Site</th><td>' + this.escapeHtml(data.ProjectName || '') + '</td><th>Main-Contractor</th><td>' + this.escapeHtml(data.MainContractor || '') + '</td></tr>' +
+        '</tbody></table>';
+    },
+    table: function(columns, rows) {
+      columns = columns || [];
+      rows = rows || [];
+      return '<table><thead><tr>' + columns.map(function(col) {
+        return '<th style="width:' + window.AETERLINK_A4_RENDERER.escapeHtml(col.width || 'auto') + ';">' + window.AETERLINK_A4_RENDERER.escapeHtml(col.label || col.key || '') + '</th>';
+      }).join('') + '</tr></thead><tbody>' + rows.map(function(row) {
+        return '<tr>' + columns.map(function(col) {
+          return '<td>' + window.AETERLINK_A4_RENDERER.escapeHtml(row[col.key] || '') + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table>';
+    },
+    photoGrid: function(photos) {
+      photos = photos || [];
+      while (photos.length < 2) photos.push({ PhotoUrl:'', Caption:'' });
+      return '<div class="a4-photo-grid">' + photos.slice(0,2).map(function(photo, i) {
+        var url = photo.PhotoUrl || '';
+        return '<div class="a4-photo-block"><div class="a4-photo-box">' +
+          (url ? '<img src="' + window.AETERLINK_A4_RENDERER.escapeHtml(url) + '">' : 'Photo ' + (i + 1)) +
+          '</div><div class="a4-photo-caption">' + window.AETERLINK_A4_RENDERER.escapeHtml(photo.Caption || '') + '</div></div>';
+      }).join('') + '</div>';
+    },
+    printA4: function() { window.print(); }
+  };
+</script>
