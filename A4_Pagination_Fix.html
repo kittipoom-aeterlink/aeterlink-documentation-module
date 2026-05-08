@@ -1,4 +1,53 @@
 <!-- AETERLINK Documentation Module — A4_Pagination_Fix.html -->
+<style>
+  .a4-scope-table,
+  .a4-info-table,
+  .a4-project-grid{
+    border-collapse:collapse!important;
+    border-spacing:0!important;
+  }
+  .a4-scope-table{
+    border:1px solid #666!important;
+    outline:1px solid #666!important;
+    outline-offset:-1px!important;
+  }
+  .a4-scope-table th,
+  .a4-scope-table td{
+    border-top:1px solid #666!important;
+    border-right:1px solid #666!important;
+    border-bottom:1px solid #666!important;
+    border-left:1px solid #666!important;
+    box-shadow:none!important;
+  }
+  .a4-scope-table tr > *:first-child{border-left:1px solid #666!important;}
+  .a4-scope-table tr > *:last-child{border-right:1px solid #666!important;}
+  .a4-scope-table tbody tr:last-child > *{border-bottom:1px solid #666!important;}
+  .a4-scope-table thead tr:first-child > *{border-top:1px solid #666!important;}
+  .a4-footer{
+    justify-content:center!important;
+    align-items:center!important;
+    text-align:center!important;
+    gap:0!important;
+    color:#555!important;
+  }
+  .a4-footer > span:not(.a4-footer-center){display:none!important;}
+  .a4-footer-center{
+    display:block!important;
+    width:100%!important;
+    text-align:center!important;
+    font-size:6.4pt!important;
+    line-height:1.15!important;
+    font-weight:700!important;
+    color:#555!important;
+  }
+  @media print{
+    .a4-scope-table{border:1px solid #666!important;outline:1px solid #666!important;outline-offset:-1px!important;}
+    .a4-scope-table th,.a4-scope-table td{border:1px solid #666!important;box-shadow:none!important;}
+    .a4-footer{justify-content:center!important;text-align:center!important;}
+    .a4-footer > span:not(.a4-footer-center){display:none!important;}
+    .a4-footer-center{display:block!important;width:100%!important;text-align:center!important;color:#555!important;}
+  }
+</style>
 <script>
 (function(){
   function rr(){ return window.AETERLINK_A4_RENDERER; }
@@ -21,11 +70,63 @@
     var p=page.getBoundingClientRect();
     return r.bottom-p.top;
   }
+  function escapeText(v){
+    return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});
+  }
   function removeEmptyContinuedPages(){
     document.querySelectorAll('.a4-scope-continued-page').forEach(function(page){
       var rows=page.querySelectorAll('table.a4-scope-table tbody tr');
       if(rows.length===0) page.remove();
     });
+  }
+  function hardenTableBorders(){
+    var a=area();
+    if(!a) return;
+    a.querySelectorAll('table.a4-scope-table').forEach(function(table){
+      table.style.borderCollapse='collapse';
+      table.style.borderSpacing='0';
+      table.style.border='1px solid #666';
+      table.style.outline='1px solid #666';
+      table.style.outlineOffset='-1px';
+      table.querySelectorAll('th,td').forEach(function(cell){
+        cell.style.borderTop='1px solid #666';
+        cell.style.borderRight='1px solid #666';
+        cell.style.borderBottom='1px solid #666';
+        cell.style.borderLeft='1px solid #666';
+        cell.style.boxShadow='none';
+      });
+    });
+  }
+  function docNoFromPage(page){
+    if(!page) return '';
+    var rows=page.querySelectorAll('.a4-meta-row');
+    for(var i=0;i<rows.length;i++){
+      var label=(rows[i].querySelector('b')||{}).textContent || '';
+      if(label.toLowerCase().indexOf('doc no')>=0){
+        var span=rows[i].querySelector('span,.a4-editable');
+        var val=(span?span.textContent:rows[i].textContent.replace(label,'')) || '';
+        return val.trim();
+      }
+    }
+    var input=document.getElementById('fDocumentNo');
+    return input && input.value ? input.value.trim() : '';
+  }
+  function updateFooters(){
+    var a=area();
+    if(!a) return;
+    var pages=[].slice.call(a.querySelectorAll('.a4-page'));
+    if(!pages.length) return;
+    var docNo=docNoFromPage(pages[0]) || 'Not issued';
+    var total=pages.length;
+    pages.forEach(function(page,index){
+      var footer=page.querySelector('.a4-footer');
+      if(!footer) return;
+      footer.innerHTML='<span class="a4-footer-center">Document No.: '+escapeText(docNo)+' &nbsp;&nbsp;|&nbsp;&nbsp; Page No.: '+(index+1)+' / '+total+'</span>';
+    });
+  }
+  function normalizeA4(){
+    hardenTableBorders();
+    updateFooters();
   }
   function firstScopePage(){
     var a=area();
@@ -93,7 +194,6 @@
     if(!page || !body || !isVisible(page) || !isVisible(table)) return;
     var limit=safeLimit(page);
     if(limit===null) return;
-
     var moved=[];
     var guard=0;
     while(body.rows.length>1 && rowBottomInPage(body.rows[body.rows.length-1],page)>limit && guard<120){
@@ -103,7 +203,6 @@
       body.removeChild(row);
     }
     if(!moved.length) return;
-
     var next=ensureNextScopePage(page,table);
     var nextTable=next.querySelector('table.a4-scope-table');
     var nextBody=bodyOf(nextTable);
@@ -112,13 +211,14 @@
   }
   function repaginateAll(){
     var first=collectRowsAndResetToFirstPage();
-    if(!first) return;
+    if(!first){ normalizeA4(); return; }
     paginateFromTable(first,0);
     removeEmptyContinuedPages();
+    normalizeA4();
   }
   function statusCell(value){
     var R=rr();
-    var esc=R && R.escapeHtml ? R.escapeHtml.bind(R) : function(v){return String(v==null?'':v);};
+    var esc=R && R.escapeHtml ? R.escapeHtml.bind(R) : escapeText;
     var opts=['','Not Started','In Progress','Pending','Done','Issue','N/A'];
     var v=(value==null?'':String(value));
     var html='<select class="a4-status-select">';
@@ -152,6 +252,11 @@
       if(body.rows.length) body.deleteRow(body.rows.length-1);
       setTimeout(repaginateAll,80);
     };
+    if(!R.__printFooterPatched && typeof R.printA4==='function'){
+      R.__printFooterPatched=true;
+      var originalPrint=R.printA4;
+      R.printA4=function(){ normalizeA4(); return originalPrint.apply(R,arguments); };
+    }
     return true;
   }
   function patchPreviewAndView(){
@@ -177,16 +282,25 @@
   function boot(){
     installRendererOverrides();
     patchPreviewAndView();
+    setTimeout(normalizeA4,60);
   }
+  document.addEventListener('input',function(e){
+    if(e.target && e.target.closest && e.target.closest('.a4-page')) setTimeout(updateFooters,80);
+  });
+  document.addEventListener('change',function(e){
+    if(e.target && e.target.closest && e.target.closest('.a4-page')) setTimeout(updateFooters,80);
+  });
   document.addEventListener('DOMContentLoaded',function(){
     boot();
     setTimeout(boot,250);
-    setTimeout(function(){ if(isVisible(area())) repaginateAll(); },500);
+    setTimeout(function(){ if(isVisible(area())) repaginateAll(); else normalizeA4(); },500);
   });
   var timer=setInterval(function(){
     boot();
     if(window.__a4PaginationPreviewPatched && window.__a4PaginationShowViewPatched) clearInterval(timer);
   },150);
   window.AETERLINK_REPAGINATE_A4=repaginateAll;
+  window.AETERLINK_UPDATE_A4_FOOTERS=updateFooters;
+  window.AETERLINK_FIX_A4_TABLE_BORDERS=hardenTableBorders;
 })();
 </script>
