@@ -1,18 +1,67 @@
 <!--
   AETERLINK Documentation Module — Client_App.html
-  Client-side JavaScript partial for future modular Index.html refactor.
-  Current Index.html remains the active WebApp entry until migration is completed.
+  Client-side JavaScript partial for modular Index.html refactor.
 -->
 <script>
   window.AETERLINK_CLIENT = window.AETERLINK_CLIENT || {};
 
-  window.AETERLINK_CLIENT.version = 'CLIENT_APP_SCAFFOLD_2026_05_08';
+  window.AETERLINK_CLIENT.version = 'CLIENT_APP_MODULAR_2026_05_08_R01';
   window.AETERLINK_CLIENT.buildTimestamp = new Date().toISOString();
+
+  window.AETERLINK_CLIENT.lifecycleStages = [
+    { key: 'All', label: 'All documents' },
+    { key: '01_INITIATION', label: '1. Project Start / Sales Handover' },
+    { key: '02_PLANNING', label: '2. Project Planning / Control' },
+    { key: '03_DESIGN', label: '3. Design / Engineering / Approval Documents' },
+    { key: '04_PROCUREMENT', label: '4. Procurement / Material' },
+    { key: '05_CONSTRUCTION', label: '5. Construction / Installation' },
+    { key: '06_TESTING', label: '6. Testing / Commissioning' },
+    { key: '07_HANDOVER', label: '7. Handover / Closeout' },
+    { key: '08_WARRANTY', label: '8. Warranty / DLP / Post-handover' }
+  ];
+
+  window.AETERLINK_CLIENT.lifecycleLabels = window.AETERLINK_CLIENT.lifecycleStages.reduce(function(map, stage) {
+    map[stage.key] = stage.label;
+    return map;
+  }, {});
+
+  window.AETERLINK_CLIENT.lifecycleHint = 'Used to group documents by project lifecycle: initiation → planning → design → procurement → installation → testing → handover → Warranty/DLP';
+
+  window.AETERLINK_CLIENT.lifecycleLabel = function(key) {
+    return window.AETERLINK_CLIENT.lifecycleLabels[key] || key || '';
+  };
+
+  window.AETERLINK_CLIENT.setBuildBadge = function(buildInfo) {
+    var badge = document.getElementById('versionBadge');
+    if (!badge) return;
+
+    var info = buildInfo || {};
+    var version = info.appVersion || window.AETERLINK_CLIENT.version;
+    var timestamp = info.buildTimestamp || window.AETERLINK_CLIENT.buildTimestamp;
+    badge.textContent = version + ' · ' + timestamp;
+  };
+
+  window.AETERLINK_CLIENT.loadBuildInfo = function() {
+    if (typeof google === 'undefined' || !google.script || !google.script.run) {
+      window.AETERLINK_CLIENT.setBuildBadge();
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(info) {
+        window.AETERLINK_CLIENT.setBuildBadge(info);
+      })
+      .withFailureHandler(function() {
+        window.AETERLINK_CLIENT.setBuildBadge();
+      })
+      .apiBuildInfo();
+  };
 
   window.AETERLINK_CLIENT.debugInfo = function() {
     return {
       version: window.AETERLINK_CLIENT.version,
       buildTimestamp: window.AETERLINK_CLIENT.buildTimestamp,
+      lifecycleHint: window.AETERLINK_CLIENT.lifecycleHint,
       userAgent: navigator.userAgent,
       href: window.location.href
     };
