@@ -1,0 +1,66 @@
+<!--
+  AETERLINK Documentation Module — A4_Layout.html
+  Shared A4 layout partial for future modular Index.html refactor.
+-->
+<style>
+  .a4-root {
+    background: #777;
+  }
+
+  .a4-page {
+    position: relative;
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+    background: #fff;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .a4-page table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
+  .a4-page th,
+  .a4-page td {
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: break-word;
+    vertical-align: middle;
+  }
+
+  .a4-section-title {
+    font-weight: 800;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+  }
+
+  .a4-page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    .a4-root {
+      background: #fff !important;
+    }
+
+    .a4-page {
+      width: 210mm !important;
+      height: 297mm !important;
+      min-height: 297mm !important;
+      max-height: 297mm !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+      border: 0 !important;
+    }
+  }
+</style>
