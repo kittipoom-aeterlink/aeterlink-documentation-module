@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AETERLINK Documentation Control — Modular Full</title>
+  <?!= include('Styles'); ?>
+  <?!= include('A4_Layout'); ?>
+  <style>
+    .mod-app { min-height: 100vh; display: grid; grid-template-columns: 286px 1fr; }
+    .mod-sidebar { background: #fff; border-right: 1px solid var(--aeterlink-line); padding: 18px 14px; position: sticky; top: 0; height: 100vh; overflow: auto; }
+    .mod-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .mod-logo { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg,#dbeef4,#fff); display:flex; align-items:center; justify-content:center; color: var(--aeterlink-primary-dark); font-weight:900; border:1px solid var(--aeterlink-line); }
+    .mod-brand h1 { font-size: 15px; margin: 0; color: var(--aeterlink-primary-dark); line-height:1.18; }
+    .mod-brand small { display:block; color: var(--aeterlink-muted); margin-top: 4px; }
+    .mod-nav button { display:flex; align-items:center; gap:9px; width:100%; border:0; background:transparent; padding:11px 12px; border-radius:14px; color:#25465b; cursor:pointer; text-align:left; margin:3px 0; font-size:14px; }
+    .mod-nav button:hover,.mod-nav button.active { background:#eaf3f8; color:#17395d; font-weight:800; }
+    .mod-nav .sep { height:1px; background:#edf3f6; margin:10px 4px; }
+    .mod-main { padding: 16px; overflow:auto; }
+    .mod-topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+    .mod-title h2 { margin:0; color:var(--aeterlink-primary-dark); font-size:22px; }
+    .mod-title p { margin:4px 0 0; color:var(--aeterlink-muted); font-size:12px; }
+    .mod-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .mod-btn { font-family:inherit; border:1px solid var(--aeterlink-line); background:#fff; border-radius:10px; padding:8px 11px; cursor:pointer; color:#243746; }
+    .mod-btn.primary { background:var(--aeterlink-primary); color:#fff; border-color:var(--aeterlink-primary); font-weight:700; }
+    .mod-grid { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:12px; margin-bottom:14px; }
+    .mod-kpi { padding:15px 17px; min-height:82px; }
+    .mod-kpi .label { color:var(--aeterlink-muted); font-size:12px; }
+    .mod-kpi .value { font-size:28px; font-weight:900; color:var(--aeterlink-primary-dark); margin-top:6px; }
+    .mod-panel { padding:16px; margin-bottom:14px; }
+    .mod-panel h3 { margin:0 0 12px; color:var(--aeterlink-primary-dark); }
+    .mod-table-wrap { overflow:auto; border:1px solid var(--aeterlink-line); border-radius:14px; background:#fff; max-height:52vh; }
+    table.mod-table { width:100%; border-collapse:separate; border-spacing:0; font-size:12px; }
+    .mod-table th,.mod-table td { padding:8px 9px; border-bottom:1px solid #edf2f5; text-align:left; vertical-align:middle; white-space:nowrap; }
+    .mod-table th { position:sticky; top:0; background:#edf6f9; color:#17395d; z-index:1; }
+    .mod-pill { display:inline-flex; border:1px solid var(--aeterlink-line); border-radius:999px; padding:4px 9px; background:#f7fbfd; font-size:11px; font-weight:800; color:#466176; }
+    .mod-hide { display:none !important; }
+    .mod-lifecycle-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:8px; }
+    .mod-lifecycle-card { border:1px solid var(--aeterlink-line); border-radius:12px; padding:10px; background:#f7fbfd; }
+    .mod-lifecycle-card b { color:#17395d; }
+    .mod-page-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .mod-page-tabs button { border:1px solid var(--aeterlink-line); background:#fff; border-radius:10px; padding:8px 11px; cursor:pointer; }
+    .mod-page-tabs button.active { background:var(--aeterlink-primary); color:#fff; border-color:var(--aeterlink-primary); font-weight:800; }
+    @media (max-width: 1150px) { .mod-app { grid-template-columns:1fr; } .mod-sidebar { position:relative; height:auto; } .mod-grid { grid-template-columns:repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+  <div class="mod-app">
+    <aside class="mod-sidebar">
+      <div class="mod-brand">
+        <div class="mod-logo">A</div>
+        <div><h1>AETERLINK<br>Documentation Control</h1><small id="sideVersion">Modular</small></div>
+      </div>
+      <nav class="mod-nav">
+        <button class="active" data-view="dashboard">📊 Dashboard</button>
+        <button data-view="documents">📝 Documents & Forms A4</button>
+        <button data-view="templates">📄 Form Templates</button>
+        <button data-view="records">🧾 Form Records / PDF</button>
+        <button data-view="register">🗂️ Document Register</button>
+        <div class="sep"></div>
+        <button data-view="lifecycle">🔄 Document Lifecycle</button>
+        <button data-view="a4check">📐 A4 Layout Check</button>
+        <button data-view="settings">⚙️ Modular Settings</button>
+      </nav>
+    </aside>
+
+    <main class="mod-main">
+      <div class="mod-topbar">
+        <div class="mod-title"><h2 id="pageTitle">Dashboard</h2><p id="pageSubTitle">AETERLINK Documentation Control — Modular Full English UI</p></div>
+        <div class="mod-actions">
+          <button class="mod-btn" onclick="loadServer()">Health</button>
+          <button class="mod-btn" onclick="refreshData()">Refresh</button>
+          <button class="mod-btn primary" onclick="showView('documents')">+ Create Form</button>
+        </div>
+      </div>
+      <div id="versionBadge" class="aeterlink-muted" style="font-size:12px;margin-bottom:10px;">Loading build info...</div>
+
+      <section id="view-dashboard" class="mod-view">
+        <div class="mod-grid">
+          <div class="aeterlink-card mod-kpi"><div class="label">Templates</div><div class="value" id="kpiTemplates">0</div></div>
+          <div class="aeterlink-card mod-kpi"><div class="label">Documents</div><div class="value" id="kpiDocuments">0</div></div>
+          <div class="aeterlink-card mod-kpi"><div class="label">Records</div><div class="value" id="kpiRecords">0</div></div>
+          <div class="aeterlink-card mod-kpi"><div class="label">Projects</div><div class="value" id="kpiProjects">0</div></div>
+        </div>
+        <div class="aeterlink-card mod-panel"><h3>Main Actions</h3><button class="mod-btn primary" onclick="showView('documents')">Open A4 Workflow</button> <button class="mod-btn" onclick="showView('templates')">Form Templates</button> <button class="mod-btn" onclick="showView('records')">Form Records / PDF</button> <button class="mod-btn" onclick="showView('register')">Document Register</button><div class="aeterlink-muted" style="margin-top:12px;padding:12px;border:1px solid var(--aeterlink-line);border-radius:12px;background:#f7fbfd;">Modular full page loads Google Sheet data through server APIs and uses English-only lifecycle labels. A4 layout rules are centralized for all documents.</div></div>
+        <div class="aeterlink-card mod-panel"><h3>Recent Documents</h3><div id="recentDocs">Loading...</div></div>
+      </section>
+
+      <section id="view-documents" class="mod-view mod-hide">
+        <div class="aeterlink-card mod-panel"><h3>Documents & Forms A4</h3><div class="mod-page-tabs"><button class="active" onclick="renderA4Template('WCR', this)">Work Completion Report</button><button onclick="renderA4Template('CHECKLIST', this)">Equipment Checklist</button></div><div id="a4Preview"></div></div>
+      </section>
+
+      <section id="view-templates" class="mod-view mod-hide"><div class="aeterlink-card mod-panel"><h3>Form Templates</h3><div id="templatesTable"></div></div></section>
+      <section id="view-records" class="mod-view mod-hide"><div class="aeterlink-card mod-panel"><h3>Form Records / PDF</h3><div id="recordsTable"></div></div></section>
+      <section id="view-register" class="mod-view mod-hide"><div class="aeterlink-card mod-panel"><h3>Document Register</h3><div id="registerTable"></div></div></section>
+
+      <section id="view-lifecycle" class="mod-view mod-hide">
+        <div class="aeterlink-card mod-panel"><h3>Document Lifecycle</h3><p id="lifecycleHint" class="aeterlink-muted"></p><div id="lifecycleList" class="mod-lifecycle-grid"></div></div>
+      </section>
+
+      <section id="view-a4check" class="mod-view mod-hide">
+        <div class="aeterlink-card mod-panel"><h3>A4 Layout Check</h3><p class="aeterlink-muted">All document previews use fixed A4 page dimensions, print-only action-column hiding, controlled page breaks, and footer-safe content areas.</p><div id="a4CheckOutput"></div></div>
+      </section>
+
+      <section id="view-settings" class="mod-view mod-hide"><div class="aeterlink-card mod-panel"><h3>Modular Settings / Server Payload</h3><pre id="serverPayload" style="white-space:pre-wrap;background:#f7fbfd;border:1px solid var(--aeterlink-line);border-radius:12px;padding:12px;overflow:auto;max-height:460px;">Loading...</pre></div></section>
+    </main>
+  </div>
+
+  <?!= include('Client_App'); ?>
+  <?!= include('Templates_WCR'); ?>
+  <?!= include('Templates_Checklist'); ?>
+
+  <script>
+    var APP_STATE = { init: null, tables: {}, currentView: 'dashboard' };
+    var TABLE_COLUMNS = {
+      FORM_TEMPLATES: ['TemplateCode','TemplateName','Module','PhaseNo','DocCategory','Active'],
+      FORM_RECORDS: ['FormRecordId','ProjectCode','TemplateCode','DocumentNo','RevisionNo','Status','SubmittedBy','UpdatedAt'],
+      DOCUMENT_REGISTER: ['DocumentId','ProjectCode','DocumentCode','DocumentTitle','Revision','Status','Module','UpdatedAt']
+    };
+
+    function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>'"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]; }); }
+    function setText(id, value) { var el = document.getElementById(id); if (el) el.textContent = value; }
+    function showJson(id, value) { var el = document.getElementById(id); if (el) el.textContent = JSON.stringify(value, null, 2); }
+
+    function showView(name) {
+      APP_STATE.currentView = name;
+      document.querySelectorAll('.mod-view').forEach(function(el){ el.classList.add('mod-hide'); });
+      var view = document.getElementById('view-' + name); if (view) view.classList.remove('mod-hide');
+      document.querySelectorAll('.mod-nav button').forEach(function(btn){ btn.classList.toggle('active', btn.getAttribute('data-view') === name); });
+      var titles = { dashboard:'Dashboard', documents:'Documents & Forms A4', templates:'Form Templates', records:'Form Records / PDF', register:'Document Register', lifecycle:'Document Lifecycle', a4check:'A4 Layout Check', settings:'Modular Settings' };
+      setText('pageTitle', titles[name] || 'Dashboard');
+      if (name === 'documents' && !document.getElementById('a4Preview').innerHTML) renderA4Template('WCR');
+      if (name === 'a4check') renderA4Check();
+    }
+
+    document.querySelectorAll('.mod-nav button[data-view]').forEach(function(btn){ btn.addEventListener('click', function(){ showView(btn.getAttribute('data-view')); }); });
+
+    function renderLifecycle() {
+      var client = window.AETERLINK_CLIENT || {};
+      setText('lifecycleHint', client.lifecycleHint || 'Used to group documents by project lifecycle.');
+      document.getElementById('lifecycleList').innerHTML = (client.lifecycleStages || []).map(function(stage){
+        return '<div class="mod-lifecycle-card"><b>' + escapeHtml(stage.label) + '</b><br><small class="aeterlink-muted">' + escapeHtml(stage.key) + '</small></div>';
+      }).join('');
+    }
+
+    function loadServer() {
+      showJson('serverPayload', { status: 'Loading server payload...' });
+      if (window.AETERLINK_CLIENT && window.AETERLINK_CLIENT.loadBuildInfo) window.AETERLINK_CLIENT.loadBuildInfo();
+      if (typeof google === 'undefined' || !google.script || !google.script.run) { showJson('serverPayload', { error: 'google.script.run is not available. Open from deployed Apps Script WebApp.' }); return; }
+      google.script.run.withSuccessHandler(function(result){ APP_STATE.init = result; applyInit(result); showJson('serverPayload', result); }).withFailureHandler(function(error){ showJson('serverPayload', { error: error && error.message ? error.message : String(error) }); }).apiModularInit();
+    }
+
+    function refreshData() { loadServer(); loadTable('FORM_TEMPLATES','templatesTable'); loadTable('FORM_RECORDS','recordsTable'); loadTable('DOCUMENT_REGISTER','registerTable'); }
+
+    function applyInit(result) {
+      result = result || {}; var counts = result.counts || {};
+      setText('kpiTemplates', counts.templates || 0); setText('kpiDocuments', counts.documentRegister || 0); setText('kpiRecords', counts.formRecords || 0); setText('kpiProjects', counts.projects || 0);
+      var build = result.build || {}; if (build.appVersion) { setText('sideVersion', build.appVersion); }
+      renderRecent(result.recentDocuments || []);
+    }
+
+    function renderRecent(rows) {
+      if (!rows || !rows.length) { document.getElementById('recentDocs').innerHTML = '<div class="aeterlink-muted" style="padding:12px;border:1px solid var(--aeterlink-line);border-radius:12px;background:#f7fbfd;">No records yet.</div>'; return; }
+      document.getElementById('recentDocs').innerHTML = renderTable(rows, ['DocumentCode','DocumentTitle','ProjectCode','Revision','Status','UpdatedAt']);
+    }
+
+    function loadTable(tableName, targetId) {
+      if (typeof google === 'undefined' || !google.script || !google.script.run) { document.getElementById(targetId).innerHTML = '<div class="aeterlink-muted">google.script.run is not available.</div>'; return; }
+      google.script.run.withSuccessHandler(function(result){ var rows = (result && result.rows) || []; APP_STATE.tables[tableName] = rows; document.getElementById(targetId).innerHTML = renderTable(rows, TABLE_COLUMNS[tableName] || Object.keys(rows[0] || {})); }).withFailureHandler(function(error){ document.getElementById(targetId).innerHTML = '<pre>' + escapeHtml(error && error.message ? error.message : String(error)) + '</pre>'; }).apiModularTable(tableName);
+    }
+
+    function renderTable(rows, columns) {
+      if (!rows || !rows.length) return '<div class="aeterlink-muted" style="padding:12px;border:1px solid var(--aeterlink-line);border-radius:12px;background:#f7fbfd;">No records yet.</div>';
+      columns = columns || Object.keys(rows[0] || {});
+      return '<div class="mod-table-wrap"><table class="mod-table"><thead><tr>' + columns.map(function(c){ return '<th>' + escapeHtml(c) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.slice(0,80).map(function(row){ return '<tr>' + columns.map(function(c){ var v=row[c] || ''; if(c==='Status'||c==='Active') return '<td><span class="mod-pill">' + escapeHtml(v) + '</span></td>'; return '<td>' + escapeHtml(v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+    }
+
+    function renderA4Template(type, btn) {
+      if (btn) { btn.parentElement.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); }
+      var isChecklist = type === 'CHECKLIST';
+      var tpl = isChecklist ? window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST : window.AETERLINK_TEMPLATES.WCR;
+      var title = isChecklist ? 'EQUIPMENT CHECKLIST' : 'WORK COMPLETION REPORT';
+      var section = isChecklist ? 'EQUIPMENT CHECKLIST' : 'SCOPE OF WORK — COMPLETION STATUS';
+      var columns = isChecklist ? tpl.columns : tpl.columns.scope;
+      var rows = isChecklist ? sampleChecklistRows() : sampleWcrRows();
+      document.getElementById('a4Preview').innerHTML = buildA4Page(title, section, columns, rows, isChecklist ? 'PJ-EQUIP-CHK-001' : 'PJ-WCR-001');
+    }
+
+    function buildA4Page(title, sectionTitle, columns, rows, templateCode) {
+      return '<div class="a4-root" style="overflow:auto;max-height:720px;">' +
+        '<div class="a4-page"><div class="a4-page-inner">' +
+        '<header class="a4-header"><div style="font-weight:900;color:#17395d;">AETERLINK</div><div class="a4-title">' + escapeHtml(title) + '</div><div class="a4-meta">Template: ' + escapeHtml(templateCode) + '<br>Rev.: R00<br>Status: Draft</div></header>' +
+        '<div class="a4-content"><div class="a4-section-title">DOCUMENT INFORMATION</div><table><tbody><tr><th>Project Code</th><td>TEST-PJ</td><th>Client</th><td>Sample Client</td></tr><tr><th>Project Name / Site</th><td>Modular A4 Layout Check</td><th>Main-Contractor</th><td>AETERLINK</td></tr></tbody></table>' +
+        '<div class="a4-section-title" style="margin-top:5mm;">' + escapeHtml(sectionTitle) + '</div>' + buildA4Table(columns, rows) + '</div><footer class="a4-footer"><span>AETERLINK Documentation Control</span><span>Footer-safe A4 layout</span></footer></div></div></div>';
+    }
+
+    function buildA4Table(columns, rows) {
+      return '<table><thead><tr>' + columns.map(function(col){ return '<th style="width:' + escapeHtml(col.width || 'auto') + ';">' + escapeHtml(col.label) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function(row){ return '<tr>' + columns.map(function(col){ return '<td>' + escapeHtml(row[col.key] || '') + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
+    }
+
+    function sampleWcrRows(){ return [{No:'1',Description:'Completed installation verification and visual inspection.',Location:'Main Plant Room',Status:'Done',Remark:'Accepted'},{No:'2',Description:'Checked control panel wiring termination and label condition.',Location:'Control Panel',Status:'Done',Remark:'No issue'},{No:'3',Description:'Verified work area cleanup and handover readiness.',Location:'Site Area',Status:'Done',Remark:'Ready for client review'}]; }
+    function sampleChecklistRows(){ return [{No:'1',EquipmentTag:'AHU-01',Description:'Air Handling Unit',Location:'Level 1',CheckItem:'Nameplate and installation condition',Status:'Done',Remark:'OK'},{No:'2',EquipmentTag:'PCHP-01',Description:'Primary Chilled Water Pump',Location:'Plant Room',CheckItem:'Cable termination and rotation check',Status:'Done',Remark:'OK'},{No:'3',EquipmentTag:'CT-01',Description:'Cooling Tower',Location:'Roof',CheckItem:'General visual inspection',Status:'Pending',Remark:'Client witness required'}]; }
+    function renderA4Check(){ document.getElementById('a4CheckOutput').innerHTML = buildA4Page('WORK COMPLETION REPORT', 'SCOPE OF WORK — COMPLETION STATUS', window.AETERLINK_TEMPLATES.WCR.columns.scope, sampleWcrRows(), 'PJ-WCR-001') + '<div style="height:14px"></div>' + buildA4Page('EQUIPMENT CHECKLIST', 'EQUIPMENT CHECKLIST', window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.columns, sampleChecklistRows(), 'PJ-EQUIP-CHK-001'); }
+
+    document.addEventListener('DOMContentLoaded', function(){ renderLifecycle(); refreshData(); renderA4Template('WCR'); });
+  </script>
+</body>
+</html>
