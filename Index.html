@@ -4,7 +4,7 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>AETERLINK Documentation Control V10</title>
+  <title>AETERLINK Documentation Control V24</title>
   <style>
     :root{
       --ink:#1e3446;--muted:#6b7f90;--line:#d9e6ee;--soft:#f3f8fb;--soft2:#eaf3f8;
@@ -120,7 +120,103 @@
       .photo-page .photo-list{height:202mm!important;overflow:hidden!important}
       .photo-page .photo-row{height:98mm!important;min-height:98mm!important;max-height:98mm!important;page-break-inside:avoid!important;break-inside:avoid!important}
     }
-  </style>
+  
+/* V24_A4_LAYOUT_GUARD — keep document content inside each A4 page */
+#a4preview .a4-root{
+  background:#777!important;
+}
+#a4preview .a4-page{
+  position:relative!important;
+  width:210mm!important;
+  height:297mm!important;
+  min-height:297mm!important;
+  max-height:297mm!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  page-break-after:always!important;
+  break-after:page!important;
+}
+#a4preview .a4-page table{
+  width:100%!important;
+  max-width:100%!important;
+  table-layout:fixed!important;
+  border-collapse:collapse!important;
+}
+#a4preview .a4-page th,
+#a4preview .a4-page td{
+  box-sizing:border-box!important;
+  white-space:normal!important;
+  overflow-wrap:break-word!important;
+  word-break:normal!important;
+  vertical-align:middle!important;
+  line-height:1.12!important;
+  padding:1.45mm 1.05mm!important;
+}
+#a4preview .a4-page thead th{
+  line-height:1.08!important;
+  padding-top:1.2mm!important;
+  padding-bottom:1.2mm!important;
+}
+#a4preview .a4-page tr{
+  break-inside:avoid!important;
+  page-break-inside:avoid!important;
+}
+#a4preview .a4-page .row-actions{
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  gap:2px!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+#a4preview .a4-page .row-actions button,
+#a4preview .a4-page .row-actions .btn{
+  width:13px!important;
+  height:13px!important;
+  min-width:13px!important;
+  max-width:13px!important;
+  min-height:13px!important;
+  padding:0!important;
+  margin:0!important;
+  font-size:8px!important;
+  line-height:11px!important;
+  border-radius:3px!important;
+}
+#a4preview .a4-page.v24-overflow{
+  outline:2px solid #d87d7d!important;
+  outline-offset:-2px!important;
+}
+#a4preview .v24-layout-warning{
+  margin:6px 0;
+  padding:8px 10px;
+  border:1px solid #f0d4d4;
+  border-radius:10px;
+  background:#fff5f5;
+  color:#a14c4c;
+  font-size:11px;
+}
+@media print{
+  #a4preview .a4-root{
+    background:#fff!important;
+  }
+  #a4preview .a4-page{
+    margin:0!important;
+    box-shadow:none!important;
+    border:0!important;
+    overflow:hidden!important;
+  }
+  #a4preview .a4-page .row-actions,
+  #a4preview .a4-page .photo-actions,
+  #a4preview .a4-page th:last-child,
+  #a4preview .a4-page td:last-child{
+    display:none!important;
+  }
+  #a4preview .v24-layout-warning{
+    display:none!important;
+  }
+}
+
+</style>
 </head>
 <body>
 <div class="app">
@@ -138,7 +234,7 @@
     <div class="topbar">
       <div class="title">
         <h2 id="pageTitle">Dashboard</h2>
-        <p id="pageSub">V19 Smart Engine · Loading...</p>
+        <p id="pageSub">V24 A4 Layout Guard · Loading...</p>
       </div>
       <div class="actions">
         <button class="soft" onclick="healthCheck()">Health</button>
@@ -771,7 +867,7 @@ function renderA4Workflow() {
   current = 'A4_WORKFLOW';
   markNav();
   document.getElementById('pageTitle').textContent = 'Documents & Forms — A4 Workflow';
-  document.getElementById('pageSub').textContent = 'V21 Smart Document Engine · lifecycle document grouping from project start to handover';
+  document.getElementById('pageSub').textContent = 'V24 A4 Layout Guard · browser-accurate A4 fit';
   document.getElementById('content').innerHTML =
     '<div class="tabs" id="phaseTabs"></div>' +
     '<div class="workflow">' +
@@ -933,13 +1029,14 @@ async function loadPreview() {
     previewEl.innerHTML = html;
     bindA4Inputs();
     updateIssuePanel();
+    v24A4LayoutGuard(true);
   } catch (e) {
     previewEl.innerHTML = '<div style="background:white;padding:20px;color:#bd5757;font-size:12px"><b>Preview error</b><br>' + esc((e && e.message) || e) + '</div>';
   }
 }
 
 function bindA4Inputs() {
-  document.querySelectorAll('#a4preview input,#a4preview textarea,#a4preview select,#a4preview [contenteditable=\"true\"]').forEach(function(el) {
+  document.querySelectorAll('#a4preview input,#a4preview textarea,#a4preview select,#a4preview [contenteditable="true"]').forEach(function(el) {
     el.addEventListener('input', function() { setDirty(true); });
     el.addEventListener('change', function() { setDirty(true); });
     if (el.getAttribute && el.getAttribute('contenteditable') === 'true') {
@@ -948,111 +1045,359 @@ function bindA4Inputs() {
         var text = (e.clipboardData || window.clipboardData).getData('text/plain');
         document.execCommand('insertText', false, text);
       });
-      el.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); document.execCommand('insertText', false, ' '); }
-      });
+      el.addEventListener('blur', function() { syncContentEditable(el); });
     }
   });
 }
 
-function a4Value(el) {
-  if (!el) return '';
-  if (el.getAttribute && el.getAttribute('contenteditable') === 'true') {
-    return (el.innerText || el.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+$/g, '').replace(/^\s+$/g, '');
-  }
-  return el.value || '';
+function syncContentEditable(el) {
+  if (!el || !el.dataset) return;
+  var arrName = el.dataset.array;
+  var key = el.dataset.key;
+  if (!arrName || !key) return;
+  var data = collectA4();
+  currentData = data;
+}
+
+function currentProjectCodeV19() {
+  return document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : ((APP.projects || [])[0] || {}).ProjectCode;
+}
+
+function currentFormRecordIdV19() {
+  return currentRecord && currentRecord.FormRecordId ? currentRecord.FormRecordId : '';
 }
 
 function collectA4() {
   var data = Object.assign({}, currentData || {});
-  document.querySelectorAll('#a4preview [data-field]').forEach(function(el) {
-    data[el.getAttribute('data-field')] = a4Value(el);
+  document.querySelectorAll('#a4preview [data-key]:not([data-array])').forEach(function(el) {
+    var key = el.dataset.key;
+    data[key] = getElValue(el);
   });
   var arrays = {};
-  document.querySelectorAll('#a4preview [data-array]').forEach(function(el) {
-    var arrName = el.getAttribute('data-array');
-    var idx = Number(el.getAttribute('data-index'));
-    var key = el.getAttribute('data-key');
-    if (!arrays[arrName]) arrays[arrName] = [];
-    if (!arrays[arrName][idx]) arrays[arrName][idx] = {};
-    arrays[arrName][idx][key] = a4Value(el);
+  document.querySelectorAll('#a4preview [data-array][data-index][data-key]').forEach(function(el) {
+    var arrName = el.dataset.array;
+    var idx = parseInt(el.dataset.index, 10);
+    var key = el.dataset.key;
+    if (!arrays[arrName]) arrays[arrName] = parseArr(data[arrName]);
+    while (arrays[arrName].length <= idx) arrays[arrName].push({});
+    arrays[arrName][idx][key] = getElValue(el);
   });
-  Object.keys(arrays).forEach(function(k) { data[k] = JSON.stringify(arrays[k].filter(function(x) { return x; })); });
+  Object.keys(arrays).forEach(function(k) { data[k] = JSON.stringify(arrays[k]); });
   currentData = data;
   return data;
+}
+
+function getElValue(el) {
+  if (el.getAttribute && el.getAttribute('contenteditable') === 'true') return el.innerText.trim();
+  if (el.type === 'checkbox') return el.checked ? 'TRUE' : 'FALSE';
+  return el.value;
+}
+
+function parseArr(v) {
+  if (Array.isArray(v)) return v;
+  try { var a = JSON.parse(v || '[]'); return Array.isArray(a) ? a : []; } catch(e) { return []; }
 }
 
 async function saveDraft() {
   if (!currentTemplate) { toast('Select a template first'); return; }
   var data = collectA4();
-  var projectCode = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
   try {
-    currentRecord = await server('apiSaveDraft', [currentTemplate.TemplateCode, projectCode, JSON.stringify(data), (currentRecord && currentRecord.FormRecordId) || '']);
+    toast('Saving draft...');
+    var res = await server('apiSaveDraftV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
+    currentRecord = res.record || res.formRecord || currentRecord;
+    currentData = data;
     updateIssuePanel();
     setDirty(false);
     toast('Draft saved');
   } catch (e) { toast('Save failed: ' + ((e && e.message) || e)); }
 }
 
-function normalizeServerPayload(res) {
-  if (res === null || res === undefined) return null;
-  if (typeof res === 'string') {
-    try { return JSON.parse(res); } catch(e) { return { ok:false, message:res }; }
-  }
-  return res;
-}
-
 async function issueDoc() {
   if (!currentTemplate) { toast('Select a template first'); return; }
   var data = collectA4();
-  var projectCode = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
   try {
-    toast('Issuing document number…');
-    var raw = await server('apiIssueRecord', [currentTemplate.TemplateCode, projectCode, JSON.stringify(data), (currentRecord && currentRecord.FormRecordId) || '']);
-    var r = normalizeServerPayload(raw);
-    if (!r || !r.record) {
-      // Defensive fallback for old deployments that write the row but return an empty payload.
-      try {
-        var latest = normalizeServerPayload(await server('apiFindLatestIssuedRecordV10', [currentTemplate.TemplateCode, projectCode]));
-        if (latest && latest.record) r = { ok:true, record: latest.record };
-      } catch(fallbackErr) {}
+    toast('Validating document...');
+    var validation = await validateDocV19(false);
+    if (validation && validation.canIssue === false) {
+      renderV19ReportModal('V19 Validation Result', validation);
+      toast('Cannot issue: please fix errors first');
+      return;
     }
-    if (!r || !r.record) {
-      throw new Error('Server returned empty issue result. Please deploy Code.gs V10 as a New version, then refresh the WebApp.');
-    }
-    currentRecord = r.record;
-    try { currentData = JSON.parse(currentRecord.DataJson || '{}') || data; } catch(parseErr) { currentData = data; }
+    toast('Issuing document...');
+    var res = await server('apiIssueDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
+    currentRecord = res.record || res.formRecord || currentRecord;
+    currentData = data;
     updateIssuePanel();
     setDirty(false);
-    toast('Issued: ' + (currentRecord.DocumentNo || r.documentNo || 'Completed'));
     await loadPreview();
+    toast('Issued: ' + (currentRecord.DocumentNo || 'OK'));
   } catch (e) { toast('Issue failed: ' + ((e && e.message) || e)); }
 }
 
 async function startRevision() {
-  if (!currentRecord || !currentRecord.FormRecordId) { toast('No issued record selected'); return; }
-  var reason = document.getElementById('revisionReason') ? document.getElementById('revisionReason').value.trim() : '';
+  if (!currentRecord || !currentRecord.FormRecordId) { toast('Open an issued record first'); return; }
+  var reason = document.getElementById('revisionReason').value.trim();
   if (!reason) { toast('Revision reason is required'); return; }
   try {
-    currentRecord = await server('apiStartRevision', [currentRecord.FormRecordId, reason]);
+    var res = await server('apiStartRevisionV19', [currentRecord.FormRecordId, reason]);
+    currentRecord = res.record || currentRecord;
+    currentData = JSON.parse(currentRecord.DataJson || '{}');
     updateIssuePanel();
-    setDirty(true);
+    await loadPreview();
     toast('Revision started');
-  } catch (e) { toast('Revision failed: ' + ((e && e.message) || e)); }
+  } catch (e) { toast('Start revision failed: ' + ((e && e.message) || e)); }
 }
 
 async function deleteDraft() {
-  if (!currentRecord || !currentRecord.FormRecordId) { newDraft(); toast('Cleared'); return; }
-  if (!confirm('Delete this draft?')) return;
+  if (!currentRecord || !currentRecord.FormRecordId) { newDraft(); return; }
+  if (!confirm('Move this form record to Recycle Bin?')) return;
   try {
-    await server('apiDeleteRecord', ['FORM_RECORDS', currentRecord.FormRecordId, 'Deleted from A4 workflow']);
+    await server('apiSoftDeleteFormRecordV19', [currentRecord.FormRecordId]);
     newDraft();
     toast('Deleted');
   } catch (e) { toast('Delete failed: ' + ((e && e.message) || e)); }
 }
 
+async function showRecordsPanel(table) {
+  var panel = document.getElementById('recordsPanel');
+  panel.classList.add('open');
+  panel.innerHTML = '<div class="hint">Loading ' + esc(table) + '…</div>';
+  try {
+    var res = await serverT('apiGetTable', [table, { maxRows: 300 }], 15000);
+    var rows = res.rows || [];
+    if (table === 'FORM_RECORDS') {
+      rows = rows.filter(function(r) { return !currentTemplate || r.TemplateCode === currentTemplate.TemplateCode; });
+      panel.innerHTML = '<h3>Form Records</h3>' + simpleA4Records(rows);
+    } else {
+      panel.innerHTML = '<h3>Document Register</h3>' + simpleTable(rows.slice(0, 100), ['DocumentId','DocumentCode','DocumentTitle','Revision','Status','ClientStatus','FileUrl']);
+    }
+  } catch (e) { panel.innerHTML = '<div class="server-banner"><b>Failed to load</b><pre>' + esc((e && e.message) || e) + '</pre></div>'; }
+}
+
+function simpleA4Records(rows) {
+  if (!rows.length) return '<div class="hint">No records for this template.</div>';
+  return '<div class="table-wrap" style="max-height:300px"><table class="data"><thead><tr><th>Action</th><th>DocumentNo</th><th>Revision</th><th>Status</th><th>UpdatedAt</th></tr></thead><tbody>' +
+    rows.map(function(r) {
+      return '<tr><td><button class="sm" onclick="openA4Record(\'' + esc(r.FormRecordId) + '\')">Open</button></td><td>' + esc(r.DocumentNo || r.FormRecordId) + '</td><td>' + esc(r.RevisionNo || '') + '</td><td>' + esc(r.Status || '') + '</td><td>' + esc(r.UpdatedAt || '') + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+async function openA4Record(id) {
+  try {
+    var res = await server('apiGetRecord', ['FORM_RECORDS', id]);
+    currentRecord = res.record;
+    currentData = JSON.parse(currentRecord.DataJson || '{}');
+    var tplCode = currentRecord.TemplateCode;
+    var pc = currentRecord.ProjectCode;
+    currentTemplate = (APP.templates || []).find(function(t) { return t.TemplateCode === tplCode; }) || currentTemplate;
+    goto('A4_WORKFLOW');
+    setTimeout(function() {
+      if (document.getElementById('projectSelect')) document.getElementById('projectSelect').value = pc;
+      if (document.getElementById('templateSelect')) document.getElementById('templateSelect').value = tplCode;
+      updateIssuePanel();
+      loadPreview();
+    }, 250);
+  } catch (e) { toast('Open A4 failed: ' + ((e && e.message) || e)); }
+}
+
+async function validateDocV19(showOk) {
+  if (!currentTemplate) { toast('Select a template first'); return null; }
+  var data = collectA4();
+  try {
+    var res = await server('apiValidateDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
+    if (showOk !== false) renderV19ReportModal('V19 Validation Result', res);
+    if (!res.ok) toast('Validation found required issues');
+    else if (res.warnings && res.warnings.length) toast('Validation passed with warnings');
+    else toast('Validation passed');
+    return res;
+  } catch (e) {
+    toast('Validation failed: ' + ((e && e.message) || e));
+    return null;
+  }
+}
+
+async function layoutCheckV19() {
+  if (!currentTemplate) { toast('Select a template first'); return; }
+  var data = collectA4();
+  try {
+    var res = await server('apiA4LayoutQaV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
+    renderV19ReportModal('V19 A4 Layout Check', res);
+    toast('Layout check completed');
+  } catch (e) { toast('Layout check failed: ' + ((e && e.message) || e)); }
+}
+
+async function aiAssistV19() {
+  if (!currentTemplate) { toast('Select a template first'); return; }
+  var data = collectA4();
+  try {
+    toast('AI Assist reviewing document…');
+    var res = await server('apiAIAssistDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), 'review']);
+    renderV19AssistModal(res);
+    toast('AI Assist completed');
+  } catch (e) { toast('AI Assist failed: ' + ((e && e.message) || e)); }
+}
+
+function renderV19ReportModal(title, res) {
+  res = res || {};
+  var html = '';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">' +
+    '<div class="readbox"><b>Status</b><span>' + esc(res.ok ? 'OK' : 'Need Fix') + '</span></div>' +
+    '<div class="readbox"><b>Can Issue</b><span>' + esc(res.canIssue === false ? 'No' : 'Yes') + '</span></div>' +
+    '<div class="readbox"><b>Pages</b><span>' + esc(res.metrics && res.metrics.totalPages || '-') + '</span></div>' +
+    '</div>';
+  html += v19ListBlock('Errors', res.errors, '#fff1f1');
+  html += v19ListBlock('Warnings', res.warnings, '#fff9e8');
+  html += v19ListBlock('Info', res.info, '#eef8ff');
+  if (res.metrics) html += '<h4>Pagination</h4><pre style="white-space:pre-wrap;font-size:11px;background:#f7fafc;border:1px solid #dbe7ef;border-radius:10px;padding:10px">' + esc(JSON.stringify(res.metrics, null, 2)) + '</pre>';
+  if (/Layout/i.test(title || '')) html += v24A4ClientLayoutHtml();
+  openModal(title, html);
+}
+
+function renderV19AssistModal(res) {
+  var s = (res && res.suggestions) || {};
+  var html = '<div class="server-banner" style="margin-bottom:10px"><b>AI Assist Layer</b><br>' +
+    'Mode: ' + esc(res.aiMode || 'local') + ' · Client status: <b>' + esc(s.suggestedClientStatus || '-') + '</b></div>';
+  html += '<h4>Suggested Remarks</h4><div class="readbox"><span>' + esc(s.suggestedRemarks || '-') + '</span></div>';
+  html += v19ListBlock('Suggested Linked Modules', s.suggestedLinkedModules, '#eef8ff');
+  html += v19ListBlock('Missing / Review Items', s.missingInformationSummary, '#fff9e8');
+  html += v19ListBlock('Wording Suggestions', s.wordingSuggestions, '#f4f7fb');
+  html += v19ListBlock('Next Actions', s.nextActions, '#eefbf3');
+  openModal('V19 AI Assist', html);
+}
+
+function v19ListBlock(title, arr, bg) {
+  arr = arr || [];
+  return '<h4>' + esc(title) + '</h4><div style="background:' + bg + ';border:1px solid #dbe7ef;border-radius:10px;padding:10px;font-size:12px">' +
+    (arr.length ? '<ul style="margin:0;padding-left:20px">' + arr.map(function(x) { return '<li>' + esc(typeof x === 'string' ? x : JSON.stringify(x)) + '</li>'; }).join('') + '</ul>' : '<span style="color:#7c8b96">-</span>') + '</div>';
+}
+
+/* V24_A4_LAYOUT_GUARD — browser-accurate A4 layout check and fit */
+function v24A4Pages() {
+  return Array.prototype.slice.call(document.querySelectorAll('#a4preview .a4-page'));
+}
+function v24A4PageLimit(page) {
+  var footer = page.querySelector('.a4-footer,[class*="footer"],.footer');
+  var reserve = footer ? Math.ceil(footer.getBoundingClientRect().height) + 10 : 16;
+  return Math.max(80, page.clientHeight - reserve);
+}
+function v24A4MeasurePage(page) {
+  if (!page) return null;
+  var limit = v24A4PageLimit(page);
+  var maxBottom = 0;
+  var pageTop = page.getBoundingClientRect().top;
+  Array.prototype.slice.call(page.children).forEach(function(el) {
+    if (!el || el.classList.contains('v24-layout-warning')) return;
+    if (/(footer)/i.test(el.className || '')) return;
+    var r = el.getBoundingClientRect();
+    maxBottom = Math.max(maxBottom, Math.ceil(r.bottom - pageTop));
+  });
+  var scrollBottom = Math.ceil(page.scrollHeight);
+  var used = Math.max(maxBottom, scrollBottom);
+  return {
+    limit: limit,
+    used: used,
+    overflowPx: Math.max(0, used - limit),
+    ok: used <= limit
+  };
+}
+function v24A4NormalizeTables(root) {
+  root = root || document;
+  Array.prototype.slice.call(root.querySelectorAll('#a4preview .a4-page table')).forEach(function(table) {
+    table.style.tableLayout = 'fixed';
+    table.style.width = '100%';
+    table.style.maxWidth = '100%';
+    Array.prototype.slice.call(table.querySelectorAll('th,td')).forEach(function(cell) {
+      cell.style.whiteSpace = 'normal';
+      cell.style.overflowWrap = 'break-word';
+      cell.style.wordBreak = 'normal';
+      cell.style.verticalAlign = 'middle';
+    });
+  });
+}
+function v24A4CompactPage(page) {
+  if (!page) return;
+  page.querySelectorAll('.row-actions').forEach(function(actions) {
+    actions.style.display = 'flex';
+    actions.style.flexDirection = 'row';
+    actions.style.flexWrap = 'nowrap';
+    actions.style.gap = '2px';
+    actions.style.alignItems = 'center';
+    actions.style.justifyContent = 'center';
+  });
+}
+function v24A4ScalePageIfNeeded(page) {
+  var m = v24A4MeasurePage(page);
+  if (!m) return null;
+  page.classList.toggle('v24-overflow', !m.ok);
+  var body = page.querySelector('.v24-a4-scale-body');
+  if (!body) {
+    body = document.createElement('div');
+    body.className = 'v24-a4-scale-body';
+    var footer = page.querySelector('.a4-footer,[class*="footer"],.footer');
+    Array.prototype.slice.call(page.childNodes).forEach(function(n) {
+      if (n !== footer && !(n.classList && n.classList.contains('v24-layout-warning'))) body.appendChild(n);
+    });
+    page.insertBefore(body, footer || null);
+  }
+  body.style.transformOrigin = 'top left';
+  body.style.transform = 'scale(1)';
+  body.style.width = '100%';
+  m = v24A4MeasurePage(page);
+  if (m && !m.ok) {
+    var scale = Math.max(0.86, Math.min(1, m.limit / Math.max(1, m.used)));
+    body.style.transform = 'scale(' + scale + ')';
+    body.style.width = (100 / scale) + '%';
+    m.scale = Number(scale.toFixed(3));
+    m.status = scale < 1 ? 'AUTO-FIT' : 'OVERFLOW';
+  } else if (m) {
+    m.scale = 1;
+    m.status = 'OK';
+  }
+  page.classList.toggle('v24-overflow', m && m.status === 'OVERFLOW');
+  return m;
+}
+function v24A4LayoutGuard(showWarning) {
+  v24A4NormalizeTables(document);
+  setTimeout(function() {
+    var report = [];
+    v24A4Pages().forEach(function(page, idx) {
+      v24A4CompactPage(page);
+      var m = v24A4ScalePageIfNeeded(page) || {};
+      m.page = idx + 1;
+      report.push(m);
+    });
+    window.__v24A4LayoutReport = report;
+    if (showWarning) v24ShowA4LayoutWarning(report);
+  }, 60);
+}
+function v24ShowA4LayoutWarning(report) {
+  var host = document.getElementById('a4preview');
+  if (!host) return;
+  var old = host.querySelector('.v24-layout-warning');
+  if (old) old.remove();
+  var bad = (report || []).filter(function(r){ return r.status === 'OVERFLOW'; });
+  if (!bad.length) return;
+  var div = document.createElement('div');
+  div.className = 'v24-layout-warning';
+  div.textContent = 'A4 layout warning: ' + bad.length + ' page(s) still overflow after auto-fit. Please reduce rows or split the table.';
+  host.insertBefore(div, host.firstChild);
+}
+function v24A4ClientLayoutHtml() {
+  v24A4LayoutGuard(false);
+  var report = window.__v24A4LayoutReport || [];
+  var bad = report.filter(function(r){ return r.status === 'OVERFLOW'; }).length;
+  var auto = report.filter(function(r){ return r.status === 'AUTO-FIT'; }).length;
+  return '<h4>Live Browser A4 Fit</h4>' +
+    '<div class="hint" style="margin-bottom:8px">' +
+    (bad ? ('Still overflow: ' + bad + ' page(s).') : ('OK. Auto-fit applied on ' + auto + ' page(s).')) +
+    '<br><span style="color:#6b7f90">This check reads actual rendered A4 height in the browser. It complements the server pagination estimate.</span></div>' +
+    '<pre style="white-space:pre-wrap;font-size:11px;background:#f7fafc;border:1px solid #dbe7ef;border-radius:10px;padding:10px">' +
+    esc(JSON.stringify(report, null, 2)) + '</pre>';
+}
+
 function printA4() {
   try { collectA4(); } catch(e) {}
+  v24A4LayoutGuard(true);
   document.body.classList.add('printing-a4');
   setTimeout(function(){ window.print(); }, 80);
 }
@@ -1126,62 +1471,14 @@ function a4ClearPhoto(idx) {
   loadPreview();
 }
 
-function parseArr(v) { try { return JSON.parse(v || '[]') || []; } catch (e) { return []; } }
-
-async function openA4Record(id) {
-  if (current !== 'A4_WORKFLOW') { renderA4Workflow(); await new Promise(function(r) { setTimeout(r, 200); }); }
-  try {
-    var r = await server('apiOpenA4Record', [id, true]);
-    currentRecord = r.record;
-    currentTemplate = r.template;
-    var sel = document.getElementById('templateSelect');
-    if (sel) sel.value = r.record.TemplateCode;
-    currentData = parseArr(r.record.DataJson) instanceof Array ? {} : (JSON.parse(r.record.DataJson || '{}') || {});
-    try { currentData = JSON.parse(r.record.DataJson || '{}') || {}; } catch (e) { currentData = {}; }
-    document.getElementById('a4preview').innerHTML = r.html;
-    bindA4Inputs();
-    updateIssuePanel();
-    toast('Opened: ' + (r.record.DocumentNo || id));
-  } catch (e) { toast('Open failed: ' + ((e && e.message) || e)); }
-}
-
-async function showRecordsPanel(table) {
-  try {
-    var r = await server('apiGetTable', [table, { maxRows: 200 }]);
-    var panel = document.getElementById('recordsPanel');
-    if (panel) { panel.classList.add('open'); panel.innerHTML = '<b>' + esc(table) + '</b>' + tableHtml(table, r.headers, r.rows); }
-  } catch (e) { toast('Load failed: ' + ((e && e.message) || e)); }
-}
-
-/* ─── Health check ───────────────────────────────────────── */
+/* ─── Utilities ──────────────────────────────────────────── */
 async function healthCheck() {
   try {
-    var r = await serverT('apiDocumentModuleV8Health', [], 12000);
-    openModal('V8 Health Check', '<pre style="white-space:pre-wrap;font-size:11px">' + esc(JSON.stringify(r, null, 2)) + '</pre>');
+    var res = await serverT('apiHealthCheck', [], 8000);
+    openModal('Health Check', '<pre style="white-space:pre-wrap">' + esc(JSON.stringify(res, null, 2)) + '</pre>');
   } catch (e) {
-    openModal('Health Check — Server Error',
-      '<div class="server-banner"><b>Cannot reach server</b><pre>' + esc((e && e.message) || e) + '</pre>' +
-      '<div style="margin-top:8px;color:#6b7f90;font-size:12px">Steps to fix:<br>' +
-      '1. Replace Code.gs with the V8 Code.gs<br>' +
-      '2. Replace Index.html with this V8 Index.html<br>' +
-      '3. Click Save in Apps Script editor<br>' +
-      '4. Deploy → Manage deployments → Edit → New version → Deploy<br>' +
-      '5. Refresh this page</div></div>');
+    openModal('Health Check Failed', '<div class="server-banner"><b>Server failed</b><pre>' + esc((e && e.message) || e) + '</pre></div>');
   }
-}
-
-/* ─── Utilities ──────────────────────────────────────────── */
-function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, function(m) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
-  });
-}
-
-function toast(msg) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 2800);
 }
 
 function openModal(title, html) {
@@ -1189,126 +1486,19 @@ function openModal(title, html) {
   document.getElementById('modalBody').innerHTML = html;
   document.getElementById('modal').classList.add('open');
 }
-
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
-
-
-
-/* ─── V19 Smart Document Engine client patch ───────────────── */
-function currentProjectCodeV19() {
-  var el = document.getElementById('projectSelect');
-  return el ? el.value : '';
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2800);
+}
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function currentFormRecordIdV19() {
-  return (currentRecord && currentRecord.FormRecordId) || '';
-}
-
-async function validateDocV19(showOk) {
-  if (!currentTemplate) { toast('Select a template first'); return null; }
-  var data = collectA4();
-  try {
-    var res = await server('apiValidateDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
-    if (showOk !== false) renderV19ReportModal('V19 Validation Result', res);
-    if (!res.ok) toast('Validation found required issues');
-    else if (res.warnings && res.warnings.length) toast('Validation passed with warnings');
-    else toast('Validation passed');
-    return res;
-  } catch (e) {
-    toast('Validation failed: ' + ((e && e.message) || e));
-    return null;
-  }
-}
-
-async function layoutCheckV19() {
-  if (!currentTemplate) { toast('Select a template first'); return; }
-  var data = collectA4();
-  try {
-    var res = await server('apiA4LayoutQaV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
-    renderV19ReportModal('V19 A4 Layout Check', res);
-    toast('Layout check completed');
-  } catch (e) { toast('Layout check failed: ' + ((e && e.message) || e)); }
-}
-
-async function aiAssistV19() {
-  if (!currentTemplate) { toast('Select a template first'); return; }
-  var data = collectA4();
-  try {
-    toast('AI Assist reviewing document…');
-    var res = await server('apiAIAssistDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), 'review']);
-    renderV19AssistModal(res);
-    toast('AI Assist completed');
-  } catch (e) { toast('AI Assist failed: ' + ((e && e.message) || e)); }
-}
-
-function renderV19ReportModal(title, res) {
-  res = res || {};
-  var html = '';
-  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">' +
-    '<div class="readbox"><b>Status</b><span>' + esc(res.ok ? 'OK' : 'Need Fix') + '</span></div>' +
-    '<div class="readbox"><b>Can Issue</b><span>' + esc(res.canIssue === false ? 'No' : 'Yes') + '</span></div>' +
-    '<div class="readbox"><b>Pages</b><span>' + esc(res.metrics && res.metrics.totalPages || '-') + '</span></div>' +
-    '</div>';
-  html += v19ListBlock('Errors', res.errors, '#fff1f1');
-  html += v19ListBlock('Warnings', res.warnings, '#fff9e8');
-  html += v19ListBlock('Info', res.info, '#eef8ff');
-  if (res.metrics) html += '<h4>Pagination</h4><pre style="white-space:pre-wrap;font-size:11px;background:#f7fafc;border:1px solid #dbe7ef;border-radius:10px;padding:10px">' + esc(JSON.stringify(res.metrics, null, 2)) + '</pre>';
-  openModal(title, html);
-}
-
-function renderV19AssistModal(res) {
-  var s = (res && res.suggestions) || {};
-  var html = '<div class="server-banner" style="margin-bottom:10px"><b>AI Assist Layer</b><br>' +
-    'Mode: ' + esc(res.aiMode || 'local') + ' · Client status: <b>' + esc(s.suggestedClientStatus || '-') + '</b></div>';
-  html += '<h4>Suggested Remarks</h4><div class="readbox"><span>' + esc(s.suggestedRemarks || '-') + '</span></div>';
-  html += v19ListBlock('Suggested Linked Modules', s.suggestedLinkedModules, '#eef8ff');
-  html += v19ListBlock('Missing / Review Items', s.missingInformationSummary, '#fff9e8');
-  html += v19ListBlock('Wording Suggestions', s.wordingSuggestions, '#f4f7fb');
-  html += v19ListBlock('Next Actions', s.nextActions, '#eefbf3');
-  openModal('V19 AI Assist', html);
-}
-
-function v19ListBlock(title, items, bg) {
-  items = (items || []).filter(function(x){ return String(x || '').trim() !== ''; });
-  if (!items.length) {
-    return '<h4 style="margin:10px 0 6px">' + esc(title) + '</h4><div style="background:' + bg + ';border:1px solid #dbe7ef;border-radius:10px;padding:10px;color:#557085">None</div>';
-  }
-  return '<h4 style="margin:10px 0 6px">' + esc(title) + '</h4><div style="background:' + bg + ';border:1px solid #dbe7ef;border-radius:10px;padding:10px"><ul style="margin:0;padding-left:18px">' +
-    items.map(function(x){ return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
-}
-
-async function issueDoc() {
-  if (!currentTemplate) { toast('Select a template first'); return; }
-  var data = collectA4();
-  var projectCode = currentProjectCodeV19();
-  try {
-    toast('Validating before issue…');
-    var validation = await server('apiValidateDocumentV19', [currentTemplate.TemplateCode, projectCode, JSON.stringify(data), currentFormRecordIdV19()]);
-    if (validation && validation.canIssue === false) {
-      renderV19ReportModal('Cannot Issue — Validation Required', validation);
-      toast('Issue blocked by validation');
-      return;
-    }
-    toast('Issuing document number…');
-    var raw = await server('apiIssueRecord', [currentTemplate.TemplateCode, projectCode, JSON.stringify(data), currentFormRecordIdV19()]);
-    var r = normalizeServerPayload(raw);
-    if (!r || !r.record) {
-      try {
-        var latest = normalizeServerPayload(await server('apiFindLatestIssuedRecordV10', [currentTemplate.TemplateCode, projectCode]));
-        if (latest && latest.record) r = { ok:true, record: latest.record };
-      } catch(fallbackErr) {}
-    }
-    if (!r || !r.record) throw new Error('Server returned empty issue result. Please deploy Code.gs V19 as a New version, then refresh the WebApp.');
-    currentRecord = r.record;
-    try { currentData = JSON.parse(currentRecord.DataJson || '{}') || data; } catch(parseErr) { currentData = data; }
-    updateIssuePanel();
-    setDirty(false);
-    toast('Issued: ' + (currentRecord.DocumentNo || r.documentNo || 'Completed'));
-    await loadPreview();
-  } catch (e) { toast('Issue failed: ' + ((e && e.message) || e)); }
-}
-
-/* ─── Start ──────────────────────────────────────────────── */
 boot();
 </script>
 </body>
