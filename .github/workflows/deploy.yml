@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "Code.gs"
-      - "Index.html"
-      - "appsscript.json"
-      - ".clasp.json"
-      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 jobs:
@@ -44,11 +38,18 @@ jobs:
           }
           for name in ['Index.html','Code.gs']:
             p = Path(name)
+            if not p.exists():
+              print(f"SKIP: {name} not found")
+              continue
             s = p.read_text(encoding='utf-8')
+            changed = 0
             for a,b in pairs.items():
-              s = s.replace(a,b)
+              if a in s:
+                s = s.replace(a,b)
+                changed += 1
             s = s.replace('V21_DOCUMENT_LIFECYCLE_GROUPING','V22_ENGLISH_UI')
             p.write_text(s, encoding='utf-8', newline='\n')
+            print(f"V22 patch: {name} — {changed} replacement(s)")
           PY
 
       - name: Apply V23 A4 overflow and live layout check patch
@@ -56,6 +57,9 @@ jobs:
           python3 <<'PY'
           from pathlib import Path
           p = Path('Index.html')
+          if not p.exists():
+            print("SKIP: Index.html not found")
+            exit(0)
           s = p.read_text(encoding='utf-8')
           patch = r'''
 
@@ -63,7 +67,7 @@ jobs:
 function v23InstallA4CssGuard(){
   if(document.getElementById('v23-a4-css-guard')) return;
   var st=document.createElement('style'); st.id='v23-a4-css-guard';
-  st.textContent='\n#\a34preview .a4-page{position:relative!important;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;box-sizing:border-box!important;overflow:hidden!important;}\n#\a34preview .a4-page table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;}\n#\a34preview .a4-page th,#\a34preview .a4-page td{box-sizing:border-box!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;vertical-align:middle!important;line-height:1.14!important;padding:2.0mm 1.3mm!important;}\n#\a34preview .a4-page tr{break-inside:avoid!important;page-break-inside:avoid!important;}\n#\a34preview .a4-page .row-actions{display:flex!important;gap:2px!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:center!important;}\n#\a34preview .a4-page .row-actions button{width:14px!important;height:14px!important;min-width:14px!important;padding:0!important;font-size:8px!important;line-height:12px!important;border-radius:3px!important;}\n#\a34preview .a4-page .v23-a4-fit-wrap{transform-origin:top left!important;}\n#\a34preview .a4-page[data-v23-fit="scaled"]:after{content:"A4 auto-fit";position:absolute;right:6mm;bottom:3mm;font-size:6px;color:#9aa;display:none;}\n@media print{#\a34preview .a4-page .row-actions,#\a34preview .a4-page .photo-actions,#\a34preview .a4-page th:last-child,#\a34preview .a4-page td:last-child{display:none!important;}#\a34preview .a4-page{overflow:hidden!important;break-after:page!important;page-break-after:always!important;}}\n';
+  st.textContent='\n#a4preview .a4-page{position:relative!important;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;box-sizing:border-box!important;overflow:hidden!important;}\n#a4preview .a4-page table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;}\n#a4preview .a4-page th,#a4preview .a4-page td{box-sizing:border-box!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;vertical-align:middle!important;line-height:1.14!important;padding:2.0mm 1.3mm!important;}\n#a4preview .a4-page tr{break-inside:avoid!important;page-break-inside:avoid!important;}\n#a4preview .a4-page .row-actions{display:flex!important;gap:2px!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:center!important;}\n#a4preview .a4-page .row-actions button{width:14px!important;height:14px!important;min-width:14px!important;padding:0!important;font-size:8px!important;line-height:12px!important;border-radius:3px!important;}\n#a4preview .a4-page .v23-a4-fit-wrap{transform-origin:top left!important;}\n#a4preview .a4-page[data-v23-fit="scaled"]:after{content:"A4 auto-fit";position:absolute;right:6mm;bottom:3mm;font-size:6px;color:#9aa;display:none;}\n@media print{#a4preview .a4-page .row-actions,#a4preview .a4-page .photo-actions,#a4preview .a4-page th:last-child,#a4preview .a4-page td:last-child{display:none!important;}#a4preview .a4-page{overflow:hidden!important;break-after:page!important;page-break-after:always!important;}}\n';
   document.head.appendChild(st);
 }
 function v23A4FitPage(page){
@@ -97,11 +101,34 @@ function v23A4LiveLayoutReport(){
   return html;
 }
 '''
+          changed = []
           if 'V23_A4_OVERFLOW_GUARD' not in s:
-            s = s.replace('\nboot();', patch + '\nboot();')
-          s = s.replace('updateIssueBoxes();\n  } catch(e)', 'updateIssueBoxes();\n    v23A4LayoutGuard();\n  } catch(e)')
-          s = s.replace("openModal('Layout / Pagination Check', '<pre", "openModal('Layout / Pagination Check', v23A4LiveLayoutReport() + '<pre")
+            if '\nboot();' in s:
+              s = s.replace('\nboot();', patch + '\nboot();')
+              changed.append('injected V23 functions before boot()')
+            else:
+              print("WARNING: boot() not found — V23 functions not injected")
+          else:
+            print("V23 functions already present, skipping injection")
+
+          old_catch = 'updateIssueBoxes();\n  } catch(e)'
+          new_catch = 'updateIssueBoxes();\n    v23A4LayoutGuard();\n  } catch(e)'
+          if old_catch in s:
+            s = s.replace(old_catch, new_catch)
+            changed.append('patched updateIssueBoxes catch block')
+          else:
+            print("WARNING: updateIssueBoxes catch pattern not found — skipped")
+
+          old_modal = "openModal('Layout / Pagination Check', '<pre"
+          new_modal = "openModal('Layout / Pagination Check', v23A4LiveLayoutReport() + '<pre"
+          if old_modal in s:
+            s = s.replace(old_modal, new_modal)
+            changed.append('patched Layout/Pagination modal')
+          else:
+            print("WARNING: Layout/Pagination Check modal pattern not found — skipped")
+
           p.write_text(s, encoding='utf-8', newline='\n')
+          print(f"V23 patch complete: {', '.join(changed) if changed else 'nothing changed'}")
           PY
 
       - name: Install clasp
@@ -113,13 +140,11 @@ function v23A4LiveLayoutReport(){
           test -s ~/.clasprc.json
 
       - name: Create clasp config
+        # BUG FIX: Use printf instead of heredoc to avoid leading-whitespace corruption in .clasp.json
         run: |
-          cat > .clasp.json <<EOF
-          {
-            "scriptId": "${{ secrets.SCRIPT_ID }}",
-            "rootDir": "."
-          }
-          EOF
+          printf '{\n  "scriptId": "%s",\n  "rootDir": "."\n}\n' "${{ secrets.SCRIPT_ID }}" > .clasp.json
+          echo "clasp.json contents:"
+          cat .clasp.json
 
       - name: Push code to Apps Script
         run: clasp --user default push --force
