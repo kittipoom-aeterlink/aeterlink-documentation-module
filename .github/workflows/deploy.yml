@@ -21,10 +21,127 @@ jobs:
           node-version: "22"
 
       - name: Apply V22 English UI patch
-        run: python3 scripts/patch_v22.py
+        run: |
+          python3 - << 'PYEOF'
+          from pathlib import Path
+          pairs = [
+            ('<title>AETERLINK Documentation Control V10</title>', '<title>AETERLINK Documentation Control V22</title>'),
+            ('V19 Smart Engine \xc2\xb7 Loading...', 'V22 English UI \xc2\xb7 Loading...'),
+            ('V16 \xe2\x80\x94 offline (server not connected)', 'V22 \xe2\x80\x94 offline (server not connected)'),
+            ("All: '\xe0\xb9\x80\xe0\xb8\xad\xe0\xb8\x81\xe0\xb8\xaa\xe0\xb8\xb2\xe0\xb8\xa3\xe0\xb8\x97\xe0\xb8\xb1\xe0\xb9\x89\xe0\xb8\x87\xe0\xb8\xab\xe0\xb8\xa1\xe0\xb8\x94'", "All: 'All documents'"),
+            ("'01_INITIATION': '1. \xe0\xb9\x80\xe0\xb8\xa3\xe0\xb8\xb4\xe0\xb9\x88\xe0\xb8\xa1\xe0\xb9\x82\xe0\xb8\xa3\xe0\xb8\x87\xe0\xb8\x87\xe0\xb8\xb2\xe0\xb8\x99 / \xe0\xb8\xa3\xe0\xb8\xb1\xe0\xb8\x9a\xe0\xb8\xa1\xe0\xb8\xad\xe0\xb8\x9a\xe0\xb8\x88\xe0\xb8\xb2\xe0\xb8\x81\xe0\xb8\x9d\xe0\xb9\x88\xe0\xb8\xb2\xe0\xb8\xa2\xe0\xb8\x82\xe0\xb8\xb2\xe0\xb8\xa2'", "'01_INITIATION': '1. Project Start / Sales Handover'"),
+            ("'02_PLANNING': '2. \xe0\xb8\xa7\xe0\xb8\xb2\xe0\xb8\x87\xe0\xb9\x81\xe0\xb8\x9c\xe0\xb8\x99\xe0\xb9\x82\xe0\xb8\xa3\xe0\xb8\x87\xe0\xb8\x87\xe0\xb8\xb2\xe0\xb8\x99 / \xe0\xb8\x84\xe0\xb8\xa7\xe0\xb8\x9a\xe0\xb8\x84\xe0\xb8\xb8\xe0\xb8\xa1\xe0\xb9\x82\xe0\xb8\xa3\xe0\xb8\x87\xe0\xb8\x87\xe0\xb8\xb2\xe0\xb8\x99'", "'02_PLANNING': '2. Project Planning / Control'"),
+            ("'03_DESIGN': '3. Design & Engineering / \xe0\xb9\x80\xe0\xb8\xad\xe0\xb8\x81\xe0\xb8\xaa\xe0\xb8\xb2\xe0\xb8\xa3\xe0\xb8\x82\xe0\xb8\xad\xe0\xb8\xad\xe0\xb8\x99\xe0\xb8\xb8\xe0\xb8\xa1\xe0\xb8\xb1\xe0\xb8\x95\xe0\xb8\xb4'", "'03_DESIGN': '3. Design & Engineering / Approval Documents'"),
+            ("'07_HANDOVER': '7. Handover / Closeout / \xe0\xb8\xaa\xe0\xb9\x88\xe0\xb8\x87\xe0\xb8\xa1\xe0\xb8\xad\xe0\xb8\x9a\xe0\xb8\x87\xe0\xb8\xb2\xe0\xb8\x99'", "'07_HANDOVER': '7. Handover / Closeout'"),
+            ("'08_WARRANTY': '8. Warranty / DLP / \xe0\xb8\xab\xe0\xb8\xa5\xe0\xb8\xb1\xe0\xb8\x87\xe0\xb8\xaa\xe0\xb9\x88\xe0\xb8\x87\xe0\xb8\xa1\xe0\xb8\xad\xe0\xb8\x9a'", "'08_WARRANTY': '8. Warranty / DLP / Post-handover'"),
+          ]
+          for name in ['Index.html', 'Code.gs']:
+            p = Path(name)
+            if not p.exists():
+              print('SKIP: ' + name + ' not found')
+              continue
+            s = p.read_text(encoding='utf-8')
+            count = 0
+            for a, b in pairs:
+              if a in s:
+                s = s.replace(a, b)
+                count += 1
+            s = s.replace('V21_DOCUMENT_LIFECYCLE_GROUPING', 'V22_ENGLISH_UI')
+            p.write_text(s, encoding='utf-8', newline='\n')
+            print('V22 patch: ' + name + ' - ' + str(count) + ' replacement(s)')
+          PYEOF
 
       - name: Apply V23 A4 overflow and live layout check patch
-        run: python3 scripts/patch_v23.py
+        run: |
+          python3 - << 'PYEOF'
+          from pathlib import Path
+          import textwrap
+          p = Path('Index.html')
+          if not p.exists():
+            print('SKIP: Index.html not found')
+            exit(0)
+          s = p.read_text(encoding='utf-8')
+          v23_css = (
+            "#a4preview .a4-page{position:relative!important;width:210mm!important;"
+            "height:297mm!important;min-height:297mm!important;max-height:297mm!important;"
+            "box-sizing:border-box!important;overflow:hidden!important;}\n"
+            "#a4preview .a4-page table{width:100%!important;max-width:100%!important;"
+            "table-layout:fixed!important;border-collapse:collapse!important;}\n"
+            "#a4preview .a4-page th,#a4preview .a4-page td{box-sizing:border-box!important;"
+            "white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;"
+            "vertical-align:middle!important;line-height:1.14!important;padding:2.0mm 1.3mm!important;}\n"
+            "#a4preview .a4-page tr{break-inside:avoid!important;page-break-inside:avoid!important;}\n"
+            "#a4preview .a4-page .row-actions{display:flex!important;gap:2px!important;"
+            "flex-wrap:nowrap!important;align-items:center!important;justify-content:center!important;}\n"
+            "#a4preview .a4-page .row-actions button{width:14px!important;height:14px!important;"
+            "min-width:14px!important;padding:0!important;font-size:8px!important;"
+            "line-height:12px!important;border-radius:3px!important;}\n"
+            "#a4preview .a4-page .v23-a4-fit-wrap{transform-origin:top left!important;}\n"
+            "@media print{#a4preview .a4-page .row-actions,#a4preview .a4-page .photo-actions,"
+            "#a4preview .a4-page th:last-child,#a4preview .a4-page td:last-child{display:none!important;}"
+            "#a4preview .a4-page{overflow:hidden!important;break-after:page!important;"
+            "page-break-after:always!important;}}\n"
+          )
+          v23_js = "\n/* V23_A4_OVERFLOW_GUARD */\n"
+          v23_js += "function v23InstallA4CssGuard(){\n"
+          v23_js += "  if(document.getElementById('v23-a4-css-guard')) return;\n"
+          v23_js += "  var st=document.createElement('style'); st.id='v23-a4-css-guard';\n"
+          v23_js += "  st.textContent=" + repr(v23_css) + ";\n"
+          v23_js += "  document.head.appendChild(st);\n"
+          v23_js += "}\n"
+          v23_js += "function v23A4FitPage(page){\n"
+          v23_js += "  if(!page || !page.clientHeight) return null;\n"
+          v23_js += "  var footer=page.querySelector('.a4-footer,[class*=\"footer\"]');\n"
+          v23_js += "  var wrap=page.querySelector(':scope > .v23-a4-fit-wrap');\n"
+          v23_js += "  if(!wrap){\n"
+          v23_js += "    wrap=document.createElement('div'); wrap.className='v23-a4-fit-wrap';\n"
+          v23_js += "    Array.from(page.childNodes).forEach(function(n){ if(n!==footer) wrap.appendChild(n); });\n"
+          v23_js += "    page.insertBefore(wrap, footer || null);\n"
+          v23_js += "  }\n"
+          v23_js += "  wrap.style.transform='scale(1)'; wrap.style.width='100%';\n"
+          v23_js += "  var reserve=(footer?footer.offsetHeight:10)+10;\n"
+          v23_js += "  var target=Math.max(80,page.clientHeight-reserve);\n"
+          v23_js += "  var actual=wrap.scrollHeight;\n"
+          v23_js += "  var scale=actual>target?Math.max(0.82,Math.min(1,target/actual)):1;\n"
+          v23_js += "  if(scale<1){wrap.style.transform='scale('+scale+')';wrap.style.width=(100/scale)+'%';page.dataset.v23Fit='scaled';}\n"
+          v23_js += "  else page.dataset.v23Fit='ok';\n"
+          v23_js += "  return {page:0,target:Math.round(target),actual:Math.round(actual),scale:Number(scale.toFixed(3)),status:actual>target?'AUTO-FIT':'OK'};\n"
+          v23_js += "}\n"
+          v23_js += "function v23A4LayoutGuard(){\n"
+          v23_js += "  v23InstallA4CssGuard();\n"
+          v23_js += "  setTimeout(function(){document.querySelectorAll('#a4preview .a4-page').forEach(v23A4FitPage);},80);\n"
+          v23_js += "}\n"
+          v23_js += "function v23A4LiveLayoutReport(){\n"
+          v23_js += "  v23InstallA4CssGuard();\n"
+          v23_js += "  var rows=[];\n"
+          v23_js += "  document.querySelectorAll('#a4preview .a4-page').forEach(function(p,i){var r=v23A4FitPage(p)||{}; r.page=i+1; rows.push(r);});\n"
+          v23_js += "  var bad=rows.filter(function(r){return r.status!=='OK';}).length;\n"
+          v23_js += "  var html='<div class=\"hint\"><b>Live A4 layout check:</b> '+(bad?'Auto-fit on '+bad+' page(s).':'All pages fit A4.')+'</div>';\n"
+          v23_js += "  html+='<pre>'+esc(JSON.stringify(rows,null,2))+'</pre>';\n"
+          v23_js += "  return html;\n"
+          v23_js += "}\n"
+          changed = []
+          if 'V23_A4_OVERFLOW_GUARD' not in s:
+            if '\nboot();' in s:
+              s = s.replace('\nboot();', v23_js + '\nboot();')
+              changed.append('injected V23 before boot()')
+            else:
+              print('WARNING: boot() not found')
+          else:
+            print('V23 already present, skipping')
+          old_catch = 'updateIssueBoxes();\n  } catch(e)'
+          new_catch = 'updateIssueBoxes();\n    v23A4LayoutGuard();\n  } catch(e)'
+          if old_catch in s:
+            s = s.replace(old_catch, new_catch)
+            changed.append('patched catch block')
+          old_modal = "openModal('Layout / Pagination Check', '<pre"
+          new_modal = "openModal('Layout / Pagination Check', v23A4LiveLayoutReport() + '<pre"
+          if old_modal in s:
+            s = s.replace(old_modal, new_modal)
+            changed.append('patched modal')
+          p.write_text(s, encoding='utf-8', newline='\n')
+          print('V23 patch: ' + (', '.join(changed) if changed else 'nothing changed'))
+          PYEOF
 
       - name: Install clasp
         run: npm install -g @google/clasp
