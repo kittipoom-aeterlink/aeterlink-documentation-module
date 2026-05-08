@@ -5,7 +5,7 @@
 <script>
   window.AETERLINK_CLIENT = window.AETERLINK_CLIENT || {};
 
-  window.AETERLINK_CLIENT.version = 'CLIENT_APP_MODULAR_2026_05_08_R01';
+  window.AETERLINK_CLIENT.version = 'CLIENT_APP_MODULAR_2026_05_08_R02';
   window.AETERLINK_CLIENT.buildTimestamp = new Date().toISOString();
 
   window.AETERLINK_CLIENT.lifecycleStages = [
@@ -34,7 +34,6 @@
   window.AETERLINK_CLIENT.setBuildBadge = function(buildInfo) {
     var badge = document.getElementById('versionBadge');
     if (!badge) return;
-
     var info = buildInfo || {};
     var version = info.appVersion || window.AETERLINK_CLIENT.version;
     var timestamp = info.buildTimestamp || window.AETERLINK_CLIENT.buildTimestamp;
@@ -46,24 +45,149 @@
       window.AETERLINK_CLIENT.setBuildBadge();
       return;
     }
-
     google.script.run
-      .withSuccessHandler(function(info) {
-        window.AETERLINK_CLIENT.setBuildBadge(info);
-      })
-      .withFailureHandler(function() {
-        window.AETERLINK_CLIENT.setBuildBadge();
-      })
+      .withSuccessHandler(function(info) { window.AETERLINK_CLIENT.setBuildBadge(info); })
+      .withFailureHandler(function() { window.AETERLINK_CLIENT.setBuildBadge(); })
       .apiBuildInfo();
   };
 
   window.AETERLINK_CLIENT.debugInfo = function() {
-    return {
-      version: window.AETERLINK_CLIENT.version,
-      buildTimestamp: window.AETERLINK_CLIENT.buildTimestamp,
-      lifecycleHint: window.AETERLINK_CLIENT.lifecycleHint,
-      userAgent: navigator.userAgent,
-      href: window.location.href
-    };
+    return { version: window.AETERLINK_CLIENT.version, buildTimestamp: window.AETERLINK_CLIENT.buildTimestamp, lifecycleHint: window.AETERLINK_CLIENT.lifecycleHint, userAgent: navigator.userAgent, href: window.location.href };
   };
+
+  window.AETERLINK_CLIENT.editor = {
+    photos: [
+      { PhotoUrl: '', Caption: 'Photo 1 - work area before completion review' },
+      { PhotoUrl: '', Caption: 'Photo 2 - work area after completion review' }
+    ],
+    getActiveTemplate: function() {
+      var el = document.getElementById('fTemplate');
+      return el && el.value === 'PJ-EQUIP-CHK-001' ? 'CHECKLIST' : 'WCR';
+    },
+    parseRows: function() {
+      var el = document.getElementById('fRows');
+      if (!el) return [];
+      try { return JSON.parse(el.value || '[]'); } catch (err) { alert('Rows JSON is invalid: ' + err.message); return []; }
+    },
+    setRows: function(rows) {
+      var el = document.getElementById('fRows');
+      if (el) el.value = JSON.stringify(rows || [], null, 2);
+    },
+    defaultRow: function() {
+      if (this.getActiveTemplate() === 'CHECKLIST') {
+        return { No: '', EquipmentTag: '', Description: '', Location: '', CheckItem: '', Status: 'Pending', Remark: '' };
+      }
+      return { Package: 'Step 1', Item: '', WorkDescription: '', Qty: '', Unit: '', Status: 'Pending', Remarks: '', Action: '' };
+    },
+    addRow: function() {
+      var rows = this.parseRows();
+      var row = this.defaultRow();
+      if (this.getActiveTemplate() === 'CHECKLIST') row.No = String(rows.length + 1);
+      rows.push(row);
+      this.setRows(rows);
+      if (typeof previewCurrentForm === 'function') previewCurrentForm();
+    },
+    deleteLastRow: function() {
+      var rows = this.parseRows();
+      if (!rows.length) return;
+      rows.pop();
+      this.setRows(rows);
+      if (typeof previewCurrentForm === 'function') previewCurrentForm();
+    },
+    addPhotoPage: function() {
+      var next = this.photos.length + 1;
+      this.photos.push({ PhotoUrl: '', Caption: 'Photo ' + next + ' - additional photo evidence' });
+      this.renderPhotoEditor();
+      if (typeof previewCurrentForm === 'function') previewCurrentForm();
+    },
+    deleteLastPhoto: function() {
+      if (this.photos.length > 0) this.photos.pop();
+      this.renderPhotoEditor();
+      if (typeof previewCurrentForm === 'function') previewCurrentForm();
+    },
+    renderPhotoEditor: function() {
+      var wrap = document.getElementById('photoEditorRows');
+      if (!wrap) return;
+      wrap.innerHTML = this.photos.map(function(photo, i) {
+        return '<div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;margin:6px 0;">' +
+          '<input data-photo-index="' + i + '" data-photo-field="PhotoUrl" placeholder="Photo URL" value="' + (photo.PhotoUrl || '').replace(/"/g, '&quot;') + '">' +
+          '<input data-photo-index="' + i + '" data-photo-field="Caption" placeholder="Caption" value="' + (photo.Caption || '').replace(/"/g, '&quot;') + '">' +
+        '</div>';
+      }).join('');
+      wrap.querySelectorAll('input').forEach(function(input) {
+        input.addEventListener('input', function() {
+          var idx = Number(input.getAttribute('data-photo-index'));
+          var field = input.getAttribute('data-photo-field');
+          window.AETERLINK_CLIENT.editor.photos[idx][field] = input.value;
+        });
+      });
+    },
+    injectControls: function() {
+      var rows = document.getElementById('fRows');
+      if (!rows || document.getElementById('modExtraEditorControls')) return;
+      var holder = document.createElement('div');
+      holder.id = 'modExtraEditorControls';
+      holder.style.margin = '8px 0 12px';
+      holder.innerHTML = '<div class="mod-actions" style="margin-bottom:8px;">' +
+        '<button type="button" class="mod-btn" onclick="AETERLINK_CLIENT.editor.addRow()">+ Add Row</button>' +
+        '<button type="button" class="mod-btn" onclick="AETERLINK_CLIENT.editor.deleteLastRow()">- Delete Last Row</button>' +
+        '<button type="button" class="mod-btn" onclick="AETERLINK_CLIENT.editor.addPhotoPage()">+ Add Photo</button>' +
+        '<button type="button" class="mod-btn" onclick="AETERLINK_CLIENT.editor.deleteLastPhoto()">- Delete Last Photo</button>' +
+        '</div>' +
+        '<div style="border:1px solid var(--aeterlink-line);border-radius:12px;padding:10px;background:#f7fbfd;margin-bottom:10px;">' +
+          '<b style="color:#17395d;">Document Information</b>' +
+          '<div class="form-grid" style="margin-top:8px;">' +
+            '<label>Contract No.<input id="fContractNo" value="-"></label>' +
+            '<label>Purchase Order No.<input id="fPurchaseOrderNo" value="-"></label>' +
+            '<label>Work Type<input id="fWorkType" value="Equipment Purchasing / Installation / Implementation / BMS"></label>' +
+            '<label>Completion Date<input id="fCompletionDate" value="30 April 2026"></label>' +
+            '<label style="grid-column:span 2;">Reference Documents<input id="fReferenceDocuments" value="Equipment Checklist / Work Completion Evidence"></label>' +
+            '<label style="grid-column:span 2;">Remarks / Additional Notes<input id="fRemarks" value="Work completion data and photo evidence imported from the uploaded Work Completion Report workbook."></label>' +
+          '</div>' +
+        '</div>' +
+        '<div id="photoEditorPanel" style="border:1px solid var(--aeterlink-line);border-radius:12px;padding:10px;background:#fff;">' +
+          '<b style="color:#17395d;">Photo Report</b><div class="aeterlink-muted" style="font-size:12px;margin-top:4px;">Two photos are placed on each A4 photo report page. Add more photos to create additional photo pages automatically.</div>' +
+          '<div id="photoEditorRows"></div>' +
+        '</div>';
+      rows.parentNode.insertBefore(holder, rows.nextSibling);
+      this.renderPhotoEditor();
+    },
+    patchCollectFormData: function() {
+      if (window.__aeterlinkCollectPatched || typeof collectFormData !== 'function') return;
+      window.__aeterlinkCollectPatched = true;
+      var original = collectFormData;
+      window.collectFormData = function() {
+        var data = original();
+        ['ContractNo','PurchaseOrderNo','WorkType','CompletionDate','ReferenceDocuments','Remarks'].forEach(function(key) {
+          var id = 'f' + key;
+          var el = document.getElementById(id);
+          if (el) data[key] = el.value;
+        });
+        data.Photos = (window.AETERLINK_CLIENT.editor.photos || []).slice();
+        return data;
+      };
+    },
+    patchTemplateLoad: function() {
+      if (window.__aeterlinkLoadPatched || typeof loadSampleForTemplate !== 'function') return;
+      window.__aeterlinkLoadPatched = true;
+      var original = loadSampleForTemplate;
+      window.loadSampleForTemplate = function() {
+        original();
+        var d = typeof sampleData === 'function' ? sampleData() : {};
+        var map = { fContractNo: 'ContractNo', fPurchaseOrderNo: 'PurchaseOrderNo', fWorkType: 'WorkType', fCompletionDate: 'CompletionDate', fReferenceDocuments: 'ReferenceDocuments', fRemarks: 'Remarks' };
+        Object.keys(map).forEach(function(id) { var el = document.getElementById(id); if (el) el.value = d[map[id]] || el.value || ''; });
+        window.AETERLINK_CLIENT.editor.photos = (d.Photos || window.AETERLINK_CLIENT.editor.photos || []).slice();
+        window.AETERLINK_CLIENT.editor.renderPhotoEditor();
+      };
+    },
+    boot: function() {
+      this.injectControls();
+      this.patchCollectFormData();
+      this.patchTemplateLoad();
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() { if (window.AETERLINK_CLIENT && window.AETERLINK_CLIENT.editor) window.AETERLINK_CLIENT.editor.boot(); }, 250);
+  });
 </script>
