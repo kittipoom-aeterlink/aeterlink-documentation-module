@@ -1,0 +1,27 @@
+<!--
+  AETERLINK Documentation Module — Styles.html
+  Shared style partial for future modular Index.html refactor.
+  Current Index.html remains the active source until migration is completed.
+-->
+<style>
+  :root {
+    --aeterlink-ink: #1e3446;
+    --aeterlink-muted: #6b7f90;
+    --aeterlink-line: #d9e6ee;
+    --aeterlink-soft: #f3f8fb;
+    --aeterlink-primary: #244963;
+    --aeterlink-primary-dark: #17395d;
+    --aeterlink-accent: #d5b467;
+    --aeterlink-paper: #ffffff;
+  }
+
+  .aeterlink-print-hidden {
+    display: initial;
+  }
+
+  @media print {
+    .aeterlink-print-hidden {
+      display: none !important;
+    }
+  }
+</style>
