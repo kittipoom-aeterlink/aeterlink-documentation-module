@@ -1,6 +1,6 @@
 <!--
   AETERLINK Documentation Module — Templates_WCR.html
-  Work Completion Report template partial for future modular Index.html refactor.
+  Work Completion Report template partial for modular Index.html refactor.
 -->
 <script>
   window.AETERLINK_TEMPLATES = window.AETERLINK_TEMPLATES || {};
@@ -8,16 +8,39 @@
   window.AETERLINK_TEMPLATES.WCR = {
     templateCodes: ['PJ-WCR-001', 'PJ-WORK-COMPLETE-001'],
     title: 'WORK COMPLETION REPORT',
+    projectInfoFields: [
+      'Project Code',
+      'Project Name / Site',
+      'Client',
+      'Main-Contractor'
+    ],
     sections: {
       documentInformation: 'DOCUMENT INFORMATION',
       scopeStatus: 'SCOPE OF WORK — COMPLETION STATUS',
       scopeContinued: 'SCOPE OF WORK — CONTINUED',
-      photoReport: 'PHOTO REPORT'
+      photoReport: 'PHOTO REPORT',
+      approval: 'APPROVAL / ACCEPTANCE'
     },
     rules: {
       photosPerPage: 2,
       hideActionColumnOnPrint: true,
-      useMasterA4Layout: true
+      useMasterA4Layout: true,
+      preventFooterOverlap: true,
+      paginateScopeRows: true,
+      continuedPageTitle: 'SCOPE OF WORK — CONTINUED'
+    },
+    columns: {
+      scope: [
+        { key: 'No', label: 'No.', width: '9mm' },
+        { key: 'Description', label: 'Description / Scope of Work', width: 'auto' },
+        { key: 'Location', label: 'Location', width: '26mm' },
+        { key: 'Status', label: 'Status', width: '22mm' },
+        { key: 'Remark', label: 'Remark', width: '32mm' }
+      ],
+      photos: [
+        { key: 'Photo', label: 'Photo' },
+        { key: 'Caption', label: 'Caption / Description' }
+      ]
     }
   };
 </script>
