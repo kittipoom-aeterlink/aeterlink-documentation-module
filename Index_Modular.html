@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AETERLINK Documentation Control — Modular Test</title>
+  <?!= include('Styles'); ?>
+  <?!= include('A4_Layout'); ?>
+</head>
+<body>
+  <main style="padding:18px;max-width:1180px;margin:0 auto;">
+    <section class="aeterlink-card" style="padding:18px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+        <div>
+          <h1 style="margin:0;color:var(--aeterlink-primary-dark);font-size:22px;">AETERLINK Documentation Control</h1>
+          <p class="aeterlink-muted" style="margin:6px 0 0;">Documents & Forms — Modular A4 Workflow Test Page</p>
+        </div>
+        <div id="versionBadge" class="aeterlink-muted" style="font-size:12px;text-align:right;max-width:520px;">Loading build info...</div>
+      </div>
+    </section>
+
+    <section class="aeterlink-card" style="padding:18px;margin-bottom:14px;">
+      <h2 class="aeterlink-section-title" style="margin:0 0 10px;">Server Connection</h2>
+      <div id="serverStatus" class="aeterlink-muted">Checking server...</div>
+      <pre id="serverPayload" style="white-space:pre-wrap;background:#f7fbfd;border:1px solid var(--aeterlink-line);border-radius:12px;padding:12px;overflow:auto;max-height:260px;"></pre>
+    </section>
+
+    <section class="aeterlink-card" style="padding:18px;margin-bottom:14px;">
+      <h2 class="aeterlink-section-title" style="margin:0 0 10px;">Document Lifecycle</h2>
+      <p id="lifecycleHint" class="aeterlink-muted" style="margin:0 0 10px;"></p>
+      <div id="lifecycleList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;"></div>
+    </section>
+
+    <section class="aeterlink-card" style="padding:18px;">
+      <h2 class="aeterlink-section-title" style="margin:0 0 10px;">A4 Layout Smoke Test</h2>
+      <div class="a4-root" style="padding:8px;overflow:auto;max-height:620px;">
+        <div class="a4-page">
+          <div class="a4-page-inner">
+            <header class="a4-header">
+              <div style="font-weight:900;color:#17395d;">AETERLINK</div>
+              <div class="a4-title">WORK COMPLETION REPORT</div>
+              <div class="a4-meta">Doc No.: TEST-WCR-0001<br>Rev.: R00<br>Status: Draft</div>
+            </header>
+            <div class="a4-content">
+              <div class="a4-section-title">DOCUMENT INFORMATION</div>
+              <table>
+                <tbody>
+                  <tr><th>Project Code</th><td>TEST-PJ</td><th>Client</th><td>Sample Client</td></tr>
+                  <tr><th>Project Name / Site</th><td>Modular Test</td><th>Main-Contractor</th><td>AETERLINK</td></tr>
+                </tbody>
+              </table>
+              <div class="a4-section-title" style="margin-top:5mm;">SCOPE OF WORK — COMPLETION STATUS</div>
+              <table>
+                <thead><tr><th style="width:9mm;">No.</th><th>Description / Scope of Work</th><th style="width:26mm;">Location</th><th style="width:22mm;">Status</th><th style="width:32mm;">Remark</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>Verify modular A4 layout header, content, and footer.</td><td>WebApp</td><td>Done</td><td>Smoke test only</td></tr>
+                  <tr><td>2</td><td>Verify action column can be hidden on print using shared CSS.</td><td>Print/PDF</td><td>Done</td><td>No production data</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <footer class="a4-footer"><span>AETERLINK Documentation Control</span><span>Modular test page</span></footer>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <?!= include('Client_App'); ?>
+  <?!= include('Templates_WCR'); ?>
+  <?!= include('Templates_Checklist'); ?>
+
+  <script>
+    function showJson(el, value) {
+      el.textContent = JSON.stringify(value, null, 2);
+    }
+
+    function renderLifecycle() {
+      var list = document.getElementById('lifecycleList');
+      var hint = document.getElementById('lifecycleHint');
+      var client = window.AETERLINK_CLIENT || {};
+      hint.textContent = client.lifecycleHint || '';
+      list.innerHTML = (client.lifecycleStages || []).map(function(stage) {
+        return '<div style="border:1px solid var(--aeterlink-line);border-radius:12px;padding:10px;background:#f7fbfd;">' +
+          '<b>' + stage.label + '</b><br><small class="aeterlink-muted">' + stage.key + '</small></div>';
+      }).join('');
+    }
+
+    function checkServer() {
+      var status = document.getElementById('serverStatus');
+      var payload = document.getElementById('serverPayload');
+
+      if (window.AETERLINK_CLIENT && window.AETERLINK_CLIENT.loadBuildInfo) {
+        window.AETERLINK_CLIENT.loadBuildInfo();
+      }
+
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        status.textContent = 'google.script.run is not available. Open this page from deployed Google Apps Script WebApp.';
+        showJson(payload, window.AETERLINK_CLIENT ? window.AETERLINK_CLIENT.debugInfo() : {});
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          status.textContent = 'Connected to Apps Script server.';
+          showJson(payload, result);
+        })
+        .withFailureHandler(function(error) {
+          status.textContent = 'Server check failed.';
+          showJson(payload, { message: error && error.message ? error.message : String(error) });
+        })
+        .apiModularHealth();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      renderLifecycle();
+      checkServer();
+    });
+  </script>
+</body>
+</html>
