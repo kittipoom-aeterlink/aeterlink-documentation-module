@@ -1,7 +1,6 @@
 <!--
   AETERLINK Documentation Module — Styles.html
-  Shared style partial for future modular Index.html refactor.
-  Current Index.html remains the active source until migration is completed.
+  Shared style partial for modular Index.html refactor.
 -->
 <style>
   :root {
@@ -9,18 +8,68 @@
     --aeterlink-muted: #6b7f90;
     --aeterlink-line: #d9e6ee;
     --aeterlink-soft: #f3f8fb;
+    --aeterlink-soft-2: #eaf3f8;
     --aeterlink-primary: #244963;
     --aeterlink-primary-dark: #17395d;
     --aeterlink-accent: #d5b467;
+    --aeterlink-danger: #d87d7d;
+    --aeterlink-ok: #d9eadf;
+    --aeterlink-bg: #f6f9fb;
+    --aeterlink-card: #ffffff;
     --aeterlink-paper: #ffffff;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: Arial, "Noto Sans Thai", sans-serif;
+    background: linear-gradient(180deg, #f8fbfd, #eef5f8);
+    color: var(--aeterlink-ink);
+  }
+
+  .aeterlink-card {
+    background: var(--aeterlink-card);
+    border: 1px solid var(--aeterlink-line);
+    border-radius: 18px;
+    box-shadow: 0 10px 24px rgba(23, 57, 93, .04);
+  }
+
+  .aeterlink-section-title {
+    color: var(--aeterlink-primary-dark);
+    font-weight: 800;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+
+  .aeterlink-muted {
+    color: var(--aeterlink-muted);
+  }
+
+  .aeterlink-button-primary {
+    background: var(--aeterlink-primary);
+    color: #fff;
+    border: 1px solid var(--aeterlink-primary);
+    border-radius: 10px;
+    padding: 8px 11px;
+    font-weight: 700;
   }
 
   .aeterlink-print-hidden {
     display: initial;
   }
 
+  .aeterlink-action-column {
+    display: table-cell;
+  }
+
   @media print {
-    .aeterlink-print-hidden {
+    .aeterlink-print-hidden,
+    .aeterlink-action-column,
+    .row-actions,
+    .photo-actions {
       display: none !important;
     }
   }
