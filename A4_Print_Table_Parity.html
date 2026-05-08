@@ -2,7 +2,8 @@
 <style>
   :root{--a4-grid-line:.18mm;--a4-grid-color:#666;}
 
-  /* Final border model: one line only. Prevent double-thick lines and restore the full Remarks right edge. */
+  /* Final border model: one physical line per grid edge.
+     Internal grid = right + bottom lines; outer grid = top on first row, left on first column, right on last column, bottom on last row. */
   .a4-page table.a4-scope-table{
     width:100%!important;
     max-width:100%!important;
@@ -11,11 +12,7 @@
     border-spacing:0!important;
     border:0!important;
     outline:0!important;
-    box-shadow:
-      inset 0 var(--a4-grid-line) 0 var(--a4-grid-color),
-      inset var(--a4-grid-line) 0 0 var(--a4-grid-color),
-      inset calc(-1 * var(--a4-grid-line)) 0 0 var(--a4-grid-color),
-      inset 0 calc(-1 * var(--a4-grid-line)) 0 var(--a4-grid-color)!important;
+    box-shadow:none!important;
     overflow:visible!important;
   }
   .a4-page table.a4-scope-table th,
@@ -26,8 +23,10 @@
     box-shadow:none!important;
     background-clip:padding-box!important;
   }
-  .a4-page table.a4-scope-table tr > *:last-child{border-right:0!important;box-shadow:none!important;}
-  .a4-page table.a4-scope-table tbody tr:last-child > *{border-bottom:0!important;}
+  .a4-page table.a4-scope-table thead tr:first-child > *{border-top:var(--a4-grid-line) solid var(--a4-grid-color)!important;}
+  .a4-page table.a4-scope-table tr > *:first-child{border-left:var(--a4-grid-line) solid var(--a4-grid-color)!important;}
+  .a4-page table.a4-scope-table tr > *:last-child{border-right:var(--a4-grid-line) solid var(--a4-grid-color)!important;}
+  .a4-page table.a4-scope-table tbody tr:last-child > *{border-bottom:var(--a4-grid-line) solid var(--a4-grid-color)!important;}
 
   .a4-footer{justify-content:center!important;align-items:center!important;text-align:center!important;gap:0!important;color:#555!important;}
   .a4-footer > span:not(.a4-footer-center){display:none!important;}
@@ -42,10 +41,12 @@
     .a4-page:last-child{page-break-after:auto!important;break-after:auto!important;}
     .a4-page-inner{width:100%!important;height:100%!important;padding:10.5mm 10.5mm 11mm!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;}
     .a4-content{flex:1 1 auto!important;min-height:0!important;overflow:hidden!important;}
-    .a4-page table.a4-scope-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;border:0!important;outline:0!important;box-shadow:inset 0 var(--a4-grid-line) 0 var(--a4-grid-color),inset var(--a4-grid-line) 0 0 var(--a4-grid-color),inset calc(-1 * var(--a4-grid-line)) 0 0 var(--a4-grid-color),inset 0 calc(-1 * var(--a4-grid-line)) 0 var(--a4-grid-color)!important;}
+    .a4-page table.a4-scope-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;border:0!important;outline:0!important;box-shadow:none!important;}
     .a4-page table.a4-scope-table th,.a4-page table.a4-scope-table td{border:0!important;border-right:var(--a4-grid-line) solid var(--a4-grid-color)!important;border-bottom:var(--a4-grid-line) solid var(--a4-grid-color)!important;box-shadow:none!important;}
-    .a4-page table.a4-scope-table tr > *:last-child{border-right:0!important;box-shadow:none!important;}
-    .a4-page table.a4-scope-table tbody tr:last-child > *{border-bottom:0!important;}
+    .a4-page table.a4-scope-table thead tr:first-child > *{border-top:var(--a4-grid-line) solid var(--a4-grid-color)!important;}
+    .a4-page table.a4-scope-table tr > *:first-child{border-left:var(--a4-grid-line) solid var(--a4-grid-color)!important;}
+    .a4-page table.a4-scope-table tr > *:last-child{border-right:var(--a4-grid-line) solid var(--a4-grid-color)!important;}
+    .a4-page table.a4-scope-table tbody tr:last-child > *{border-bottom:var(--a4-grid-line) solid var(--a4-grid-color)!important;}
     .a4-no-print,.a4-preview-actions,.row-actions,.photo-actions,.a4-action-column,th.a4-action-column,td.a4-action-column{display:none!important;visibility:hidden!important;}
     .a4-status-select{display:none!important;visibility:hidden!important;}
     .a4-status-print{display:inline!important;visibility:visible!important;}
@@ -81,20 +82,19 @@
       table.style.borderSpacing='0';
       table.style.border='0';
       table.style.outline='0';
-      table.style.boxShadow='inset 0 .18mm 0 #666, inset .18mm 0 0 #666, inset -.18mm 0 0 #666, inset 0 -.18mm 0 #666';
+      table.style.boxShadow='none';
       table.querySelectorAll('th,td').forEach(function(cell){
         cell.style.border='0';
         cell.style.borderRight='.18mm solid #666';
         cell.style.borderBottom='.18mm solid #666';
+        cell.style.borderTop='0';
+        cell.style.borderLeft='0';
         cell.style.boxShadow='none';
       });
-      table.querySelectorAll('tr > *:last-child').forEach(function(cell){
-        cell.style.borderRight='0';
-        cell.style.boxShadow='none';
-      });
-      table.querySelectorAll('tbody tr:last-child > *').forEach(function(cell){
-        cell.style.borderBottom='0';
-      });
+      table.querySelectorAll('thead tr:first-child > *').forEach(function(cell){cell.style.borderTop='.18mm solid #666';});
+      table.querySelectorAll('tr > *:first-child').forEach(function(cell){cell.style.borderLeft='.18mm solid #666';});
+      table.querySelectorAll('tr > *:last-child').forEach(function(cell){cell.style.borderRight='.18mm solid #666';});
+      table.querySelectorAll('tbody tr:last-child > *').forEach(function(cell){cell.style.borderBottom='.18mm solid #666';});
     });
   }
   function updateFooter(root){
@@ -130,7 +130,7 @@
     var clone=preparePrintClone();
     if(!clone){window.print();return;}
     var styles=[].map.call(document.querySelectorAll('style'),function(s){return s.textContent;}).join('\n');
-    var finalCss='@page{size:210mm 297mm;margin:0!important;}*{box-sizing:border-box!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}html,body{width:210mm!important;min-width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important;}.a4-root,.a4-print-area{position:static!important;left:auto!important;top:auto!important;width:210mm!important;max-width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important;}.a4-page{position:relative!important;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;margin:0!important;padding:0!important;overflow:hidden!important;box-shadow:none!important;border:0!important;page-break-after:always!important;break-after:page!important;transform:none!important;}.a4-page:last-child{page-break-after:auto!important;break-after:auto!important;}.a4-page-inner{width:100%!important;height:100%!important;padding:10.5mm 10.5mm 11mm!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;}.a4-content{flex:1 1 auto!important;min-height:0!important;overflow:hidden!important;}.a4-no-print,.a4-preview-actions,.row-actions,.photo-actions{display:none!important;visibility:hidden!important;}.a4-status-select{display:none!important;visibility:hidden!important;}.a4-status-print{display:inline!important;visibility:visible!important;}table.a4-scope-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;border:0!important;outline:0!important;box-shadow:inset 0 .18mm 0 #666,inset .18mm 0 0 #666,inset -.18mm 0 0 #666,inset 0 -.18mm 0 #666!important;}table.a4-scope-table th,table.a4-scope-table td{border:0!important;border-right:.18mm solid #666!important;border-bottom:.18mm solid #666!important;box-shadow:none!important;}table.a4-scope-table tr>*:last-child{border-right:0!important;box-shadow:none!important;}table.a4-scope-table tbody tr:last-child>*{border-bottom:0!important;}.a4-footer{justify-content:center!important;text-align:center!important}.a4-footer-center{display:block!important;width:100%!important;text-align:center!important;color:#555!important;}';
+    var finalCss='@page{size:210mm 297mm;margin:0!important;}*{box-sizing:border-box!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}html,body{width:210mm!important;min-width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important;}.a4-root,.a4-print-area{position:static!important;left:auto!important;top:auto!important;width:210mm!important;max-width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important;}.a4-page{position:relative!important;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;margin:0!important;padding:0!important;overflow:hidden!important;box-shadow:none!important;border:0!important;page-break-after:always!important;break-after:page!important;transform:none!important;}.a4-page:last-child{page-break-after:auto!important;break-after:auto!important;}.a4-page-inner{width:100%!important;height:100%!important;padding:10.5mm 10.5mm 11mm!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;}.a4-content{flex:1 1 auto!important;min-height:0!important;overflow:hidden!important;}.a4-no-print,.a4-preview-actions,.row-actions,.photo-actions{display:none!important;visibility:hidden!important;}.a4-status-select{display:none!important;visibility:hidden!important;}.a4-status-print{display:inline!important;visibility:visible!important;}table.a4-scope-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;border:0!important;outline:0!important;box-shadow:none!important;}table.a4-scope-table th,table.a4-scope-table td{border:0!important;border-right:.18mm solid #666!important;border-bottom:.18mm solid #666!important;box-shadow:none!important;}table.a4-scope-table thead tr:first-child>*{border-top:.18mm solid #666!important;}table.a4-scope-table tr>*:first-child{border-left:.18mm solid #666!important;}table.a4-scope-table tr>*:last-child{border-right:.18mm solid #666!important;}table.a4-scope-table tbody tr:last-child>*{border-bottom:.18mm solid #666!important;}.a4-footer{justify-content:center!important;text-align:center!important}.a4-footer-center{display:block!important;width:100%!important;text-align:center!important;color:#555!important;}';
     var win=window.open('','_blank');
     if(!win){window.print();return;}
     win.document.open();
