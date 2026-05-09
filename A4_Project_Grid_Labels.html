@@ -9,9 +9,13 @@
   }
   function norm(v){ return String(v==null?'':v).trim(); }
   function rememberProjects(rows){
+    projectMap = {};
     (rows||[]).forEach(function(p){
       var code=norm(p.ProjectCode);
-      if(code) projectMap[code]=p;
+      if(!code) return;
+      p.ProjectLocation = norm(p.ProjectLocation || p.SiteLocation || p.Location || p.ProjectSite || p.ProjectNameSite || '');
+      p.SiteLocation = norm(p.SiteLocation || p.ProjectLocation || '');
+      projectMap[code]=p;
     });
     window.AETERLINK_PROJECT_DETAIL_CACHE = projectMap;
   }
@@ -25,23 +29,24 @@
     if(p){
       data.ProjectCode = p.ProjectCode || data.ProjectCode || '';
       data.ProjectName = p.ProjectName || data.ProjectName || data.ProjectCode || '';
-      data.ProjectLocation = p.SiteLocation || p.ProjectLocation || p.Location || data.ProjectLocation || data.SiteLocation || '';
-      data.SiteLocation = p.SiteLocation || data.SiteLocation || data.ProjectLocation || '';
+      data.ProjectLocation = p.ProjectLocation || p.SiteLocation || p.Location || data.ProjectLocation || data.SiteLocation || '';
+      data.SiteLocation = p.SiteLocation || p.ProjectLocation || data.SiteLocation || data.ProjectLocation || '';
       data.Client = p.Client || data.Client || '';
       data.MainContractor = p.MainContractor || data.MainContractor || 'AETERLINK';
       data.ProjectManager = p.ProjectManager || data.ProjectManager || '';
       data.CurrentPhase = p.CurrentPhase || data.CurrentPhase || '';
     }else{
-      data.ProjectName = data.ProjectName || data.ProjectCode || '';
+      data.ProjectName = data.ProjectName || '';
       data.ProjectLocation = data.ProjectLocation || data.SiteLocation || data.ProjectSite || data.Location || '';
+      data.SiteLocation = data.SiteLocation || data.ProjectLocation || '';
     }
     return data;
   }
   function patchRenderer(){
-    if(!window.AETERLINK_A4_RENDERER || AETERLINK_A4_RENDERER.__projectGridLabelsPatched) return;
+    if(!window.AETERLINK_A4_RENDERER) return;
     AETERLINK_A4_RENDERER.projectGrid=function(data){
       data = enrich(data || {});
-      var projectName = data.ProjectName || data.ProjectCode || '';
+      var projectName = data.ProjectName || '';
       var projectLocation = data.ProjectLocation || data.SiteLocation || data.ProjectSite || data.Location || '';
       return '<table class="a4-project-grid"><colgroup><col class="c-logo"><col class="c-name"><col class="c-client"><col class="c-doc"></colgroup><tbody><tr><th>Project Name</th><th>Project Location</th><th>Client</th><th>Main-Contractor</th></tr><tr><td class="a4-editable" contenteditable="true" spellcheck="false">'+esc(projectName)+'</td><td class="a4-editable" contenteditable="true" spellcheck="false">'+esc(projectLocation)+'</td><td class="a4-editable" contenteditable="true" spellcheck="false">'+esc(data.Client||'')+'</td><td class="a4-editable" contenteditable="true" spellcheck="false">'+esc(data.MainContractor||'')+'</td></tr></tbody></table>';
     };
