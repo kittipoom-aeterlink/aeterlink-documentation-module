@@ -5,7 +5,7 @@
 <script>
 (function () {
   var client = window.AETERLINK_CLIENT = window.AETERLINK_CLIENT || {};
-  client.version = 'CLIENT_APP_MODULAR_2026_05_09_R07_PDF_LINKS';
+  client.version = 'CLIENT_APP_MODULAR_2026_05_09_R08_REGISTER_V2';
   client.buildTimestamp = new Date().toISOString();
   client.lifecycleStages = [
     { key: 'All', label: 'All documents' },
@@ -27,7 +27,7 @@
 })();
 </script>
 <style>
-.prod-photo-report-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px auto 10px;max-width:210mm;box-sizing:border-box;background:#fff;border:1px solid var(--aeterlink-line,#d8e5ec);border-radius:10px;padding:8px 10px;color:#35576d;font-size:12px}.prod-photo-report-toolbar button{border:1px solid #adc3d2;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;color:#07385b;cursor:pointer}.prod-photo-report-toolbar button.primary{background:#0f4268;color:#fff;border-color:#0f4268}.prod-photo-report-toolbar span{color:#6b7f90;font-weight:700}.mod-link-btn{display:inline-flex;align-items:center;gap:4px;border:1px solid #b9d7ea;background:#eef8ff;color:#0f4268!important;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:900;text-decoration:none;white-space:nowrap}.mod-link-btn:hover{background:#dff1fb}.mod-link-empty{color:#9aa9b5;font-size:11px;font-weight:700}@media print{.prod-photo-report-toolbar{display:none!important}}
+.prod-photo-report-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px auto 10px;max-width:210mm;box-sizing:border-box;background:#fff;border:1px solid var(--aeterlink-line,#d8e5ec);border-radius:10px;padding:8px 10px;color:#35576d;font-size:12px}.prod-photo-report-toolbar button{border:1px solid #adc3d2;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;color:#07385b;cursor:pointer}.prod-photo-report-toolbar button.primary{background:#0f4268;color:#fff;border-color:#0f4268}.prod-photo-report-toolbar span{color:#6b7f90;font-weight:700}.mod-link-btn{display:inline-flex;align-items:center;gap:4px;border:1px solid #b9d7ea;background:#eef8ff;color:#0f4268!important;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:900;text-decoration:none;white-space:nowrap}.mod-link-btn:hover{background:#dff1fb}.mod-link-empty{color:#9aa9b5;font-size:11px;font-weight:700}.doc-reg-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px}.doc-reg-search{border:1px solid var(--aeterlink-line);border-radius:10px;padding:8px 10px;min-width:260px}.doc-reg-badge{font-size:12px;color:#6b7f90;font-weight:700}.doc-reg-table td,.doc-reg-table th{white-space:nowrap}.doc-reg-table .doc-title{min-width:190px}.doc-reg-table .doc-code{font-weight:900;color:#123e60}.doc-reg-table .missing-pdf{color:#b36b00;font-weight:900}@media print{.prod-photo-report-toolbar{display:none!important}}
 </style>
 <script>
 (function(){
@@ -59,52 +59,23 @@
 </script>
 <script>
 (function(){
+  var cache={register:[],records:[],filter:''};
   function byId(id){return document.getElementById(id)}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function link(url,label){url=String(url||'').trim();if(!url)return '<span class="mod-link-empty">-</span>';return '<a class="mod-link-btn" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(label||'Open PDF')+'</a>';}
   function pill(v){return '<span class="mod-pill">'+esc(v||'')+'</span>';}
-  function value(row,key){
-    if(key==='PDF Link')return row.PdfUrl||row.FileUrl||'';
-    if(key==='Folder')return row.DriveFolderUrl||'';
-    if(key==='PDF Status')return row.PdfStatus||row.DocumentStatus||'';
-    return row[key]||'';
-  }
-  function render(rows,cols){
-    if(!rows||!rows.length)return '<div class="aeterlink-muted" style="padding:12px;border:1px solid var(--aeterlink-line);border-radius:12px;background:#f7fbfd;">No records yet.</div>';
-    return '<div class="mod-table-wrap"><table class="mod-table"><thead><tr>'+cols.map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr></thead><tbody>'+rows.slice(0,160).map(function(row){return '<tr>'+cols.map(function(c){var v=value(row,c);if(c==='PDF Link')return '<td>'+link(v,'Open PDF')+'</td>';if(c==='Folder')return '<td>'+link(v,'Open Folder')+'</td>';if(/status|active/i.test(c))return '<td>'+pill(v)+'</td>';return '<td>'+esc(v)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
-  }
-  var COLS={
-    DOCUMENT_REGISTER:['DocumentId','ProjectCode','DocumentCode','DocumentTitle','Revision','Status','PDF Status','PDF Link','Folder','UpdatedAt'],
-    FORM_RECORDS:['FormRecordId','ProjectCode','TemplateCode','DocumentNo','RevisionNo','Status','PDF Status','PDF Link','Folder','UpdatedAt']
-  };
-  function renderTable(tableName,targetId){
-    var target=byId(targetId);if(!target)return;
-    if(typeof google==='undefined'||!google.script||!google.script.run)return;
-    google.script.run.withSuccessHandler(function(r){
-      var rows=(r&&r.rows)||[];
-      window.APP_STATE=window.APP_STATE||{tables:{}};APP_STATE.tables=APP_STATE.tables||{};APP_STATE.tables[tableName]=rows;
-      target.innerHTML=render(rows,COLS[tableName]);
-    }).withFailureHandler(function(e){target.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiModularTable(tableName);
-  }
-  function refreshVisible(){
-    if(byId('view-register')&&!byId('view-register').classList.contains('mod-hide'))renderTable('DOCUMENT_REGISTER','table_register');
-    if(byId('view-records')&&!byId('view-records').classList.contains('mod-hide'))renderTable('FORM_RECORDS','table_records');
-  }
-  function patch(){
-    if(window.showView&&!window.showView.__pdfLinkPatch){
-      var old=window.showView;
-      window.showView=function(name){var ret=old.apply(this,arguments);setTimeout(refreshVisible,350);setTimeout(refreshVisible,1200);return ret;};
-      window.showView.__pdfLinkPatch=true;
-    }
-    if(window.refreshData&&!window.refreshData.__pdfLinkPatch){
-      var oldRefresh=window.refreshData;
-      window.refreshData=function(){var ret=oldRefresh.apply(this,arguments);setTimeout(refreshVisible,900);setTimeout(refreshVisible,1800);return ret;};
-      window.refreshData.__pdfLinkPatch=true;
-    }
-    refreshVisible();
-  }
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(patch,800);setTimeout(patch,1800);});
-  var timer=setInterval(patch,1500);setTimeout(function(){clearInterval(timer);patch();},15000);
-  window.AETERLINK_LINK_ENHANCER={refresh:refreshVisible,renderTable:renderTable};
+  function val(row,key){if(key==='PDF Link')return row.PdfUrl||row.FileUrl||'';if(key==='Folder')return row.DriveFolderUrl||'';if(key==='PDF Status')return row.PdfStatus||row.DocumentStatus||'';return row[key]||'';}
+  function cols(type){return type==='records'?['FormRecordId','ProjectCode','TemplateCode','DocumentNo','RevisionNo','Status','PDF Status','PDF Link','Folder','UpdatedAt']:['DocumentId','ProjectCode','DocumentCode','DocumentTitle','Revision','Status','PDF Status','PDF Link','Folder','UpdatedAt'];}
+  function toolbar(type,count){return '<div class="doc-reg-toolbar"><input class="doc-reg-search" id="docRegSearch_'+type+'" placeholder="Search document / project / status..." value="'+esc(cache.filter)+'"><button class="mod-btn" onclick="AETERLINK_REGISTER_V2.refresh()">Refresh Register</button><button class="mod-btn" onclick="AETERLINK_REGISTER_V2.repair()">Repair PDF Columns</button><span class="doc-reg-badge">'+count+' record(s)</span></div>';}
+  function renderRows(rows,type){var c=cols(type);var q=String(cache.filter||'').toUpperCase();rows=(rows||[]).filter(function(r){return !q||JSON.stringify(r).toUpperCase().indexOf(q)>=0;});return toolbar(type,rows.length)+'<div class="mod-table-wrap"><table class="mod-table doc-reg-table"><thead><tr>'+c.map(function(x){return '<th>'+esc(x)+'</th>';}).join('')+'</tr></thead><tbody>'+rows.map(function(r){return '<tr>'+c.map(function(x){var v=val(r,x);if(x==='PDF Link')return '<td>'+link(v,'Open PDF')+'</td>';if(x==='Folder')return '<td>'+link(v,'Open Folder')+'</td>';if(x==='PDF Status'&&!v&&/PDF Saved/i.test(String(r.Status||r.DocumentStatus||'')))return '<td><span class="missing-pdf">Missing Link</span></td>';if(/status/i.test(x))return '<td>'+pill(v)+'</td>';var cls=x==='DocumentCode'||x==='DocumentNo'?' class="doc-code"':(x==='DocumentTitle'?' class="doc-title"':'');return '<td'+cls+'>'+esc(v)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';}
+  function bindSearch(type){setTimeout(function(){var s=byId('docRegSearch_'+type);if(s&&!s.__bound){s.addEventListener('input',function(){cache.filter=s.value;paint();});s.__bound=true;}},60);}
+  function paint(){if(byId('registerTable')){byId('registerTable').innerHTML=renderRows(cache.register,'register');bindSearch('register');}if(byId('recordsTable')){byId('recordsTable').innerHTML=renderRows(cache.records,'records');bindSearch('records');}}
+  function loadRegister(){var t=byId('registerTable');if(t)t.innerHTML='<div class="aeterlink-muted">Loading Document Register V2...</div>';google.script.run.withSuccessHandler(function(r){cache.register=(r&&r.rows)||[];paint();}).withFailureHandler(function(e){if(t)t.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiDocumentRegisterV2();}
+  function loadRecords(){var t=byId('recordsTable');if(t)t.innerHTML='<div class="aeterlink-muted">Loading Form Records / PDF V2...</div>';google.script.run.withSuccessHandler(function(r){cache.records=(r&&r.rows)||[];paint();}).withFailureHandler(function(e){if(t)t.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiFormRecordsPdfV2();}
+  function refresh(){if(typeof google==='undefined'||!google.script||!google.script.run)return;if(byId('view-register')&&!byId('view-register').classList.contains('mod-hide'))loadRegister();if(byId('view-records')&&!byId('view-records').classList.contains('mod-hide'))loadRecords();}
+  function repair(){if(typeof google==='undefined'||!google.script||!google.script.run)return;var target=byId('registerTable')||byId('recordsTable');if(target)target.insertAdjacentHTML('afterbegin','<div class="aeterlink-muted">Repairing PDF link/status columns...</div>');google.script.run.withSuccessHandler(function(){setTimeout(function(){loadRegister();loadRecords();},300);}).withFailureHandler(function(e){alert('Repair failed: '+(e&&e.message?e.message:String(e)));}).apiEnsureDocumentRegisterPdfColumnsV2();}
+  function patch(){if(window.showView&&!window.showView.__registerV2Patch){var old=window.showView;window.showView=function(name){var ret=old.apply(this,arguments);setTimeout(refresh,250);setTimeout(refresh,1000);return ret;};window.showView.__registerV2Patch=true;}if(window.refreshData&&!window.refreshData.__registerV2Patch){var oldRefresh=window.refreshData;window.refreshData=function(){var ret=oldRefresh.apply(this,arguments);setTimeout(refresh,700);setTimeout(refresh,1600);return ret;};window.refreshData.__registerV2Patch=true;}refresh();}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(patch,900);setTimeout(patch,2200);});var timer=setInterval(patch,1500);setTimeout(function(){clearInterval(timer);patch();},18000);
+  window.AETERLINK_REGISTER_V2={refresh:function(){loadRegister();loadRecords();},repair:repair};
 })();
 </script>
