@@ -42,6 +42,8 @@
   .project-v2-link{border:1px solid #b9d7ea;background:#eef8ff;color:#0f4268;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:900;cursor:pointer;}
   .project-v2-current{padding:9px 10px;border:1px solid #d9e6ee;border-radius:12px;background:#f7fbfd;color:#486074;font-size:12px;margin:7px 0 9px;line-height:1.35;}
   .project-v2-selected{outline:2px solid #9bd5f0;background:#f7fcff!important;}
+  .project-v2-select{width:100%!important;margin-top:5px;border:1px solid var(--aeterlink-line)!important;border-radius:10px!important;padding:8px 9px!important;background:#fff!important;font-family:inherit!important;color:#1e3446!important;font-weight:800;}
+  .project-v2-select option{font-weight:700;line-height:1.4;}
   @media(max-width:1150px){.project-v2-grid{grid-template-columns:1fr 1fr;}}
   @media(max-width:720px){.project-v2-grid{grid-template-columns:1fr;}}
 </style>
@@ -56,10 +58,12 @@
   function googleReady(){return typeof google!=='undefined'&&google.script&&google.script.run;}
   function currentProjectCode(){return val('prodProjectCode')||val('fProjectCode');}
   function projectByCode(code){code=String(code||'').trim();return cache.projects.filter(function(p){return String(p.ProjectCode||'').trim()===code;})[0]||null;}
+  function projectLabel(p){return String(p.ProjectCode||'')+(p.ProjectName?' — '+String(p.ProjectName):'');}
   function projectLine(p){if(!p)return 'No project selected.';return '<b>'+esc(p.ProjectCode||'')+'</b> — '+esc(p.ProjectName||'')+' · Client: '+esc(p.Client||'-')+' · Main-Contractor: '+esc(p.MainContractor||'-')+' · Phase: '+esc(p.CurrentPhase||'-');}
+  function setSelectValue(code){var s=byId('prodProjectCode');if(s&&s.tagName==='SELECT')s.value=code||'';}
   function applyProjectToDocument(p,updatePreview){
     if(!p)return;
-    setVal('prodProjectCode',p.ProjectCode); setVal('fProjectCode',p.ProjectCode);
+    setSelectValue(p.ProjectCode); setVal('fProjectCode',p.ProjectCode);
     setVal('prodProjectName',p.ProjectName); setVal('fProjectName',p.ProjectName);
     setVal('prodClient',p.Client); setVal('fClient',p.Client);
     setVal('prodMainContractor',p.MainContractor||'AETERLINK'); setVal('fMainContractor',p.MainContractor||'AETERLINK');
@@ -68,21 +72,43 @@
     if(updatePreview!==false&&typeof window.previewCurrentForm==='function')window.previewCurrentForm();
     if(window.AETERLINK_UPDATE_A4_FOOTERS)setTimeout(window.AETERLINK_UPDATE_A4_FOOTERS,120);
   }
-  function refreshCurrentInfo(){
-    var p=projectByCode(currentProjectCode());
-    var info=byId('projectCurrentInfo'); if(info)info.innerHTML=projectLine(p)||'No project selected.';
+  function refreshCurrentInfo(){var p=projectByCode(currentProjectCode());var info=byId('projectCurrentInfo'); if(info)info.innerHTML=projectLine(p);}
+  function renderProjectOptions(selected){
+    selected=String(selected||'').trim();
+    var html='<option value="">-- Select Project --</option>';
+    cache.projects.forEach(function(p){var code=String(p.ProjectCode||'').trim();if(!code)return;html+='<option value="'+esc(code)+'" '+(code===selected?'selected':'')+'>'+esc(projectLabel(p))+'</option>';});
+    return html;
+  }
+  function populateProjectSelect(){
+    var field=byId('prodProjectCode'); if(!field)return;
+    var current=val('fProjectCode')||field.value||'';
+    if(field.tagName!=='SELECT')return;
+    field.innerHTML=renderProjectOptions(current);
+    if(current)field.value=current;
+    var p=projectByCode(field.value||current); if(p)applyProjectToDocument(p,false); else refreshCurrentInfo();
   }
   function ensureProjectSelector(){
-    var field=byId('prodProjectCode'); if(!field||field.__projectV2Bound)return;
-    field.__projectV2Bound=true;
-    var panel=document.createElement('div'); panel.className='project-v2-current'; panel.id='projectCurrentInfo'; panel.innerHTML='Loading project detail...';
-    field.parentNode.insertBefore(panel,field.nextSibling);
-    field.setAttribute('list','projectCodeList');
-    var dl=document.createElement('datalist'); dl.id='projectCodeList'; document.body.appendChild(dl);
-    field.addEventListener('change',function(){var p=projectByCode(field.value); if(p)applyProjectToDocument(p,true); else refreshCurrentInfo();});
-    field.addEventListener('blur',function(){var p=projectByCode(field.value); if(p)applyProjectToDocument(p,true);});
+    var field=byId('prodProjectCode'); if(!field)return;
+    if(field.tagName!=='SELECT'){
+      var selected=field.value||val('fProjectCode')||'';
+      var select=document.createElement('select');
+      select.id='prodProjectCode';
+      select.className='project-v2-select';
+      select.innerHTML=renderProjectOptions(selected);
+      if(selected)select.value=selected;
+      field.parentNode.replaceChild(select,field);
+      field=select;
+    }
+    if(!byId('projectCurrentInfo')){
+      var panel=document.createElement('div'); panel.className='project-v2-current'; panel.id='projectCurrentInfo'; panel.innerHTML='Loading project detail...';
+      field.parentNode.insertBefore(panel,field.nextSibling);
+    }
+    if(!field.__projectV2Bound){
+      field.__projectV2Bound=true;
+      field.addEventListener('change',function(){var p=projectByCode(field.value); if(p)applyProjectToDocument(p,true); else refreshCurrentInfo();});
+    }
+    populateProjectSelect();
   }
-  function updateDatalist(){var dl=byId('projectCodeList'); if(!dl)return; dl.innerHTML=cache.projects.map(function(p){return '<option value="'+esc(p.ProjectCode)+'">'+esc(p.ProjectName||'')+'</option>';}).join('');}
   function editorHtml(p){p=p||{};return '<div class="project-v2-editor" id="projectV2Editor"><h4>'+esc(p.ProjectCode?'Edit Project Detail':'Add New Project')+'</h4><div class="project-v2-grid">'+
     '<label>Project Code *<input id="pv2ProjectCode" value="'+esc(p.ProjectCode||'')+'" '+(p.ProjectCode?'readonly':'')+'></label>'+
     '<label>Project Name / Site *<input id="pv2ProjectName" value="'+esc(p.ProjectName||'')+'"></label>'+
@@ -108,14 +134,14 @@
   function loadProjects(cb){
     ensureProjectSelector();
     if(!googleReady())return;
-    google.script.run.withSuccessHandler(function(r){cache.projects=(r&&r.rows)||[];updateDatalist();refreshCurrentInfo();renderProjects();if(cb)cb(cache.projects);}).withFailureHandler(function(e){var box=byId('table_projects');if(box)box.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiProjectsV2();
+    google.script.run.withSuccessHandler(function(r){cache.projects=(r&&r.rows)||[];ensureProjectSelector();renderProjects();if(cb)cb(cache.projects);}).withFailureHandler(function(e){var box=byId('table_projects');if(box)box.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiProjectsV2();
   }
   function patchProjectsView(){
     if(window.showView&&!window.showView.__projectV2Patch){var old=window.showView;window.showView=function(name){var ret=old.apply(this,arguments);if(name==='projects'){setTimeout(loadProjects,250);setTimeout(loadProjects,1100);}if(name==='documents'){setTimeout(function(){ensureProjectSelector();loadProjects();},350);}return ret;};window.showView.__projectV2Patch=true;}
     if(window.refreshData&&!window.refreshData.__projectV2Patch){var oldR=window.refreshData;window.refreshData=function(){var ret=oldR.apply(this,arguments);setTimeout(loadProjects,900);return ret;};window.refreshData.__projectV2Patch=true;}
   }
   function patchCollectFormData(){
-    if(window.collectFormData&&!window.collectFormData.__projectV2Patch){var old=window.collectFormData;window.collectFormData=function(){var d=old.apply(this,arguments);var p=projectByCode(d.ProjectCode||currentProjectCode());if(p){d.ProjectName=p.ProjectName||d.ProjectName;d.Client=p.Client||d.Client;d.MainContractor=p.MainContractor||d.MainContractor;d.ProjectManager=p.ProjectManager||d.ProjectManager;d.CurrentPhase=p.CurrentPhase||d.CurrentPhase;}return d;};window.collectFormData.__projectV2Patch=true;}
+    if(window.collectFormData&&!window.collectFormData.__projectV2Patch){var old=window.collectFormData;window.collectFormData=function(){var d=old.apply(this,arguments);var p=projectByCode(d.ProjectCode||currentProjectCode());if(p){d.ProjectCode=p.ProjectCode||d.ProjectCode;d.ProjectName=p.ProjectName||d.ProjectName;d.Client=p.Client||d.Client;d.MainContractor=p.MainContractor||d.MainContractor;d.ProjectManager=p.ProjectManager||d.ProjectManager;d.CurrentPhase=p.CurrentPhase||d.CurrentPhase;}return d;};window.collectFormData.__projectV2Patch=true;}
   }
   function boot(){patchProjectsView();patchCollectFormData();ensureProjectSelector();setTimeout(loadProjects,600);}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,900);setTimeout(boot,2200);});
