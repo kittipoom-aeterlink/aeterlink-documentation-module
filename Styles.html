@@ -137,6 +137,55 @@
     margin-top: 2mm !important;
   }
 
+  /* WCR scope-table guard: fixes missing Remarks border caused by column overflow. */
+  #a4Preview table.a4-scope-table,
+  #a4CheckOutput table.a4-scope-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    overflow: visible !important;
+  }
+
+  #a4Preview table.a4-scope-table th,
+  #a4Preview table.a4-scope-table td,
+  #a4CheckOutput table.a4-scope-table th,
+  #a4CheckOutput table.a4-scope-table td {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+  }
+
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(1),
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(1),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(1),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(1) { width: 9% !important; }
+
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(2),
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(2),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(2),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(2) { width: 39% !important; }
+
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(3),
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(3),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(3),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(3) { width: 7% !important; }
+
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(4),
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(4),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(4),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(4) { width: 7% !important; }
+
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(5),
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(5),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(5),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(5) { width: 16% !important; }
+
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(6),
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(6),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(6),
+  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(6) { width: 22% !important; }
+
   @media print {
     .aeterlink-print-hidden,
     .aeterlink-action-column,
