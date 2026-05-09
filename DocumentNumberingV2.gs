@@ -2,15 +2,18 @@
  * AETERLINK Documentation Module — DocumentNumberingV2.gs
  * Production numbering facade for A4 workflow.
  *
- * Rules:
+ * Numbering rules:
  * - Do not change Google Sheet structure.
  * - PJ-WORK-COMPLETE-001 is treated as alias of PJ-WCR-001.
- * - Document running number: 001, 002, 003...
- * - Revision suffix: first issue revision becomes 001-R01.
- * - Abbreviation logic:
- *   - 3+ significant words: first consonant of first 3 words. Work Completion Report = WCR.
- *   - 2 significant words: first 2 consonants of word 1 + first consonant of word 2. Material Requisition = MTR.
- *   - If duplicated, extend to 4 letters. Material Requisition duplicate style = MTRQ.
+ * - Issue running number: 001, 002, 003...
+ * - Revision suffix: 001-R01, 001-R02...
+ * - Abbreviation rule:
+ *   1) Use explicit acronym in document name first, e.g. Inspection Test Plan (ITP) = ITP.
+ *   2) 3+ words: use first letter of first 3 words, including OF/FOR/TO when part of a standard document title.
+ *      Examples: List of Materials = LOM, Request for Information = RFI.
+ *   3) 2 words: use first letter + next consonant of word 1, plus first letter of word 2.
+ *      Example: Material Requisition = MTR.
+ *   4) If duplicated, extend to 4 letters. Example: Material Requisition duplicate style = MTRQ.
  */
 
 var AETERLINK_NUMBERING_V2 = (function() {
@@ -87,7 +90,7 @@ var AETERLINK_NUMBERING_V2 = (function() {
       if (targetRow > 0) sh.getRange(targetRow, 1, 1, headers.length).setValues([rowValues]);
       else { sh.appendRow(rowValues); targetRow = sh.getLastRow(); }
 
-      return { ok: true, action: existingId ? 'updated' : 'created', tableName: 'FORM_RECORDS', row: targetRow, record: record, numbering: 'V2_CONSONANT_RULE' };
+      return { ok: true, action: existingId ? 'updated' : 'created', tableName: 'FORM_RECORDS', row: targetRow, record: record, numbering: 'V2_DOCUMENT_TITLE_RULE' };
     } finally {
       lock.releaseLock();
     }
@@ -115,18 +118,17 @@ var AETERLINK_NUMBERING_V2 = (function() {
     var canonical = canonicalTemplateCode_(templateCode);
     var prefix = project + '-' + documentCodePrefix_(canonical) + '-';
     var rows = readRows_('FORM_RECORDS');
-    var max = 0, sameTemplateCount = 0;
+    var max = 0;
     rows.forEach(function(r) {
       var rowTemplate = canonicalTemplateCode_(r.TemplateCode || '');
       var docNo = String(r.DocumentNo || '').trim();
       var sameTemplate = rowTemplate === canonical || docNo.indexOf(prefix) === 0;
       if (!sameTemplate || String(r.ProjectCode || '') !== project) return;
-      sameTemplateCount++;
       var issue = extractIssueNo_(docNo);
       var n = parseInt(issue || '0', 10);
       if (!isNaN(n) && n > max) max = n;
     });
-    return max > 0 ? max + 1 : sameTemplateCount + 1;
+    return max + 1;
   }
 
   function documentCodePrefix_(templateCode) {
@@ -152,13 +154,12 @@ var AETERLINK_NUMBERING_V2 = (function() {
   }
 
   function makeUniqueAbbreviation_(name, code, peers) {
-    var words = significantWords_(name || code);
-    var source = words.map(function(w) { return consonants_(w) || letters_(w); }).join('') || String(code || '').replace(/[^A-Z0-9]/g, '');
     var base = baseAbbreviation_(name, code, 4);
+    var source = allWords_(name || code).map(letters_).join('') + String(code || '').replace(/[^A-Z0-9]/g, '');
     for (var len = 5; len <= 8; len++) {
       var candidate = (base + source).substring(0, len);
       var conflict = peers.some(function(p) {
-        return p.code !== canonicalTemplateCode_(code) && (baseAbbreviation_(p.name, p.code, len) === candidate || (baseAbbreviation_(p.name, p.code, 4) + significantWords_(p.name).map(function(w) { return consonants_(w) || letters_(w); }).join('')).substring(0, len) === candidate);
+        return p.code !== canonicalTemplateCode_(code) && (baseAbbreviation_(p.name, p.code, len) === candidate || (baseAbbreviation_(p.name, p.code, 4) + allWords_(p.name).map(letters_).join('')).substring(0, len) === candidate);
       });
       if (!conflict) return candidate;
     }
@@ -168,38 +169,83 @@ var AETERLINK_NUMBERING_V2 = (function() {
   function baseAbbreviation_(name, code, targetLength) {
     var canonical = canonicalTemplateCode_(code);
     var raw = cleanName_(name || canonical);
+    var explicit = explicitAcronym_(raw);
+    if (explicit) return extendAcronym_(explicit, raw, targetLength);
     if (/WORK\s+COMPLETION\s+REPORT/i.test(raw) || canonical === 'PJ-WCR-001') return targetLength > 3 ? 'WCRP' : 'WCR';
-    var words = significantWords_(raw);
-    if (!words.length) words = significantWords_(canonical.replace(/^PJ-/, '').replace(/-\d{3,4}$/, ''));
+
+    var words = allWords_(raw);
+    if (!words.length) words = allWords_(canonical.replace(/^PJ-/, '').replace(/-\d{3,4}$/, ''));
     var result = '';
     if (words.length >= 3) {
-      result = firstSound_(words[0]) + firstSound_(words[1]) + firstSound_(words[2]);
-      if (targetLength > 3) result += firstSound_(words[3] || secondSound_(words[2]) || secondSound_(words[1]) || secondSound_(words[0]));
+      result = firstLetter_(words[0]) + firstLetter_(words[1]) + firstLetter_(words[2]);
+      if (targetLength > 3) result += firstLetter_(words[3]) || nextLetterAfterFirst_(words[2]) || nextLetterAfterFirst_(words[1]) || nextLetterAfterFirst_(words[0]) || 'X';
     } else if (words.length === 2) {
-      var w1 = consonants_(words[0]) || letters_(words[0]);
-      var w2 = consonants_(words[1]) || letters_(words[1]);
-      result = (w1 + 'XX').substring(0, 2) + (w2 + 'X').substring(0, 1);
-      if (targetLength > 3) result = (w1 + 'XX').substring(0, 2) + (w2 + 'XX').substring(0, 2);
+      var w1 = letters_(words[0]);
+      var w2 = letters_(words[1]);
+      result = firstLetter_(w1) + nextConsonantAfterFirst_(w1) + firstLetter_(w2);
+      if (targetLength > 3) result = firstLetter_(w1) + nextConsonantAfterFirst_(w1) + firstLetter_(w2) + nextConsonantAfterFirst_(w2);
     } else {
-      var w = consonants_(words[0] || canonical) || letters_(words[0] || canonical);
-      result = (w + letters_(words[0] || canonical) + 'XXX').substring(0, targetLength > 3 ? 4 : 3);
+      var w = letters_(words[0] || canonical);
+      result = (firstLetter_(w) + nextConsonantAfterFirst_(w) + nextConsonantAfterFirst_(w.substring(1)) + 'XXX').substring(0, targetLength > 3 ? 4 : 3);
     }
     result = String(result || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    var source = words.map(function(w) { return consonants_(w) || letters_(w); }).join('') + words.map(letters_).join('') + canonical.replace(/[^A-Z0-9]/g, '');
+    var source = words.map(letters_).join('') + canonical.replace(/[^A-Z0-9]/g, '');
     while (result.length < (targetLength > 3 ? 4 : 3)) result += source.charAt(result.length) || 'X';
     return result.substring(0, targetLength > 3 ? 4 : 3);
   }
 
-  function firstSound_(word) { var c = consonants_(word); return (c || letters_(word) || 'X').charAt(0); }
-  function secondSound_(word) { var c = consonants_(word); return (c || letters_(word) || '').charAt(1); }
-  function consonants_(word) { return letters_(word).replace(/[AEIOU]/g, ''); }
-  function letters_(word) { return String(word || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  function explicitAcronym_(name) {
+    var s = String(name || '');
+    var m = s.match(/\(([A-Z0-9]{2,6})\)/);
+    if (m) {
+      var candidate = m[1].toUpperCase();
+      var prefixWords = allWords_(s.replace(/\([^)]*\)/g, ''));
+      var initials = prefixWords.map(firstLetter_).join('').substring(0, candidate.length);
+      if (!initials || initials === candidate || candidate.length >= 3) return candidate;
+    }
+    var slash = s.match(/[\/]\s*([A-Z0-9]{2,6})\b/);
+    if (slash) return slash[1].toUpperCase();
+    return '';
+  }
 
-  function significantWords_(name) {
-    var stop = { AND: true, OR: true, OF: true, THE: true, FOR: true, TO: true, FROM: true, BY: true, WITH: true, A: true, AN: true };
-    return cleanName_(name).replace(/[()]/g, ' ').replace(/&/g, ' AND ').replace(/\//g, ' ').toUpperCase().replace(/[^A-Z0-9]+/g, ' ').split(/\s+/).filter(function(w) {
-      return w && !stop[w] && !/^\d+$/.test(w);
-    });
+  function extendAcronym_(acronym, name, targetLength) {
+    acronym = String(acronym || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (targetLength <= 3) return (acronym + 'XXX').substring(0, 3);
+    if (acronym.length >= 4) return acronym.substring(0, 4);
+    var words = allWords_(name.replace(/\([^)]*\)/g, ''));
+    var source = words.map(letters_).join('') + acronym + 'X';
+    while (acronym.length < 4) acronym += source.charAt(acronym.length) || 'X';
+    return acronym.substring(0, 4);
+  }
+
+  function firstLetter_(word) {
+    return (letters_(word) || 'X').charAt(0);
+  }
+
+  function nextLetterAfterFirst_(word) {
+    return (letters_(word) || '').charAt(1);
+  }
+
+  function nextConsonantAfterFirst_(word) {
+    var w = letters_(word);
+    for (var i = 1; i < w.length; i++) if (!/[AEIOU]/.test(w.charAt(i))) return w.charAt(i);
+    return w.charAt(1) || w.charAt(0) || 'X';
+  }
+
+  function letters_(word) {
+    return String(word || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+
+  function allWords_(name) {
+    return cleanName_(name)
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/&/g, ' AND ')
+      .replace(/[\/]/g, ' ')
+      .replace(/[-–—]/g, ' ')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, ' ')
+      .split(/\s+/)
+      .filter(function(w) { return w && !/^\d+$/.test(w); });
   }
 
   function cleanName_(value) {
