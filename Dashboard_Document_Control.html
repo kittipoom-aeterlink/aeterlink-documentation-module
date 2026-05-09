@@ -1,0 +1,122 @@
+<!-- AETERLINK Documentation Module — Dashboard_Document_Control.html -->
+<style id="document-control-dashboard-style">
+  .doc-control-dashboard{display:grid;gap:14px;margin-bottom:14px;}
+  .doc-dash-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;padding:18px 20px!important;}
+  .doc-dash-title{margin:0;color:#132f45;font-size:20px;font-weight:900;letter-spacing:.01em;}
+  .doc-dash-subtitle{margin:5px 0 0;color:#61798a;font-size:12px;line-height:1.45;}
+  .doc-dash-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .doc-dash-grid{display:grid;grid-template-columns:repeat(3,minmax(190px,1fr));gap:12px;}
+  .doc-dash-card{position:relative;border:1px solid #d7e6ef;border-radius:17px;background:linear-gradient(180deg,#fff,#f9fcfe);box-shadow:0 10px 24px rgba(21,70,100,.045);padding:14px 15px;min-height:98px;overflow:hidden;}
+  .doc-dash-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#176c9d;opacity:.92;}
+  .doc-dash-card.warning:before{background:#d7a540;}.doc-dash-card.danger:before{background:#c94848;}.doc-dash-card.success:before{background:#398a68;}.doc-dash-card.neutral:before{background:#7c95a7;}
+  .doc-dash-label{font-size:12px;color:#496b80;font-weight:900;text-transform:uppercase;letter-spacing:.04em;line-height:1.35;}
+  .doc-dash-label small{display:block;text-transform:none;letter-spacing:0;font-size:11px;color:#7c91a0;font-weight:700;margin-top:2px;}
+  .doc-dash-value{margin-top:8px;color:#0f4a73;font-size:32px;font-weight:900;letter-spacing:-.04em;line-height:1;}
+  .doc-dash-note{margin-top:8px;color:#6c8190;font-size:11px;line-height:1.35;}
+  .doc-dash-section{padding:16px!important;}
+  .doc-dash-section h3{margin:0 0 12px!important;color:#132f45!important;font-size:16px!important;font-weight:900!important;display:flex!important;align-items:center!important;gap:8px!important;}
+  .doc-dash-section h3:before{content:"";display:inline-block;width:4px;height:18px;border-radius:9px;background:#176c9d;}
+  .doc-dash-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
+  .doc-dash-table th,.doc-dash-table td{padding:9px 10px;border-bottom:1px solid #edf3f7;text-align:left;vertical-align:middle;white-space:nowrap;}
+  .doc-dash-table th{background:#f0f7fb;color:#17435e;font-weight:900;position:sticky;top:0;z-index:1;}
+  .doc-dash-pill{display:inline-flex;align-items:center;border:1px solid #cfe0ea;border-radius:999px;background:#f6fbff;color:#164b70;padding:4px 9px;font-size:11px;font-weight:900;}
+  .doc-dash-empty{padding:14px;border:1px solid #d7e6ef;background:#fbfdfe;border-radius:14px;color:#6c8190;font-size:12px;}
+  @media(max-width:1150px){.doc-dash-grid{grid-template-columns:repeat(2,minmax(180px,1fr));}}
+  @media(max-width:700px){.doc-dash-grid{grid-template-columns:1fr;}}
+</style>
+<script id="document-control-dashboard-script">
+(function(){
+  var state={records:[],register:[],lastUpdated:''};
+  function byId(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function norm(v){return String(v==null?'':v).trim();}
+  function lower(v){return norm(v).toLowerCase();}
+  function first(row,keys){for(var i=0;i<keys.length;i++){if(row&&row[keys[i]]!=null&&String(row[keys[i]]).trim()!=='')return row[keys[i]];}return '';}
+  function normalizeStatus(row){
+    var s=lower(first(row,['Status','DocumentStatus','ApprovalStatus','ReviewStatus','PDF Status','PdfStatus']));
+    if(!s) return 'blank';
+    if(/approved\s*with\s*comment|approve\s*with\s*comment|approved\s*w\/\s*comment|awc/.test(s)) return 'approvedComment';
+    if(/revise|revision\s*required|rework|return|reject/.test(s)) return 'revise';
+    if(/overdue|late/.test(s)) return 'overdue';
+    if(/pm\s*review|pm\s*check|pm\s*ตรวจ|pm/.test(s)) return 'pmReview';
+    if(/submit|submitted/.test(s)) return 'submitted';
+    if(/pending|waiting|under\s*review|approval|for\s*approval/.test(s)) return 'pendingApproval';
+    if(/approved|approve/.test(s)) return 'approved';
+    if(/draft/.test(s)) return 'draft';
+    if(/issued|pdf\s*saved/.test(s)) return 'approved';
+    return 'other';
+  }
+  function parseDate(v){
+    v=norm(v); if(!v) return null;
+    var d=new Date(v); if(!isNaN(d.getTime())) return d;
+    var m=v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); if(m){d=new Date(Number(m[3]),Number(m[2])-1,Number(m[1])); if(!isNaN(d.getTime()))return d;}
+    return null;
+  }
+  function isOverdue(row,kind){
+    if(kind==='approved'||kind==='approvedComment') return false;
+    var d=parseDate(first(row,['DueDate','TargetDate','RequiredDate','ReviewDueDate','ApprovalDueDate','SubmitDueDate','PlannedDate','FinishDate']));
+    if(!d) return false;
+    var today=new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0);
+    return d.getTime()<today.getTime();
+  }
+  function allDocs(){
+    var out=[];
+    state.register.forEach(function(r){out.push(Object.assign({__source:'DOCUMENT_REGISTER'},r));});
+    var seen={};
+    out.forEach(function(r){var id=first(r,['DocumentId','DocumentNo','FormRecordId']); if(id)seen[id]=true;});
+    state.records.forEach(function(r){var id=first(r,['DocumentId','DocumentNo','FormRecordId']); if(!id||!seen[id])out.push(Object.assign({__source:'FORM_RECORDS'},r));});
+    return out;
+  }
+  function counts(rows){
+    var c={all:rows.length,draft:0,submitted:0,approved:0,approvedComment:0,overdue:0,revise:0,pmReview:0,pendingApproval:0};
+    rows.forEach(function(r){var k=normalizeStatus(r); if(c[k]!=null)c[k]++; if(isOverdue(r,k))c.overdue++; if(k==='submitted'||k==='pendingApproval'||k==='pmReview')c.pendingApproval++;});
+    return c;
+  }
+  function card(key,label,thai,value,cls,note){return '<div class="doc-dash-card '+(cls||'')+'"><div class="doc-dash-label">'+esc(label)+'<small>'+esc(thai||'')+'</small></div><div class="doc-dash-value">'+esc(value)+'</div><div class="doc-dash-note">'+esc(note||'')+'</div></div>';}
+  function recentRows(rows){
+    var priority={overdue:1,revise:2,pmReview:3,pendingApproval:4,submitted:5,draft:6,approvedComment:7,approved:8,other:9,blank:10};
+    return rows.slice().sort(function(a,b){
+      var ka=normalizeStatus(a), kb=normalizeStatus(b);
+      if(isOverdue(a,ka))ka='overdue'; if(isOverdue(b,kb))kb='overdue';
+      return (priority[ka]||99)-(priority[kb]||99);
+    }).slice(0,12);
+  }
+  function statusLabel(k){return {draft:'Draft',submitted:'Submitted',approved:'Approved',approvedComment:'Approved with Comment',overdue:'Overdue',revise:'Revise Required',pmReview:'PM Review',pendingApproval:'Pending Approval',other:'Other',blank:'No Status'}[k]||k;}
+  function renderTable(rows){
+    if(!rows.length)return '<div class="doc-dash-empty">No document records found.</div>';
+    return '<div class="mod-table-wrap"><table class="doc-dash-table"><thead><tr><th>Document No. / ID</th><th>Document</th><th>Project</th><th>Revision</th><th>Status</th><th>Due / Updated</th></tr></thead><tbody>'+rows.map(function(r){var k=normalizeStatus(r); if(isOverdue(r,k))k='overdue'; return '<tr><td><b>'+esc(first(r,['DocumentNo','DocumentId','FormRecordId','DocumentCode'])||'-')+'</b></td><td>'+esc(first(r,['DocumentTitle','TemplateName','DocumentCode','TemplateCode'])||'-')+'</td><td>'+esc(first(r,['ProjectCode','ProjectName'])||'-')+'</td><td>'+esc(first(r,['RevisionNo','Revision'])||'-')+'</td><td><span class="doc-dash-pill">'+esc(statusLabel(k))+'</span></td><td>'+esc(first(r,['DueDate','ReviewDueDate','ApprovalDueDate','UpdatedAt','SubmittedAt'])||'-')+'</td></tr>';}).join('')+'</tbody></table></div>';
+  }
+  function render(){
+    var host=byId('view-dashboard'); if(!host)return;
+    var rows=allDocs(), c=counts(rows), attention=recentRows(rows).filter(function(r){var k=normalizeStatus(r);return isOverdue(r,k)||['revise','pmReview','pendingApproval','submitted','approvedComment'].indexOf(k)>=0;});
+    host.innerHTML='<div class="doc-control-dashboard">'
+      +'<div class="aeterlink-card doc-dash-header"><div><h2 class="doc-dash-title">10.3 Document Control Dashboard</h2><p class="doc-dash-subtitle">สำหรับควบคุมเอกสารโครงการ / Document status monitoring for PM, reviewer and approver.</p></div><div class="doc-dash-actions"><button class="mod-btn primary" onclick="showView(\'documents\')">+ Create Form</button><button class="mod-btn" onclick="showView(\'register\')">Document Register</button><button class="mod-btn" onclick="AETERLINK_DOC_DASHBOARD.refresh()">Refresh</button></div></div>'
+      +'<div class="doc-dash-grid">'
+      +card('all','All Documents','เอกสารทั้งหมด',c.all,'neutral','Total records from Document Register and Form Records')
+      +card('draft','Draft','เอกสาร Draft',c.draft,'neutral','Documents not yet submitted')
+      +card('submitted','Submitted','เอกสาร Submitted',c.submitted,'','Submitted and waiting for next action')
+      +card('approved','Approved','เอกสาร Approved',c.approved,'success','Approved / issued documents')
+      +card('approvedComment','Approved with Comment','เอกสาร Approved with Comment',c.approvedComment,'warning','Approved but comment must be closed')
+      +card('overdue','Overdue','เอกสาร Overdue',c.overdue,'danger','Late document action based on status or due date')
+      +card('revise','Revise Required','เอกสารต้อง Revise',c.revise,'danger','Rejected / returned / revision required')
+      +card('pmReview','PM Review','เอกสารรอ PM ตรวจ',c.pmReview,'warning','Waiting for PM review / PM check')
+      +card('pendingApproval','Pending Approval','เอกสารรอลูกค้าอนุมัติ',c.pendingApproval,'warning','Waiting for approval / submitted / under review')
+      +'</div>'
+      +'<div class="aeterlink-card doc-dash-section"><h3>Documents Requiring Attention</h3>'+renderTable(attention)+'</div>'
+      +'<div class="aeterlink-card doc-dash-section"><h3>Latest Documents</h3>'+renderTable(rows.slice(0,10))+'</div>'
+      +'</div>';
+  }
+  function load(){
+    if(typeof google==='undefined'||!google.script||!google.script.run){render();return;}
+    google.script.run.withSuccessHandler(function(reg){state.register=(reg&&reg.rows)||[];google.script.run.withSuccessHandler(function(fr){state.records=(fr&&fr.rows)||[];state.lastUpdated=new Date().toISOString();render();}).withFailureHandler(function(){render();}).apiModularTable('FORM_RECORDS');}).withFailureHandler(function(){render();}).apiModularTable('DOCUMENT_REGISTER');
+  }
+  function patch(){
+    if(window.showView&&!window.showView.__docDashboardPatch){var old=window.showView;window.showView=function(name){var ret=old.apply(this,arguments);if(name==='dashboard')setTimeout(load,150);return ret;};window.showView.__docDashboardPatch=true;}
+    if(window.refreshData&&!window.refreshData.__docDashboardPatch){var oldR=window.refreshData;window.refreshData=function(){var ret=oldR.apply(this,arguments);setTimeout(load,500);return ret;};window.refreshData.__docDashboardPatch=true;}
+  }
+  function boot(){patch(); if(!byId('view-dashboard'))return; load();}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,500);setTimeout(boot,1600);});
+  var timer=setInterval(boot,1400); setTimeout(function(){clearInterval(timer);boot();},12000);
+  window.AETERLINK_DOC_DASHBOARD={refresh:load,render:render,state:state};
+})();
+</script>
