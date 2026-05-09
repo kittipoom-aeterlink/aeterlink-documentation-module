@@ -65,12 +65,52 @@
     display: table-cell;
   }
 
+  /* Production A4 detail template spacing — applies to every detailed document type. */
+  #a4Preview .a4-detail-section-wrap,
+  #a4CheckOutput .a4-detail-section-wrap {
+    margin-top: 5mm !important;
+    padding-top: 0 !important;
+    clear: both !important;
+  }
+
+  #a4Preview .a4-detail-section-wrap .a4-section-title,
+  #a4CheckOutput .a4-detail-section-wrap .a4-section-title {
+    margin-top: 0 !important;
+    margin-bottom: 2.2mm !important;
+  }
+
+  #a4Preview .a4-detail-note,
+  #a4CheckOutput .a4-detail-note {
+    margin: 1.8mm 0 3mm !important;
+    padding: 1.8mm 2.2mm !important;
+    border: .18mm solid #d9e6ee !important;
+    background: #f7fbfd !important;
+    border-radius: 1.5mm !important;
+    line-height: 1.35 !important;
+  }
+
+  #a4Preview table.a4-detail-table,
+  #a4CheckOutput table.a4-detail-table {
+    margin-top: 2mm !important;
+    margin-bottom: 3mm !important;
+  }
+
+  #a4Preview .a4-info-table + .a4-detail-section-wrap,
+  #a4CheckOutput .a4-info-table + .a4-detail-section-wrap {
+    margin-top: 6mm !important;
+  }
+
   @media print {
     .aeterlink-print-hidden,
     .aeterlink-action-column,
     .row-actions,
     .photo-actions {
       display: none !important;
+    }
+    .a4-detail-section-wrap {
+      margin-top: 5mm !important;
+      break-inside: auto !important;
+      page-break-inside: auto !important;
     }
   }
 </style>
