@@ -24,69 +24,85 @@
   ];
   var ORDER={}; STAGES.forEach(function(s,i){ORDER[s.key]=i;});
   var ALIAS={'PJ-WORK-COMPLETE-001':'PJ-WCR-001','PJ-WORK-COMPLETE':'PJ-WCR-001'};
-  var ACRONYM={
-    'WORK COMPLETION REPORT':'WCR','MEETING MINUTES':'MOM','MEETING MINUTES / MOM':'MOM','REQUEST FOR INFORMATION':'RFI','REQUEST FOR APPROVAL':'RFA',
-    'DRAWING REVIEW':'DRV','DRAWING REGISTER':'DRR','SHOP DRAWING':'SHD','CALCULATION SHEETS':'CAL','MASTER SCHEDULE':'MSC','WORK PERMIT':'WPT',
-    'RISK REGISTER':'RSR','RISK REGISTER ENTRY':'RSE','ISSUE LOG ENTRY':'ILE','KICK-OFF MEETING RECORD':'KMR','PAYMENT MILESTONE RECORD':'PMR',
-    'PROGRESS CLAIM / PAYMENT CLAIM':'PCP','RELEASE NOTE (ALT → CLIENT)':'RNC','INSURANCE DOCUMENT':'INS','VARIATION ORDER REQUEST':'VOR'
-  };
   function byId(id){return document.getElementById(id);}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-  function textOf(o){return String((o&&o.text)||'').trim();}
-  function codeOf(o){return String((o&&o.value)||'').trim();}
   function canonicalCode(code){code=String(code||'').trim().toUpperCase();return ALIAS[code]||code;}
   function cleanName(text,code){
-    text=String(text||code||'').replace(/^[A-Z0-9-]+\s+[—-]\s*/,'').trim();
-    if(!text||/^PJ-[A-Z0-9-]+$/.test(text))text=String(code||'').trim();
-    return text;
+    var value=String(text||code||'').replace(/^[A-Z0-9-]+\s+[—-]\s*/,'').trim();
+    if(!value||/^PJ-[A-Z0-9-]+$/.test(value))value=String(code||'').replace(/^PJ-/,'').replace(/-\d{3,4}$/,'').replace(/-/g,' ');
+    return value;
   }
-  function acronymFromName(name,code){
-    var upper=String(name||'').toUpperCase().trim();
-    Object.keys(ACRONYM).some(function(k){if(upper.indexOf(k)>=0){upper=ACRONYM[k];return true;}return false;});
-    if(/^[A-Z0-9]{3}$/.test(upper))return upper;
-    if(/^PJ-WCR/.test(String(code||'').toUpperCase()))return 'WCR';
+  function letters(w){return String(w||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+  function consonants(w){return letters(w).replace(/[AEIOU]/g,'');}
+  function significantWords(name){
     var stop={AND:1,OR:1,OF:1,THE:1,FOR:1,TO:1,FROM:1,BY:1,WITH:1,A:1,AN:1};
-    var words=String(name||'').toUpperCase().replace(/[()]/g,' ').replace(/&/g,' AND ').replace(/\//g,' ').replace(/[^A-Z0-9]+/g,' ').split(/\s+/).filter(function(w){return w&&!stop[w]&&!/^\d+$/.test(w);});
-    var ac=words.map(function(w){return w.charAt(0);}).join('');
-    if(ac.length>=3)return ac.substring(0,3);
-    var compact=words.join('');
-    while(ac.length<3&&compact.length)ac+=compact.charAt(ac.length);
-    var m=String(code||'').toUpperCase().match(/^PJ-([A-Z0-9]{3})-/);
-    return (ac|| (m?m[1]:'DOC') || 'DOC').substring(0,3);
+    return cleanName(name).replace(/[()]/g,' ').replace(/&/g,' AND ').replace(/\//g,' ').toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(/\s+/).filter(function(w){return w&&!stop[w]&&!/^\d+$/.test(w);});
   }
-  function displayLabel(code,text){
+  function firstSound(w){return (consonants(w)||letters(w)||'X').charAt(0);}
+  function secondSound(w){return (consonants(w)||letters(w)||'').charAt(1);}
+  function baseAbbrev(name,code,len){
     code=canonicalCode(code);
-    var name=cleanName(text,code);
-    var ac=acronymFromName(name,code);
-    var suffix=(code.match(/-(\d{3})$/)||[])[1]||'001';
-    return 'PJ-'+ac+'-'+suffix+' — '+name;
+    name=cleanName(name,code);
+    if(/WORK\s+COMPLETION\s+REPORT/i.test(name)||code==='PJ-WCR-001')return len>3?'WCRP':'WCR';
+    var words=significantWords(name);
+    if(!words.length)words=significantWords(code);
+    var out='';
+    if(words.length>=3){
+      out=firstSound(words[0])+firstSound(words[1])+firstSound(words[2]);
+      if(len>3)out+=firstSound(words[3])||secondSound(words[2])||secondSound(words[1])||secondSound(words[0])||'X';
+    }else if(words.length===2){
+      var w1=consonants(words[0])||letters(words[0]);
+      var w2=consonants(words[1])||letters(words[1]);
+      out=(w1+'XX').substring(0,2)+(w2+'X').substring(0,1);
+      if(len>3)out=(w1+'XX').substring(0,2)+(w2+'XX').substring(0,2);
+    }else{
+      var w=consonants(words[0]||code)||letters(words[0]||code);
+      out=(w+letters(words[0]||code)+'XXXX').substring(0,len>3?4:3);
+    }
+    var src=words.map(function(w){return consonants(w)||letters(w);}).join('')+words.map(letters).join('')+code.replace(/[^A-Z0-9]/g,'');
+    out=String(out||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    while(out.length<(len>3?4:3))out+=src.charAt(out.length)||'X';
+    return out.substring(0,len>3?4:3);
   }
   function classify(opt){
-    var code=canonicalCode(codeOf(opt)).toUpperCase();
-    var text=(code+' '+textOf(opt).toUpperCase()).replace(/[_-]+/g,' ');
+    var code=canonicalCode(opt.value||'').toUpperCase();
+    var text=(code+' '+String(opt.rawText||opt.text||'').toUpperCase()).replace(/[_-]+/g,' ');
     if(/^TEMPLATE/.test(code)||/ TEMPLATE | SYSTEM /.test(text))return '99_OTHER';
     if(/WARRANTY|DLP|DEFECT/.test(text))return '08_WARRANTY';
     if(/RISK|ISSUE|NCR|SAFETY|HSE|INCIDENT/.test(text))return '09_RISK';
     if(/HANDOVER|CLOSEOUT|CLOSE OUT|AS BUILT|O&M|OM MANUAL|WCR|WORK COMPLETION|COMPLETION REPORT|RELEASE NOTE|PAY|PAYMENT|CLAIM|MILESTONE|VO|VARIATION|CONTRACT|INSURANCE/.test(text))return '07_HANDOVER';
     if(/TEST|COMMISSION|COMMISSIONING|T&C|T AND C|SAT|FAT|FUNCTIONAL/.test(text))return '06_TESTING';
     if(/WORK PERMIT|PERMIT|INSTALL|INSTALLATION|CONSTRUCTION|SITE|INSPECTION|CHECKLIST|PUNCH/.test(text))return '05_CONSTRUCTION';
-    if(/PROCURE|PURCHASE|PO|MATERIAL|EQUIPMENT|SHOPPING|SUPPLIER|DELIVERY|GRN|STOCK/.test(text))return '04_PROCUREMENT';
+    if(/PROCURE|PURCHASE|PO|MATERIAL|REQUISITION|EQUIPMENT|SHOPPING|SUPPLIER|DELIVERY|GRN|STOCK/.test(text))return '04_PROCUREMENT';
     if(/DESIGN|DRAWING|DRW|ENGINEERING|RFI|RFA|SUBMITTAL|CALC|CALCULATION|SPEC|TECHNICAL|SHOP DRAWING/.test(text))return '03_DESIGN';
     if(/SCHEDULE|SCH|PLAN|MOM|MEETING|MTG|AGENDA|PROGRESS|FORECAST|TRACKER|MASTER SCHEDULE/.test(text))return '02_PLANNING';
     if(/KICKOFF|KICK OFF|START|INITIATION|CHARTER|PROJECT OPEN/.test(text))return '01_INITIATION';
     return '99_OTHER';
   }
-  function optionList(select){
+  function rawOptions(select){
     var seen={};
     return Array.prototype.slice.call(select.querySelectorAll('option')).filter(function(o){return o.value;}).map(function(o){
-      var rawValue=o.value, code=canonicalCode(rawValue), rawText=o.textContent||o.innerText||rawValue;
-      return {value:code,text:displayLabel(code,rawText),rawValue:rawValue,rawText:rawText,selected:o.selected||canonicalCode(o.value)==='PJ-WCR-001'&&rawValue==='PJ-WCR-001',stage:classify({value:code,text:rawText})};
-    }).filter(function(o){
-      if(seen[o.value])return false;
-      seen[o.value]=true;
-      return true;
-    });
+      var raw=o.value, code=canonicalCode(raw), rawText=o.textContent||o.innerText||raw, name=cleanName(rawText,code);
+      return {value:code,sourceValue:raw,rawText:rawText,name:name,selected:o.selected,stage:classify({value:code,rawText:rawText})};
+    }).filter(function(o){if(seen[o.value])return false;seen[o.value]=true;return true;});
   }
+  function withUniqueLabels(items){
+    var baseCount={};
+    items.forEach(function(o){o.base=baseAbbrev(o.name,o.value,3);baseCount[o.base]=(baseCount[o.base]||0)+1;});
+    var used={};
+    items.forEach(function(o){
+      var abbr=baseCount[o.base]>1?baseAbbrev(o.name,o.value,4):o.base;
+      if(used[abbr])abbr=baseAbbrev(o.name,o.value,4);
+      var n=2;
+      while(used[abbr]){abbr=(baseAbbrev(o.name,o.value,4)+String(n)).substring(0,5);n++;}
+      used[abbr]=true;
+      var seq=(String(o.value).match(/-(\d{3})$/)||[])[1]||'001';
+      o.displayCode='PJ-'+abbr+'-'+seq;
+      o.text=o.displayCode+' — '+o.name;
+    });
+    return items;
+  }
+  function optionList(select){return withUniqueLabels(rawOptions(select));}
   function signature(list){return list.map(function(o){return o.value+'|'+o.text;}).join('\n');}
   function ensureTools(select){
     var field=select.closest('.prod-field')||select.parentNode;
@@ -95,7 +111,7 @@
     if(existing)return existing;
     var tools=document.createElement('div');
     tools.className='prod-doc-type-tools';
-    tools.innerHTML='<input id="prodDocTypeSearch" class="prod-doc-type-search" type="search" placeholder="Search document type by code / name / phase..."><div class="prod-doc-type-hint">Document Type is grouped by project phase. Codes are standardized as PJ-[3-letter abbreviation]-001. Example: Work Completion Report = PJ-WCR-001.</div>';
+    tools.innerHTML='<input id="prodDocTypeSearch" class="prod-doc-type-search" type="search" placeholder="Search document type by code / name / phase..."><div class="prod-doc-type-hint">Document Type is grouped by phase. Abbreviation rule: 3+ words = first sound of first 3 words; 2 words = first 2 sounds of word 1 + first sound of word 2. Example: Material Requisition = MTR. Duplicate names extend to 4 letters, e.g. MTRQ.</div>';
     field.insertBefore(tools,select);
     var input=byId('prodDocTypeSearch');
     input.addEventListener('input',function(){renderGrouped(select,false);});
@@ -106,23 +122,20 @@
     var list=state.allOptions.slice();
     if(!q)return list;
     return list.filter(function(o){
-      var label=(o.value+' '+o.text+' '+o.rawText+' '+(STAGES[ORDER[o.stage]]?STAGES[ORDER[o.stage]].label:'')).toUpperCase();
+      var label=(o.value+' '+o.text+' '+o.rawText+' '+o.name+' '+(STAGES[ORDER[o.stage]]?STAGES[ORDER[o.stage]].label:'')).toUpperCase();
       return label.indexOf(q)>=0;
     });
   }
   function renderGrouped(select,refreshBase){
     if(!select)return;
-    if(refreshBase){
-      var next=optionList(select);
-      if(next.length&&signature(next)!==signature(state.allOptions))state.allOptions=next;
-    }
+    if(refreshBase){var next=optionList(select);if(next.length&&signature(next)!==signature(state.allOptions))state.allOptions=next;}
     if(!state.allOptions.length)state.allOptions=optionList(select);
     var selected=canonicalCode(select.value || (byId('fTemplate')&&byId('fTemplate').value) || '');
     if(!state.allOptions.some(function(o){return o.value===selected;}))selected=state.allOptions[0]?state.allOptions[0].value:selected;
     var list=filteredOptions().sort(function(a,b){
       var da=(ORDER[a.stage]==null?99:ORDER[a.stage]), db=(ORDER[b.stage]==null?99:ORDER[b.stage]);
       if(da!==db)return da-db;
-      return String(a.value).localeCompare(String(b.value));
+      return String(a.displayCode||a.value).localeCompare(String(b.displayCode||b.value));
     });
     var groups={}; list.forEach(function(o){(groups[o.stage]||(groups[o.stage]=[])).push(o);});
     var html='';
@@ -145,10 +158,7 @@
       state.select=select;
       state.search=ensureTools(select);
       state.allOptions=optionList(select);
-      state.observer=new MutationObserver(function(){
-        if(state.rendering)return;
-        setTimeout(function(){if(state.select)renderGrouped(state.select,true);},30);
-      });
+      state.observer=new MutationObserver(function(){if(state.rendering)return;setTimeout(function(){if(state.select)renderGrouped(state.select,true);},30);});
       state.observer.observe(select,{childList:true,subtree:true});
       renderGrouped(select,true);
       return true;
