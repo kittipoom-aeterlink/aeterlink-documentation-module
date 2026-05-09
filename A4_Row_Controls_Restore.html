@@ -12,8 +12,12 @@
     visibility:visible!important;
     gap:6px!important;
     align-items:center!important;
+    justify-content:flex-start!important;
     flex-wrap:wrap!important;
-    margin:1.6mm 0 0!important;
+    margin:0 0 1.2mm 0!important;
+    min-height:18px!important;
+    position:relative!important;
+    z-index:20!important;
   }
   .a4-row-control-bar button{
     border:1px solid #adc3d2!important;
@@ -25,9 +29,11 @@
     font-weight:900!important;
     cursor:pointer!important;
     line-height:1.2!important;
+    box-shadow:0 1px 3px rgba(7,56,91,.08)!important;
   }
   .a4-row-control-bar button:hover{background:#eaf3f8!important;}
-  .a4-row-delete-cell{position:relative!important;padding-left:5mm!important;}
+  .a4-row-delete-cell,
+  .prod-row-delete-cell{position:relative!important;padding-left:5mm!important;}
   .a4-row-delete-btn{
     position:absolute!important;
     left:1mm!important;
@@ -46,22 +52,22 @@
     font-weight:900!important;
     cursor:pointer!important;
     text-align:center!important;
-    z-index:5!important;
+    z-index:25!important;
   }
   .a4-row-delete-btn:hover{background:#fff1f1!important;border-color:#a91d1d!important;}
   @media print{
     .a4-row-control-bar,.a4-row-delete-btn{display:none!important;visibility:hidden!important;}
-    .a4-row-delete-cell{padding-left:1mm!important;}
+    .a4-row-delete-cell,.prod-row-delete-cell{padding-left:1mm!important;}
   }
 </style>
 <script id="a4-row-controls-restore-script">
 (function(){
-  if(window.__AETERLINK_A4_ROW_CONTROLS_RESTORE__) return;
-  window.__AETERLINK_A4_ROW_CONTROLS_RESTORE__ = true;
+  if(window.__AETERLINK_A4_ROW_CONTROLS_RESTORE_V2__) return;
+  window.__AETERLINK_A4_ROW_CONTROLS_RESTORE_V2__ = true;
 
-  function rootList(){
-    var roots=[].slice.call(document.querySelectorAll('#a4Preview,#a4CheckOutput,.a4-print-area,#a4PrintArea'));
-    return roots.filter(function(r,i,a){return r && a.indexOf(r)===i;});
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function roots(){
+    return [].slice.call(document.querySelectorAll('#a4Preview,#a4CheckOutput,.a4-print-area,#a4PrintArea')).filter(function(r,i,a){return r&&a.indexOf(r)===i;});
   }
   function isDataTable(table){
     if(!table || !table.tBodies || !table.tBodies.length) return false;
@@ -76,7 +82,6 @@
     root=root||document;
     return [].slice.call(root.querySelectorAll('.a4-page .a4-content table')).filter(isDataTable);
   }
-  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function headerLabels(table){
     var row=table.tHead&&table.tHead.rows&&table.tHead.rows[0];
     if(!row) return [];
@@ -105,49 +110,63 @@
     if(!sp){sp=document.createElement('span');sp.className='a4-status-print';td.appendChild(sp);}
     sp.textContent=select.value || '';
   }
+  function deleteRow(btn){
+    var tr=btn && btn.closest ? btn.closest('tr') : null;
+    if(!tr || !tr.parentNode) return;
+    var table=tr.closest('table');
+    tr.parentNode.removeChild(tr);
+    syncRowsFromPreviewTable();
+    normalize(table && table.closest('.a4-page') || document);
+    repaginateSoon();
+  }
   function ensureRowDeleteButtons(table){
     if(!isDataTable(table)) return;
     [].slice.call(table.tBodies[0].rows).forEach(function(tr){
       var first=tr.cells&&tr.cells[0];
       if(!first) return;
       first.classList.add('a4-row-delete-cell');
+      first.classList.add('prod-row-delete-cell');
       if(!first.querySelector('.a4-row-delete-btn')){
         var btn=document.createElement('button');
         btn.type='button';
-        btn.className='a4-row-delete-btn a4-no-print';
+        btn.className='a4-row-delete-btn prod-row-delete a4-no-print';
         btn.title='Delete this row';
         btn.setAttribute('aria-label','Delete this row');
         btn.setAttribute('contenteditable','false');
         btn.textContent='×';
-        btn.addEventListener('click',function(ev){
-          ev.preventDefault();
-          ev.stopPropagation();
-          deleteRow(btn);
-        });
+        btn.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();deleteRow(btn);});
         first.insertBefore(btn,first.firstChild);
       }
       [].slice.call(tr.cells).forEach(markEditable);
     });
   }
+  function controlBarHtml(){return '<button type="button" class="a4-add-row-btn">+ Add Row</button>';}
+  function findControlBar(table){
+    var prev=table.previousElementSibling;
+    if(prev && prev.classList && prev.classList.contains('a4-row-control-bar')) return prev;
+    var next=table.nextElementSibling;
+    if(next && next.classList && next.classList.contains('a4-row-control-bar')) return next;
+    return null;
+  }
   function ensureControlBar(table){
     if(!isDataTable(table)) return;
-    var next=table.nextElementSibling;
-    if(next && next.classList && next.classList.contains('a4-row-control-bar')) return;
-    var bar=document.createElement('div');
-    bar.className='a4-row-control-bar a4-no-print';
-    bar.innerHTML='<button type="button" class="a4-add-row-btn">+ Add Row</button>';
-    bar.querySelector('.a4-add-row-btn').addEventListener('click',function(ev){
-      ev.preventDefault();
-      ev.stopPropagation();
-      addRow(table);
-    });
-    table.parentNode.insertBefore(bar,table.nextSibling);
-  }
-  function normalizeControls(root){
-    dataTables(root||document).forEach(function(table){
-      ensureRowDeleteButtons(table);
-      ensureControlBar(table);
-    });
+    var bar=findControlBar(table);
+    if(!bar){
+      bar=document.createElement('div');
+      bar.className='a4-row-control-bar a4-no-print';
+      bar.innerHTML=controlBarHtml();
+      table.parentNode.insertBefore(bar,table);
+    }else if(bar.nextElementSibling!==table){
+      table.parentNode.insertBefore(bar,table);
+    }
+    bar.style.display='flex';
+    bar.style.visibility='visible';
+    var btn=bar.querySelector('.a4-add-row-btn');
+    if(!btn){bar.innerHTML=controlBarHtml();btn=bar.querySelector('.a4-add-row-btn');}
+    if(!btn.__a4AddRowBound){
+      btn.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();addRow(table);});
+      btn.__a4AddRowBound=true;
+    }
   }
   function addRow(table){
     if(!table || !isDataTable(table)) return;
@@ -166,25 +185,21 @@
       }
     }
     ensureRowDeleteButtons(table);
-    syncRowsFromFirstScopeTable();
-    if(window.AETERLINK_REPAGINATE_A4) setTimeout(window.AETERLINK_REPAGINATE_A4,80);
-    if(window.AETERLINK_UPDATE_A4_FOOTERS) setTimeout(window.AETERLINK_UPDATE_A4_FOOTERS,120);
+    ensureControlBar(table);
+    syncRowsFromPreviewTable();
+    repaginateSoon();
   }
-  function deleteRow(btn){
-    var tr=btn && btn.closest ? btn.closest('tr') : null;
-    if(!tr || !tr.parentNode) return;
-    var table=tr.closest('table');
-    tr.parentNode.removeChild(tr);
-    syncRowsFromFirstScopeTable();
-    normalizeControls(table && table.closest('.a4-page') || document);
-    if(window.AETERLINK_REPAGINATE_A4) setTimeout(window.AETERLINK_REPAGINATE_A4,80);
-    if(window.AETERLINK_UPDATE_A4_FOOTERS) setTimeout(window.AETERLINK_UPDATE_A4_FOOTERS,120);
+  function normalize(root){
+    dataTables(root||document).forEach(function(table){
+      ensureControlBar(table);
+      ensureRowDeleteButtons(table);
+    });
   }
   function cleanCellText(td){
     var select=td.querySelector('select');
     if(select) return String(select.value||'').trim();
     var clone=td.cloneNode(true);
-    clone.querySelectorAll('.a4-row-delete-btn,.a4-no-print,button,input,select,.a4-status-print').forEach(function(n){n.remove();});
+    clone.querySelectorAll('.a4-row-delete-btn,.prod-row-delete,.a4-no-print,button,input,select,.a4-status-print').forEach(function(n){n.remove();});
     return String(clone.textContent||'').trim();
   }
   function keyFromHeader(label,index){
@@ -196,7 +211,7 @@
     if(!s) return 'Col'+index;
     return s.replace(/[^A-Za-z0-9]+/g,'');
   }
-  function syncRowsFromFirstScopeTable(){
+  function syncRowsFromPreviewTable(){
     var fRows=document.getElementById('fRows');
     if(!fRows) return;
     var table=document.querySelector('#a4Preview table.a4-scope-table,#a4Preview .a4-page .a4-content table');
@@ -208,6 +223,13 @@
       return obj;
     });
     try{fRows.value=JSON.stringify(rows,null,2);}catch(e){}
+  }
+  function repaginateSoon(){
+    setTimeout(function(){
+      if(window.AETERLINK_REPAGINATE_A4) window.AETERLINK_REPAGINATE_A4();
+      if(window.AETERLINK_UPDATE_A4_FOOTERS) window.AETERLINK_UPDATE_A4_FOOTERS();
+      setTimeout(run,90);
+    },60);
   }
   function patchRenderer(){
     if(!window.AETERLINK_A4_RENDERER) return;
@@ -222,52 +244,54 @@
       if(!isDataTable(table)) return;
       var body=table.tBodies[0];
       if(body && body.rows.length) body.deleteRow(body.rows.length-1);
-      syncRowsFromFirstScopeTable();
-      normalizeControls(table.closest('.a4-page')||document);
+      syncRowsFromPreviewTable();
+      normalize(table.closest('.a4-page')||document);
+      repaginateSoon();
     };
   }
   function patchPreview(){
-    if(window.previewCurrentForm && !window.previewCurrentForm.__rowControlsRestorePatch){
+    if(window.previewCurrentForm && !window.previewCurrentForm.__rowControlsRestorePatchV2){
       var old=window.previewCurrentForm;
       window.previewCurrentForm=function(){
         var ret=old.apply(this,arguments);
         setTimeout(run,80);
         setTimeout(run,250);
+        setTimeout(run,600);
         return ret;
       };
-      window.previewCurrentForm.__rowControlsRestorePatch=true;
+      window.previewCurrentForm.__rowControlsRestorePatchV2=true;
     }
   }
   function run(){
     patchRenderer();
     patchPreview();
-    rootList().forEach(normalizeControls);
+    roots().forEach(normalize);
   }
   document.addEventListener('change',function(ev){
     if(ev.target && ev.target.classList && ev.target.classList.contains('a4-status-select')){
       updateStatusPrint(ev.target);
-      syncRowsFromFirstScopeTable();
+      syncRowsFromPreviewTable();
     }
   },true);
   document.addEventListener('input',function(ev){
-    if(ev.target && ev.target.closest && ev.target.closest('#a4Preview')) syncRowsFromFirstScopeTable();
+    if(ev.target && ev.target.closest && ev.target.closest('#a4Preview')) syncRowsFromPreviewTable();
   },true);
   var scheduled=null;
   function schedule(){clearTimeout(scheduled);scheduled=setTimeout(run,120);}
-  if(!window.__AETERLINK_ROW_CONTROL_OBSERVER__){
-    window.__AETERLINK_ROW_CONTROL_OBSERVER__=new MutationObserver(function(muts){
+  function installObserver(){
+    if(!document.body){setTimeout(installObserver,50);return;}
+    if(window.__AETERLINK_ROW_CONTROL_OBSERVER_V2__) return;
+    window.__AETERLINK_ROW_CONTROL_OBSERVER_V2__=new MutationObserver(function(muts){
       for(var i=0;i<muts.length;i++){
-        var nodes=[].slice.call(muts[i].addedNodes||[]);
-        if(nodes.some(function(n){return n.nodeType===1 && (n.matches&&n.matches('.a4-page,table') || n.querySelector&&n.querySelector('.a4-page,table'));})){
-          schedule();return;
-        }
+        var nodes=[].slice.call(muts[i].addedNodes||[]).concat([].slice.call(muts[i].removedNodes||[]));
+        if(nodes.some(function(n){return n&&n.nodeType===1&&((n.matches&&n.matches('.a4-page,table,.a4-row-control-bar'))||(n.querySelector&&n.querySelector('.a4-page,table,.a4-row-control-bar')));})){schedule();return;}
       }
     });
-    window.__AETERLINK_ROW_CONTROL_OBSERVER__.observe(document.body,{childList:true,subtree:true});
+    window.__AETERLINK_ROW_CONTROL_OBSERVER_V2__.observe(document.body,{childList:true,subtree:true});
   }
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(run,200);setTimeout(run,900);setTimeout(run,2200);});
-  var timer=setInterval(run,700);
-  setTimeout(function(){clearInterval(timer);run();},18000);
-  window.AETERLINK_A4_ROW_CONTROLS={run:run,addRow:addRow,deleteRow:deleteRow,syncRows:syncRowsFromFirstScopeTable};
+  document.addEventListener('DOMContentLoaded',function(){installObserver();setTimeout(run,150);setTimeout(run,700);setTimeout(run,1800);});
+  installObserver();
+  setInterval(run,1200);
+  window.AETERLINK_A4_ROW_CONTROLS={run:run,addRow:addRow,deleteRow:deleteRow,syncRows:syncRowsFromPreviewTable};
 })();
 </script>
