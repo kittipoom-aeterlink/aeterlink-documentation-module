@@ -1,0 +1,124 @@
+<!-- AETERLINK Documentation Module — A4_Document_Type_Grouping.html -->
+<style id="a4-document-type-grouping-style">
+  .prod-doc-type-tools{margin:6px 0 8px;display:grid;gap:6px;}
+  .prod-doc-type-search{width:100%;box-sizing:border-box;border:1px solid var(--aeterlink-line);border-radius:10px;padding:8px 9px;background:#f7fbfd;font-family:inherit;color:#1e3446;font-size:12px;}
+  .prod-doc-type-hint{font-size:11px;color:#6b7f90;line-height:1.35;}
+  #prodDocType optgroup{font-weight:900;color:#17395d;background:#eef7fb;}
+  #prodDocType option{font-weight:500;color:#1e3446;background:#fff;padding:4px 6px;}
+</style>
+<script id="a4-document-type-grouping-script">
+(function(){
+  var state={select:null,search:null,allOptions:[],rendering:false,observer:null};
+  var STAGES=[
+    {key:'00_CORE',label:'00 — Core / Standard Forms'},
+    {key:'01_INITIATION',label:'01 — Initiation / Kick-off'},
+    {key:'02_PLANNING',label:'02 — Planning / Schedule / Control'},
+    {key:'03_DESIGN',label:'03 — Design / Engineering / Submittal'},
+    {key:'04_PROCUREMENT',label:'04 — Procurement / Material'},
+    {key:'05_CONSTRUCTION',label:'05 — Construction / Installation / Work Permit'},
+    {key:'06_TESTING',label:'06 — Testing / Commissioning'},
+    {key:'07_HANDOVER',label:'07 — Handover / Completion / Payment'},
+    {key:'08_WARRANTY',label:'08 — Warranty / DLP'},
+    {key:'09_RISK',label:'09 — Risk / Issue / Safety'},
+    {key:'99_OTHER',label:'99 — Other / Template / System'}
+  ];
+  var ORDER={}; STAGES.forEach(function(s,i){ORDER[s.key]=i;});
+  function byId(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function textOf(o){return String((o&&o.text)||'').trim();}
+  function codeOf(o){return String((o&&o.value)||'').trim();}
+  function classify(opt){
+    var code=codeOf(opt).toUpperCase();
+    var text=(code+' '+textOf(opt).toUpperCase()).replace(/[_-]+/g,' ');
+    if(/^TEMPLATE/.test(code)||/ TEMPLATE | SYSTEM /.test(text))return '99_OTHER';
+    if(/WARRANTY|DLP|DEFECT/.test(text))return '08_WARRANTY';
+    if(/RISK|ISSUE|NCR|SAFETY|HSE|INCIDENT/.test(text))return '09_RISK';
+    if(/HANDOVER|CLOSEOUT|CLOSE OUT|AS BUILT|O&M|OM MANUAL|WCR|WORK COMPLETION|COMPLETION REPORT|RELEASE NOTE/.test(text))return '07_HANDOVER';
+    if(/PAY|PAYMENT|CLAIM|MILESTONE|VO|VARIATION|CONTRACT|INSURANCE/.test(text))return '07_HANDOVER';
+    if(/TEST|COMMISSION|COMMISSIONING|T&C|T AND C|SAT|FAT|FUNCTIONAL/.test(text))return '06_TESTING';
+    if(/WORK PERMIT|PERMIT|INSTALL|INSTALLATION|CONSTRUCTION|SITE|INSPECTION|CHECKLIST|PUNCH/.test(text))return '05_CONSTRUCTION';
+    if(/PROCURE|PURCHASE|PO|MATERIAL|EQUIPMENT|SHOPPING|SUPPLIER|DELIVERY|GRN|STOCK/.test(text))return '04_PROCUREMENT';
+    if(/DESIGN|DRAWING|DRW|ENGINEERING|RFI|RFA|SUBMITTAL|CALC|CALCULATION|SPEC|TECHNICAL|SHOP DRAWING/.test(text))return '03_DESIGN';
+    if(/SCHEDULE|SCH|PLAN|MOM|MEETING|MTG|AGENDA|PROGRESS|FORECAST|TRACKER|MASTER SCHEDULE/.test(text))return '02_PLANNING';
+    if(/KICKOFF|KICK OFF|START|INITIATION|CHARTER|PROJECT OPEN/.test(text))return '01_INITIATION';
+    if(/WCR|WORK COMPLETION|EQUIP/.test(text))return '00_CORE';
+    return '99_OTHER';
+  }
+  function optionList(select){
+    return Array.prototype.slice.call(select.querySelectorAll('option')).filter(function(o){return o.value;}).map(function(o){return {value:o.value,text:o.textContent||o.innerText||o.value,selected:o.selected,stage:classify({value:o.value,text:o.textContent||o.innerText||o.value})};});
+  }
+  function signature(list){return list.map(function(o){return o.value+'|'+o.text;}).join('\n');}
+  function ensureTools(select){
+    var field=select.closest('.prod-field')||select.parentNode;
+    if(!field)return null;
+    var existing=byId('prodDocTypeSearch');
+    if(existing)return existing;
+    var tools=document.createElement('div');
+    tools.className='prod-doc-type-tools';
+    tools.innerHTML='<input id="prodDocTypeSearch" class="prod-doc-type-search" type="search" placeholder="Search document type by code / name / phase..."><div class="prod-doc-type-hint">Document Type is grouped by project phase. Use the search box to quickly filter the list.</div>';
+    field.insertBefore(tools,select);
+    var input=byId('prodDocTypeSearch');
+    input.addEventListener('input',function(){renderGrouped(select,false);});
+    return input;
+  }
+  function filteredOptions(){
+    var q=(state.search&&state.search.value||'').trim().toUpperCase();
+    var list=state.allOptions.slice();
+    if(!q)return list;
+    return list.filter(function(o){
+      var label=(o.value+' '+o.text+' '+(STAGES[ORDER[o.stage]]?STAGES[ORDER[o.stage]].label:'')).toUpperCase();
+      return label.indexOf(q)>=0;
+    });
+  }
+  function renderGrouped(select,refreshBase){
+    if(!select)return;
+    if(refreshBase){
+      var next=optionList(select);
+      if(next.length&&signature(next)!==signature(state.allOptions))state.allOptions=next;
+    }
+    if(!state.allOptions.length)state.allOptions=optionList(select);
+    var selected=select.value || (byId('fTemplate')&&byId('fTemplate').value) || '';
+    var list=filteredOptions().sort(function(a,b){
+      var da=(ORDER[a.stage]==null?99:ORDER[a.stage]), db=(ORDER[b.stage]==null?99:ORDER[b.stage]);
+      if(da!==db)return da-db;
+      return String(a.value).localeCompare(String(b.value));
+    });
+    var groups={}; list.forEach(function(o){(groups[o.stage]||(groups[o.stage]=[])).push(o);});
+    var html='';
+    STAGES.forEach(function(s){
+      var items=groups[s.key]||[]; if(!items.length)return;
+      html+='<optgroup label="'+esc(s.label)+'">'+items.map(function(o){return '<option value="'+esc(o.value)+'" '+(o.value===selected?'selected':'')+'>'+esc(o.text)+'</option>';}).join('')+'</optgroup>';
+    });
+    if(!html)html='<option value="'+esc(selected)+'" selected>No matching document type</option>';
+    state.rendering=true;
+    select.innerHTML=html;
+    if(selected&&Array.prototype.some.call(select.querySelectorAll('option'),function(o){return o.value===selected;}))select.value=selected;
+    state.rendering=false;
+  }
+  function setup(){
+    var select=byId('prodDocType');
+    if(!select)return false;
+    if(state.select!==select){
+      if(state.observer)state.observer.disconnect();
+      state.select=select;
+      state.search=ensureTools(select);
+      state.allOptions=optionList(select);
+      state.observer=new MutationObserver(function(){
+        if(state.rendering)return;
+        setTimeout(function(){if(state.select)renderGrouped(state.select,true);},30);
+      });
+      state.observer.observe(select,{childList:true,subtree:true});
+      renderGrouped(select,true);
+      return true;
+    }
+    return true;
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(setup,500);
+    setTimeout(setup,1200);
+    setTimeout(setup,2500);
+  });
+  var timer=setInterval(setup,900);
+  setTimeout(function(){clearInterval(timer);setup();},12000);
+})();
+</script>
