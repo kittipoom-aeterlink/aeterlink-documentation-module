@@ -1,0 +1,71 @@
+<!-- AETERLINK Documentation Module — A4_Project_Grid_Labels.html -->
+<script id="a4-project-grid-labels-script">
+(function(){
+  var projectMap = {};
+  function byId(id){ return document.getElementById(id); }
+  function esc(v){
+    if(window.AETERLINK_A4_RENDERER && AETERLINK_A4_RENDERER.escapeHtml) return AETERLINK_A4_RENDERER.escapeHtml(v);
+    return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});
+  }
+  function norm(v){ return String(v==null?'':v).trim(); }
+  function rememberProjects(rows){
+    (rows||[]).forEach(function(p){
+      var code=norm(p.ProjectCode);
+      if(code) projectMap[code]=p;
+    });
+    window.AETERLINK_PROJECT_DETAIL_CACHE = projectMap;
+  }
+  function findProject(code){
+    code = norm(code || (byId('prodProjectCode')&&byId('prodProjectCode').value) || (byId('fProjectCode')&&byId('fProjectCode').value));
+    return (window.AETERLINK_PROJECT_DETAIL_CACHE && window.AETERLINK_PROJECT_DETAIL_CACHE[code]) || projectMap[code] || null;
+  }
+  function enrich(data){
+    data = data || {};
+    var p = findProject(data.ProjectCode);
+    if(p){
+      data.ProjectCode = p.ProjectCode || data.ProjectCode || '';
+      data.ProjectName = p.ProjectName || data.ProjectName || data.ProjectCode || '';
+      data.ProjectLocation = p.SiteLocation || p.ProjectLocation || p.Location || data.ProjectLocation || data.SiteLocation || '';
+      data.SiteLocation = p.SiteLocation || data.SiteLocation || data.ProjectLocation || '';
+      data.Client = p.Client || data.Client || '';
+      data.MainContractor = p.MainContractor || data.MainContractor || 'AETERLINK';
+      data.ProjectManager = p.ProjectManager || data.ProjectManager || '';
+      data.CurrentPhase = p.CurrentPhase || data.CurrentPhase || '';
+    }else{
+      data.ProjectName = data.ProjectName || data.ProjectCode || '';
+      data.ProjectLocation = data.ProjectLocation || data.SiteLocation || data.ProjectSite || data.Location || '';
+    }
+    return data;
+  }
+  function patchRenderer(){
+    if(!window.AETERLINK_A4_RENDERER || AETERLINK_A4_RENDERER.__projectGridLabelsPatched) return;
+    AETERLINK_A4_RENDERER.projectGrid=function(data){
+      data = enrich(data || {});
+      var projectName = data.ProjectName || data.ProjectCode || '';
+      var projectLocation = data.ProjectLocation || data.SiteLocation || data.ProjectSite || data.Location || '';
+      return '<table class="a4-project-grid"><colgroup><col class="c-logo"><col class="c-name"><col class="c-client"><col class="c-doc"></colgroup><tbody><tr><th>Project Name</th><th>Project Location</th><th>Client</th><th>Main-Contractor</th></tr><tr><td class="a4-editable" contenteditable="true" spellcheck="false">'+esc(projectName)+'</td><td class="a4-editable" contenteditable="true" spellcheck="false">'+esc(projectLocation)+'</td><td class="a4-editable" contenteditable="true" spellcheck="false">'+esc(data.Client||'')+'</td><td class="a4-editable" contenteditable="true" spellcheck="false">'+esc(data.MainContractor||'')+'</td></tr></tbody></table>';
+    };
+    AETERLINK_A4_RENDERER.__projectGridLabelsPatched = true;
+  }
+  function patchCollect(){
+    if(!window.collectFormData || window.collectFormData.__projectGridLabelsPatched) return;
+    var old = window.collectFormData;
+    window.collectFormData = function(){ return enrich(old.apply(this,arguments)); };
+    window.collectFormData.__projectGridLabelsPatched = true;
+  }
+  function loadProjects(){
+    if(typeof google==='undefined' || !google.script || !google.script.run || window.__a4ProjectGridLoading) return;
+    window.__a4ProjectGridLoading = true;
+    google.script.run.withSuccessHandler(function(r){
+      window.__a4ProjectGridLoading = false;
+      rememberProjects((r&&r.rows)||[]);
+      if(typeof window.previewCurrentForm==='function' && byId('a4Preview')) setTimeout(window.previewCurrentForm,80);
+    }).withFailureHandler(function(){ window.__a4ProjectGridLoading=false; }).apiProjectsV2();
+  }
+  function boot(){ patchRenderer(); patchCollect(); loadProjects(); }
+  document.addEventListener('DOMContentLoaded',function(){ setTimeout(boot,500); setTimeout(boot,1400); });
+  var timer=setInterval(boot,1200); setTimeout(function(){clearInterval(timer);boot();},12000);
+  window.AETERLINK_PROJECT_GRID_ENRICH = enrich;
+  window.AETERLINK_PROJECT_GRID_REMEMBER = rememberProjects;
+})();
+</script>
