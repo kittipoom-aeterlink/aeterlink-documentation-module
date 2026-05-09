@@ -1,13 +1,12 @@
 <!--
   AETERLINK Documentation Module — Client_App.html
-  Client-side JavaScript partial for modular Index.html refactor.
+  Client-side JavaScript partial for modular production UI.
 -->
 <script>
 (function () {
   var client = window.AETERLINK_CLIENT = window.AETERLINK_CLIENT || {};
-  client.version = 'CLIENT_APP_MODULAR_2026_05_08_R06_PHOTO_REPORT';
+  client.version = 'CLIENT_APP_MODULAR_2026_05_09_R07_PDF_LINKS';
   client.buildTimestamp = new Date().toISOString();
-
   client.lifecycleStages = [
     { key: 'All', label: 'All documents' },
     { key: '01_INITIATION', label: '1. Project Start / Sales Handover' },
@@ -19,54 +18,16 @@
     { key: '07_HANDOVER', label: '7. Handover / Closeout' },
     { key: '08_WARRANTY', label: '8. Warranty / DLP / Post-handover' }
   ];
-
   client.lifecycleLabels = client.lifecycleStages.reduce(function (map, stage) { map[stage.key] = stage.label; return map; }, {});
   client.lifecycleHint = 'Used to group documents by project lifecycle: initiation → planning → design → procurement → installation → testing → handover → Warranty/DLP';
   client.lifecycleLabel = function (key) { return client.lifecycleLabels[key] || key || ''; };
   client.setBuildBadge = function (buildInfo) { var badge = document.getElementById('versionBadge'); if (!badge) return; var info = buildInfo || {}; badge.textContent = (info.appVersion || client.version) + ' - ' + (info.buildTimestamp || client.buildTimestamp); };
   client.loadBuildInfo = function () { if (typeof google === 'undefined' || !google.script || !google.script.run) { client.setBuildBadge(); return; } google.script.run.withSuccessHandler(function (info) { client.setBuildBadge(info); }).withFailureHandler(function () { client.setBuildBadge(); }).apiBuildInfo(); };
   client.debugInfo = function () { return { version: client.version, buildTimestamp: client.buildTimestamp, href: window.location.href }; };
-
-  function el(tag, attrs, text) { var node = document.createElement(tag); attrs = attrs || {}; Object.keys(attrs).forEach(function (key) { if (key === 'className') node.className = attrs[key]; else if (key === 'style') node.setAttribute('style', attrs[key]); else node.setAttribute(key, attrs[key]); }); if (text !== undefined) node.textContent = text; return node; }
-
-  client.editor = {
-    getActiveTemplate: function () { var input = document.getElementById('fTemplate'); return input && input.value === 'PJ-EQUIP-CHK-001' ? 'CHECKLIST' : 'WCR'; },
-    parseRows: function () { var input = document.getElementById('fRows'); if (!input) return []; try { return JSON.parse(input.value || '[]'); } catch (err) { alert('Rows JSON is invalid: ' + err.message); return []; } },
-    setRows: function (rows) { var input = document.getElementById('fRows'); if (input) input.value = JSON.stringify(rows || [], null, 2); },
-    defaultRow: function () { if (this.getActiveTemplate() === 'CHECKLIST') return { No: '', EquipmentTag: '', Description: '', Location: '', CheckItem: '', Status: 'Pending', Remark: '' }; return { Package: 'Step 1', Item: '', WorkDescription: '', Qty: '', Unit: '', Status: 'Pending', Remarks: '', Action: '' }; },
-    addRow: function () { var rows = this.parseRows(); var row = this.defaultRow(); if (this.getActiveTemplate() === 'CHECKLIST') row.No = String(rows.length + 1); rows.push(row); this.setRows(rows); if (typeof previewCurrentForm === 'function') previewCurrentForm(); },
-    deleteLastRow: function () { var rows = this.parseRows(); if (!rows.length) return; rows.pop(); this.setRows(rows); if (typeof previewCurrentForm === 'function') previewCurrentForm(); },
-    injectControls: function () {
-      var rows = document.getElementById('fRows'); if (!rows || document.getElementById('modExtraEditorControls')) return;
-      var holder = el('div', { id: 'modExtraEditorControls', style: 'margin:8px 0 12px;' });
-      var actionRow = el('div', { className: 'mod-actions', style: 'margin-bottom:8px;' });
-      var addRowBtn = el('button', { type: 'button', className: 'mod-btn' }, '+ Add Row'); addRowBtn.addEventListener('click', this.addRow.bind(this));
-      var deleteRowBtn = el('button', { type: 'button', className: 'mod-btn' }, '- Delete Last Row'); deleteRowBtn.addEventListener('click', this.deleteLastRow.bind(this));
-      actionRow.appendChild(addRowBtn); actionRow.appendChild(deleteRowBtn);
-      var infoPanel = el('div', { style: 'border:1px solid var(--aeterlink-line);border-radius:12px;padding:10px;background:#f7fbfd;margin-bottom:10px;' });
-      infoPanel.innerHTML = '<b style="color:#17395d;">Document Information</b><div class="form-grid" style="margin-top:8px;"><label>Contract No.<input id="fContractNo" value="-"></label><label>Purchase Order No.<input id="fPurchaseOrderNo" value="-"></label><label>Work Type<input id="fWorkType" value="Equipment Purchasing / Installation / Implementation / BMS"></label><label>Completion Date<input id="fCompletionDate" value="30 April 2026"></label><label style="grid-column:span 2;">Reference Documents<input id="fReferenceDocuments" value="Equipment Checklist / Work Completion Evidence"></label><label style="grid-column:span 2;">Remarks / Additional Notes<input id="fRemarks" value="Work completion data and photo evidence imported from the uploaded Work Completion Report workbook."></label></div>';
-      holder.appendChild(actionRow); holder.appendChild(infoPanel); rows.parentNode.insertBefore(holder, rows.nextSibling);
-    },
-    patchCollectFormData: function () {
-      if (window.__aeterlinkCollectPatched || typeof collectFormData !== 'function') return;
-      window.__aeterlinkCollectPatched = true;
-      var original = collectFormData;
-      window.collectFormData = function () { var data = original(); ['ContractNo', 'PurchaseOrderNo', 'WorkType', 'CompletionDate', 'ReferenceDocuments', 'Remarks'].forEach(function (key) { var input = document.getElementById('f' + key); if (input) data[key] = input.value; }); return data; };
-    },
-    patchTemplateLoad: function () {
-      if (window.__aeterlinkLoadPatched || typeof loadSampleForTemplate !== 'function') return;
-      window.__aeterlinkLoadPatched = true;
-      var original = loadSampleForTemplate;
-      window.loadSampleForTemplate = function () { original(); var data = typeof sampleData === 'function' ? sampleData() : {}; var map = { fContractNo: 'ContractNo', fPurchaseOrderNo: 'PurchaseOrderNo', fWorkType: 'WorkType', fCompletionDate: 'CompletionDate', fReferenceDocuments: 'ReferenceDocuments', fRemarks: 'Remarks' }; Object.keys(map).forEach(function (id) { var input = document.getElementById(id); if (input) input.value = data[map[id]] || input.value || ''; }); };
-    },
-    boot: function () { this.injectControls(); this.patchCollectFormData(); this.patchTemplateLoad(); }
-  };
-
-  document.addEventListener('DOMContentLoaded', function () { setTimeout(function () { if (client.editor) client.editor.boot(); }, 250); });
 })();
 </script>
 <style>
-.prod-photo-report-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px auto 10px;max-width:210mm;box-sizing:border-box;background:#fff;border:1px solid var(--aeterlink-line,#d8e5ec);border-radius:10px;padding:8px 10px;color:#35576d;font-size:12px}.prod-photo-report-toolbar button{border:1px solid #adc3d2;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;color:#07385b;cursor:pointer}.prod-photo-report-toolbar button.primary{background:#0f4268;color:#fff;border-color:#0f4268}.prod-photo-report-toolbar span{color:#6b7f90;font-weight:700}@media print{.prod-photo-report-toolbar{display:none!important}}
+.prod-photo-report-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px auto 10px;max-width:210mm;box-sizing:border-box;background:#fff;border:1px solid var(--aeterlink-line,#d8e5ec);border-radius:10px;padding:8px 10px;color:#35576d;font-size:12px}.prod-photo-report-toolbar button{border:1px solid #adc3d2;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;color:#07385b;cursor:pointer}.prod-photo-report-toolbar button.primary{background:#0f4268;color:#fff;border-color:#0f4268}.prod-photo-report-toolbar span{color:#6b7f90;font-weight:700}.mod-link-btn{display:inline-flex;align-items:center;gap:4px;border:1px solid #b9d7ea;background:#eef8ff;color:#0f4268!important;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:900;text-decoration:none;white-space:nowrap}.mod-link-btn:hover{background:#dff1fb}.mod-link-empty{color:#9aa9b5;font-size:11px;font-weight:700}@media print{.prod-photo-report-toolbar{display:none!important}}
 </style>
 <script>
 (function(){
@@ -80,8 +41,8 @@
   function text(e){return String(e?e.textContent||'':'').trim()}
   function empty(){return {PhotoUrl:'',ItemNo:'',Description:'',Caption:'',Note:''}}
   function collect(){var out=[];pages().forEach(function(p){[].slice.call(p.querySelectorAll('.a4-photo-block')).forEach(function(b){var img=b.querySelector('.a4-photo-box img'),fs=b.querySelectorAll('.a4-photo-field-box,.a4-photo-text');var item=text(fs[0]),desc=text(fs[1]),note=text(fs[2]),url=img?img.getAttribute('src')||'':'';if(url||item||desc||note)out.push({PhotoUrl:url,ItemNo:item,Description:desc,Caption:desc,Note:note});});});return out}
-  function makePage(photos){var base=firstPage(),page=document.createElement('div'),inner=document.createElement('div'),content=document.createElement('div'),box=document.createElement('div');page.className='a4-page';inner.className='a4-page-inner';content.className='a4-content';['.a4-header','.a4-project-grid'].forEach(function(sel){var n=base&&base.querySelector(sel);if(n)inner.appendChild(n.cloneNode(true));});box.innerHTML=r().section('PHOTO REPORT')+r().photoGrid((photos&&photos.length)?photos:[empty(),empty()]);while(box.firstChild)content.appendChild(box.firstChild);inner.appendChild(content);var f=base&&base.querySelector('.a4-footer');if(f)inner.appendChild(f.cloneNode(true));page.appendChild(inner);return page}
-  function insert(photos){var target=pages().pop()||firstPage();if(!target||!target.parentNode)return;target.parentNode.insertBefore(makePage(photos),target.nextSibling);normalize()}
+  function makePage(photos){if(!r())return null;var base=firstPage(),page=document.createElement('div'),inner=document.createElement('div'),content=document.createElement('div'),box=document.createElement('div');page.className='a4-page';inner.className='a4-page-inner';content.className='a4-content';['.a4-header','.a4-project-grid'].forEach(function(sel){var n=base&&base.querySelector(sel);if(n)inner.appendChild(n.cloneNode(true));});box.innerHTML=r().section('PHOTO REPORT')+r().photoGrid((photos&&photos.length)?photos:[empty(),empty()]);while(box.firstChild)content.appendChild(box.firstChild);inner.appendChild(content);var f=base&&base.querySelector('.a4-footer');if(f)inner.appendChild(f.cloneNode(true));page.appendChild(inner);return page}
+  function insert(photos){var target=pages().pop()||firstPage();if(!target||!target.parentNode)return;var p=makePage(photos);if(!p)return;target.parentNode.insertBefore(p,target.nextSibling);normalize()}
   function toolbar(){var a=byId('a4Preview');if(!a)return;var tb=byId('prodPhotoReportToolbar');if(tb)return tb;tb=document.createElement('div');tb.id='prodPhotoReportToolbar';tb.className='prod-photo-report-toolbar a4-no-print';tb.innerHTML='<button type="button" class="primary" onclick="AETERLINK_PHOTO_REPORT.addPhotoReport()">+ Add Photo Report / Photo</button><span id="prodPhotoReportHint">Photo report is available for every document.</span>';a.parentNode.insertBefore(tb,a);return tb}
   function hint(){toolbar();var h=byId('prodPhotoReportHint');if(h)h.textContent=pages().length?('PHOTO REPORT active: '+area().querySelectorAll('.a4-photo-block').length+' photo slot(s). Delete all photos to remove the sheet.'):('No PHOTO REPORT sheet. Click button to add a PHOTO REPORT sheet again.')}
   function renumber(){var i=1;pages().forEach(function(p){[].slice.call(p.querySelectorAll('.a4-photo-block')).forEach(function(b){var box=b.querySelector('.a4-photo-box');if(box&&!box.querySelector('img')&&(/^Photo\s*\d*$/i.test(text(box))||!text(box)))box.textContent='Photo '+i;i++;});});}
@@ -94,5 +55,56 @@
   function boot(){patchRenderer();patchCollect();patchPreview();toolbar();setTimeout(ensure,260)}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,900);setTimeout(boot,1800)});var tm=setInterval(boot,1200);setTimeout(function(){clearInterval(tm);boot()},12000);
   window.AETERLINK_PHOTO_REPORT={addPhotoReport:add,collectPhotos:collect,normalize:normalize,ensureDefault:ensure,removeAll:function(){pages().forEach(function(p){p.remove()});state.userRemovedAll=true;normalize()}};
+})();
+</script>
+<script>
+(function(){
+  function byId(id){return document.getElementById(id)}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function link(url,label){url=String(url||'').trim();if(!url)return '<span class="mod-link-empty">-</span>';return '<a class="mod-link-btn" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(label||'Open PDF')+'</a>';}
+  function pill(v){return '<span class="mod-pill">'+esc(v||'')+'</span>';}
+  function value(row,key){
+    if(key==='PDF Link')return row.PdfUrl||row.FileUrl||'';
+    if(key==='Folder')return row.DriveFolderUrl||'';
+    if(key==='PDF Status')return row.PdfStatus||row.DocumentStatus||'';
+    return row[key]||'';
+  }
+  function render(rows,cols){
+    if(!rows||!rows.length)return '<div class="aeterlink-muted" style="padding:12px;border:1px solid var(--aeterlink-line);border-radius:12px;background:#f7fbfd;">No records yet.</div>';
+    return '<div class="mod-table-wrap"><table class="mod-table"><thead><tr>'+cols.map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr></thead><tbody>'+rows.slice(0,160).map(function(row){return '<tr>'+cols.map(function(c){var v=value(row,c);if(c==='PDF Link')return '<td>'+link(v,'Open PDF')+'</td>';if(c==='Folder')return '<td>'+link(v,'Open Folder')+'</td>';if(/status|active/i.test(c))return '<td>'+pill(v)+'</td>';return '<td>'+esc(v)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
+  }
+  var COLS={
+    DOCUMENT_REGISTER:['DocumentId','ProjectCode','DocumentCode','DocumentTitle','Revision','Status','PDF Status','PDF Link','Folder','UpdatedAt'],
+    FORM_RECORDS:['FormRecordId','ProjectCode','TemplateCode','DocumentNo','RevisionNo','Status','PDF Status','PDF Link','Folder','UpdatedAt']
+  };
+  function renderTable(tableName,targetId){
+    var target=byId(targetId);if(!target)return;
+    if(typeof google==='undefined'||!google.script||!google.script.run)return;
+    google.script.run.withSuccessHandler(function(r){
+      var rows=(r&&r.rows)||[];
+      window.APP_STATE=window.APP_STATE||{tables:{}};APP_STATE.tables=APP_STATE.tables||{};APP_STATE.tables[tableName]=rows;
+      target.innerHTML=render(rows,COLS[tableName]);
+    }).withFailureHandler(function(e){target.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiModularTable(tableName);
+  }
+  function refreshVisible(){
+    if(byId('view-register')&&!byId('view-register').classList.contains('mod-hide'))renderTable('DOCUMENT_REGISTER','table_register');
+    if(byId('view-records')&&!byId('view-records').classList.contains('mod-hide'))renderTable('FORM_RECORDS','table_records');
+  }
+  function patch(){
+    if(window.showView&&!window.showView.__pdfLinkPatch){
+      var old=window.showView;
+      window.showView=function(name){var ret=old.apply(this,arguments);setTimeout(refreshVisible,350);setTimeout(refreshVisible,1200);return ret;};
+      window.showView.__pdfLinkPatch=true;
+    }
+    if(window.refreshData&&!window.refreshData.__pdfLinkPatch){
+      var oldRefresh=window.refreshData;
+      window.refreshData=function(){var ret=oldRefresh.apply(this,arguments);setTimeout(refreshVisible,900);setTimeout(refreshVisible,1800);return ret;};
+      window.refreshData.__pdfLinkPatch=true;
+    }
+    refreshVisible();
+  }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(patch,800);setTimeout(patch,1800);});
+  var timer=setInterval(patch,1500);setTimeout(function(){clearInterval(timer);patch();},15000);
+  window.AETERLINK_LINK_ENHANCER={refresh:refreshVisible,renderTable:renderTable};
 })();
 </script>
