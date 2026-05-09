@@ -44,12 +44,13 @@
   .project-v2-selected{outline:2px solid #9bd5f0;background:#f7fcff!important;}
   .project-v2-select{width:100%!important;margin-top:5px;border:1px solid var(--aeterlink-line)!important;border-radius:10px!important;padding:8px 9px!important;background:#fff!important;font-family:inherit!important;color:#1e3446!important;font-weight:800;}
   .project-v2-select option{font-weight:700;line-height:1.4;}
+  .project-v2-warning{display:block;margin-top:4px;color:#b36b00;font-size:10.5px;font-weight:800;text-transform:none;letter-spacing:0;}
   @media(max-width:1150px){.project-v2-grid{grid-template-columns:1fr 1fr;}}
   @media(max-width:720px){.project-v2-grid{grid-template-columns:1fr;}}
 </style>
 <script id="project-detail-manager-script">
 (function(){
-  var cache={projects:[],filter:'',editing:null};
+  var cache={projects:[],filter:''};
   function byId(id){return document.getElementById(id);}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function val(id){var e=byId(id);return e?String(e.value||'').trim():'';}
@@ -109,8 +110,11 @@
     }
     populateProjectSelect();
   }
-  function editorHtml(p){p=p||{};return '<div class="project-v2-editor" id="projectV2Editor"><h4>'+esc(p.ProjectCode?'Edit Project Detail':'Add New Project')+'</h4><div class="project-v2-grid">'+
-    '<label>Project Code *<input id="pv2ProjectCode" value="'+esc(p.ProjectCode||'')+'" '+(p.ProjectCode?'readonly':'')+'></label>'+
+  function editorHtml(p){
+    p=p||{};
+    var original=esc(p.ProjectCode||'');
+    return '<div class="project-v2-editor" id="projectV2Editor" data-original-project-code="'+original+'"><h4>'+esc(p.ProjectCode?'Edit Project Detail':'Add New Project')+'</h4><div class="project-v2-grid">'+
+    '<label>Project Code *<input id="pv2ProjectCode" value="'+esc(p.ProjectCode||'')+'"><span class="project-v2-warning">Project Code can be edited. Existing related documents will be synced after confirmation.</span></label>'+
     '<label>Project Name / Site *<input id="pv2ProjectName" value="'+esc(p.ProjectName||'')+'"></label>'+
     '<label>Client<input id="pv2Client" value="'+esc(p.Client||'')+'"></label>'+
     '<label>Main-Contractor<input id="pv2MainContractor" value="'+esc(p.MainContractor||'AETERLINK')+'"></label>'+
@@ -122,7 +126,8 @@
     '<label>Finish Date<input id="pv2FinishDate" type="date" value="'+esc(p.FinishDate||'')+'"></label>'+
     '<label>Site Location<input id="pv2SiteLocation" value="'+esc(p.SiteLocation||'')+'"></label>'+
     '<label>Description<textarea id="pv2Description">'+esc(p.Description||'')+'</textarea></label>'+
-    '</div><div class="project-v2-confirm"><b>Confirmation required</b><br>To prevent accidental update, tick confirm and type <b>CONFIRM</b> before saving. This will also sync project details to related documents.<div class="project-v2-actions"><label style="text-transform:none;letter-spacing:0"><input type="checkbox" id="pv2Confirmed"> I confirm this project detail update</label><input id="pv2ConfirmText" type="text" placeholder="CONFIRM"><button class="mod-btn primary" onclick="AETERLINK_PROJECTS_V2.save()">Save Project Detail</button><button class="mod-btn" onclick="AETERLINK_PROJECTS_V2.cancel()">Cancel</button></div></div><div id="projectV2Msg" class="aeterlink-muted" style="margin-top:8px"></div></div>';}
+    '</div><div class="project-v2-confirm"><b>Confirmation required</b><br>To prevent accidental update, tick confirm and type <b>CONFIRM</b> before saving. If Project Code was changed, related documents will be synced to the new code.<div class="project-v2-actions"><label style="text-transform:none;letter-spacing:0"><input type="checkbox" id="pv2Confirmed"> I confirm this project detail update</label><input id="pv2ConfirmText" type="text" placeholder="CONFIRM"><button class="mod-btn primary" onclick="AETERLINK_PROJECTS_V2.save()">Save Project Detail</button><button class="mod-btn" onclick="AETERLINK_PROJECTS_V2.cancel()">Cancel</button></div></div><div id="projectV2Msg" class="aeterlink-muted" style="margin-top:8px"></div></div>';
+  }
   function readEditor(){return {ProjectCode:val('pv2ProjectCode'),ProjectName:val('pv2ProjectName'),Client:val('pv2Client'),MainContractor:val('pv2MainContractor'),ProjectManager:val('pv2ProjectManager'),CurrentPhase:val('pv2CurrentPhase'),ProgressPct:val('pv2ProgressPct'),Status:val('pv2Status'),StartDate:val('pv2StartDate'),FinishDate:val('pv2FinishDate'),SiteLocation:val('pv2SiteLocation'),Description:val('pv2Description')};}
   function renderProjects(){
     var box=byId('table_projects'); if(!box)return;
@@ -150,14 +155,16 @@
     refresh:function(){loadProjects();},
     ensure:function(){if(!googleReady())return;google.script.run.withSuccessHandler(function(){loadProjects();}).withFailureHandler(function(e){alert(e&&e.message?e.message:String(e));}).apiEnsureProjectDetailSheetV2();},
     add:function(){var h=byId('projectV2EditorHost');if(h)h.innerHTML=editorHtml({Status:'Active',MainContractor:'AETERLINK',CurrentPhase:'Construction',ProgressPct:'0'});},
-    edit:function(code){var p=projectByCode(code);var h=byId('projectV2EditorHost');if(h)h.innerHTML=editorHtml(p||{});},
+    edit:function(code){var p=projectByCode(code);var h=byId('projectV2EditorHost');if(h)h.innerHTML=editorHtml(p||{});var input=byId('pv2ProjectCode');if(input){input.removeAttribute('readonly');input.disabled=false;}},
     cancel:function(){var h=byId('projectV2EditorHost');if(h)h.innerHTML='';},
     apply:function(code){var p=projectByCode(code);if(p)applyProjectToDocument(p,true);renderProjects();},
     save:function(){
       var msg=byId('projectV2Msg'); if(msg)msg.textContent='Saving project detail...';
-      var payload={project:readEditor(),confirmed:!!(byId('pv2Confirmed')&&byId('pv2Confirmed').checked),confirmText:val('pv2ConfirmText')};
+      var editor=byId('projectV2Editor');
+      var original=editor?String(editor.getAttribute('data-original-project-code')||'').trim():'';
+      var payload={originalProjectCode:original,project:readEditor(),confirmed:!!(byId('pv2Confirmed')&&byId('pv2Confirmed').checked),confirmText:val('pv2ConfirmText')};
       if(!payload.confirmed||payload.confirmText.toUpperCase()!=='CONFIRM'){if(msg)msg.textContent='Please tick confirmation and type CONFIRM before saving.';return;}
-      google.script.run.withSuccessHandler(function(r){if(msg)msg.textContent='Saved. Synced FORM_RECORDS: '+((r&&r.sync&&r.sync.formRecordsUpdated)||0)+' / DOCUMENT_REGISTER: '+((r&&r.sync&&r.sync.documentRegisterUpdated)||0);loadProjects(function(){if(r&&r.project)applyProjectToDocument(r.project,true);});}).withFailureHandler(function(e){if(msg)msg.textContent='Save failed: '+(e&&e.message?e.message:String(e));}).apiSaveProjectDetailV2(payload);
+      google.script.run.withSuccessHandler(function(r){if(msg)msg.textContent='Saved. Action: '+((r&&r.action)||'saved')+'. Synced FORM_RECORDS: '+((r&&r.sync&&r.sync.formRecordsUpdated)||0)+' / DOCUMENT_REGISTER: '+((r&&r.sync&&r.sync.documentRegisterUpdated)||0);loadProjects(function(){if(r&&r.project)applyProjectToDocument(r.project,true);});}).withFailureHandler(function(e){if(msg)msg.textContent='Save failed: '+(e&&e.message?e.message:String(e));}).apiSaveProjectDetailV2(payload);
     }
   };
 })();
