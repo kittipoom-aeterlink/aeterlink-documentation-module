@@ -7,21 +7,23 @@
  *     / <ProjectCode>
  *       / Issued PDF
  *
- * Notes:
- * - No Google Sheet structure changes.
- * - Only writes to existing columns if they exist.
- * - Intended to run after Issue / Send from the production WebApp.
+ * Google Sheet structure update:
+ * - This module is allowed to add only PDF/status tracking columns required for Drive links.
+ * - It does not remove, rename, or reorder existing columns.
  */
 
 var AETERLINK_DRIVE_PDF = (function () {
   var ROOT_FOLDER_NAME = 'AETERLINK Documentation Control PDF';
   var ISSUED_FOLDER_NAME = 'Issued PDF';
+  var FORM_PDF_COLUMNS = ['PdfUrl', 'DriveFileId', 'DriveFolderUrl', 'PdfStatus', 'IssuedPdfFileName', 'DocumentStatus', 'LockedAfterPdf', 'IssueNo'];
+  var REGISTER_PDF_COLUMNS = ['PdfUrl', 'FileUrl', 'DriveFileId', 'DriveFolderUrl', 'PdfStatus', 'IssuedPdfFileName', 'TemplateCode', 'DocumentNo', 'RevisionNo', 'DocumentStatus', 'UpdatedBy'];
 
   function saveIssuedPdf(payload) {
     payload = payload || {};
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
+      ensurePdfColumns_();
       var projectCode = clean_(payload.ProjectCode || 'UNASSIGNED-PROJECT');
       var documentNo = clean_(payload.DocumentNo || 'NOT-ISSUED');
       var revisionNo = clean_(payload.RevisionNo || 'R00');
@@ -41,6 +43,10 @@ var AETERLINK_DRIVE_PDF = (function () {
 
       var updatedRecord = updateFormRecord_(formRecordId, documentNo, {
         PdfUrl: fileUrl,
+        DriveFileId: file.getId(),
+        DriveFolderUrl: issuedFolder.getUrl(),
+        PdfStatus: 'PDF Saved',
+        IssuedPdfFileName: fileName,
         Status: 'Issued',
         DocumentStatus: 'Issued / PDF Saved',
         LockedAfterPdf: 'TRUE',
@@ -50,7 +56,7 @@ var AETERLINK_DRIVE_PDF = (function () {
         IssueNo: extractIssueNo_(documentNo)
       });
 
-      updateDocumentRegister_(projectCode, documentNo, templateCode, revisionNo, fileUrl, nowIso);
+      updateDocumentRegister_(projectCode, documentNo, templateCode, revisionNo, fileUrl, file.getId(), issuedFolder.getUrl(), fileName, nowIso);
 
       return {
         ok: true,
@@ -91,10 +97,37 @@ var AETERLINK_DRIVE_PDF = (function () {
     return blob.getAs(MimeType.PDF).setName(fileName);
   }
 
+  function ensurePdfColumns_() {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) return;
+    var form = ss.getSheetByName('FORM_RECORDS');
+    if (form) ensureColumns_(form, FORM_PDF_COLUMNS);
+    var reg = ss.getSheetByName('DOCUMENT_REGISTER');
+    if (reg) ensureColumns_(reg, REGISTER_PDF_COLUMNS);
+  }
+
+  function ensureColumns_(sheet, names) {
+    var headers = headers_(sheet);
+    if (!headers.length) return;
+    var changed = false;
+    names.forEach(function (name) {
+      if (headers.indexOf(name) < 0) {
+        sheet.getRange(1, headers.length + 1).setValue(name);
+        headers.push(name);
+        changed = true;
+      }
+    });
+    if (changed) {
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+      try { sheet.setFrozenRows(1); } catch (err) {}
+    }
+  }
+
   function updateFormRecord_(formRecordId, documentNo, values) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sh = ss && ss.getSheetByName('FORM_RECORDS');
     if (!sh) return null;
+    ensureColumns_(sh, FORM_PDF_COLUMNS);
     var headers = headers_(sh);
     if (!headers.length) return null;
     var row = formRecordId ? findRow_(sh, headers, 'FormRecordId', formRecordId) : -1;
@@ -107,10 +140,11 @@ var AETERLINK_DRIVE_PDF = (function () {
     return rowObject_(headers, sh.getRange(row, 1, 1, headers.length).getDisplayValues()[0]);
   }
 
-  function updateDocumentRegister_(projectCode, documentNo, templateCode, revisionNo, fileUrl, nowIso) {
+  function updateDocumentRegister_(projectCode, documentNo, templateCode, revisionNo, fileUrl, fileId, folderUrl, fileName, nowIso) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sh = ss && ss.getSheetByName('DOCUMENT_REGISTER');
     if (!sh) return null;
+    ensureColumns_(sh, REGISTER_PDF_COLUMNS);
     var headers = headers_(sh);
     if (!headers.length) return null;
     var row = findRow_(sh, headers, 'DocumentCode', documentNo);
@@ -128,6 +162,10 @@ var AETERLINK_DRIVE_PDF = (function () {
       DocumentStatus: 'Issued / PDF Saved',
       PdfUrl: fileUrl,
       FileUrl: fileUrl,
+      DriveFileId: fileId,
+      DriveFolderUrl: folderUrl,
+      PdfStatus: 'PDF Saved',
+      IssuedPdfFileName: fileName,
       UpdatedAt: nowIso,
       UpdatedBy: activeUser_().email,
       IsDeleted: 'FALSE'
@@ -185,9 +223,14 @@ var AETERLINK_DRIVE_PDF = (function () {
   function extractIssueNo_(documentNo) { var m = String(documentNo || '').replace(/-R\d{2}$/i, '').match(/-(\d{3,4})$/); return m ? ('000' + parseInt(m[1], 10)).slice(-3) : ''; }
   function activeUser_() { var email = ''; try { email = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail() || ''; } catch (err) { email = ''; } return { email: email, displayName: email ? email.split('@')[0] : 'User' }; }
 
-  return { saveIssuedPdf: saveIssuedPdf };
+  return { saveIssuedPdf: saveIssuedPdf, ensurePdfColumns: ensurePdfColumns_ };
 })();
 
 function apiIssuePdfToDriveV1(payload) {
   return AETERLINK_DRIVE_PDF.saveIssuedPdf(payload);
+}
+
+function apiEnsureDrivePdfColumnsV1() {
+  AETERLINK_DRIVE_PDF.ensurePdfColumns();
+  return { ok: true, message: 'PDF link/status columns are ready.' };
 }
