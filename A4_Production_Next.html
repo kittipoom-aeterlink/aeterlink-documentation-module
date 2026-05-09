@@ -1,7 +1,7 @@
 <!-- AETERLINK Documentation Module — A4_Production_Next.html -->
 <style>
   #prodFieldPanel,.prod-field-panel,.prod-dyn-field,.prod-workflow-badge{display:none!important;}
-  /* Production UI: keep photo buttons, remove scope Add Row/Delete Last Row bars. */
+  /* Production UI: keep photo buttons, remove legacy duplicate scope row bars. */
   #a4Preview .row-actions,
   #a4Preview .a4-scope-table + .a4-preview-actions,
   #a4Preview .a4-scope-table ~ .row-actions{display:none!important;}
@@ -21,7 +21,7 @@
   #a4Preview .a4-scope-table tr>*:first-child{border-left:.18mm solid #666!important;}
   #a4Preview .a4-scope-table tr>*:last-child{border-right:.18mm solid #666!important;}
   #a4Preview .a4-scope-table tbody tr:last-child>*{border-bottom:.18mm solid #666!important;}
-  @media print{.prod-row-delete{display:none!important}.prod-row-delete-cell{padding-left:1mm!important;}}
+  @media print{.prod-inline-editor,.prod-row-delete{display:none!important}.prod-row-delete-cell{padding-left:1mm!important;}}
 </style>
 <script>
 (function(){
@@ -34,6 +34,7 @@
   function restorePhotoButtons(){area().querySelectorAll('.a4-photo-block .a4-preview-actions,.a4-photo-grid + .a4-preview-actions').forEach(function(n){n.style.display='flex';n.style.visibility='visible';});}
   function isLegacyScopeActionBar(n){
     if(!n||!n.classList||!n.classList.contains('a4-preview-actions'))return false;
+    if(n.classList.contains('prod-inline-editor'))return false;
     if(n.closest('.a4-photo-block'))return false;
     var prev=n.previousElementSibling;
     if(prev&&prev.classList&&prev.classList.contains('a4-photo-grid'))return false;
@@ -103,7 +104,7 @@
     removeLegacyRowBars();
     area().querySelectorAll('.a4-project-grid td,.a4-info-table td,.a4-meta-row span,.a4-title,.a4-subtitle,table.a4-scope-table td').forEach(function(el){if(el.querySelector('select,img,button:not(.prod-row-delete)'))return;el.contentEditable='true';el.spellcheck=false;});
     var t=area().querySelector('table.a4-scope-table');
-    if(t&&!area().querySelector('.prod-inline-editor')){var bar=document.createElement('div');bar.className='prod-inline-editor a4-no-print';bar.innerHTML='<button type="button" class="primary" onclick="AETERLINK_PROD_NEXT.savePreviewData()">Save Preview Data</button>';t.parentNode.insertBefore(bar,t.nextSibling);}
+    if(t&&!area().querySelector('.prod-inline-editor')){var bar=document.createElement('div');bar.className='prod-inline-editor a4-no-print';bar.innerHTML='<button type="button" onclick="AETERLINK_PROD_NEXT.addPreviewRow()">+ Add Row</button><button type="button" class="primary" onclick="AETERLINK_PROD_NEXT.savePreviewData()">Save Preview Data</button>';t.parentNode.insertBefore(bar,t.nextSibling);}
     normalize();
   }
   function addRow(){var t=area().querySelector('table.a4-scope-table');if(!t||!t.tBodies[0])return;var h=[].map.call(t.querySelectorAll('thead th'),function(x){return x.textContent.trim();});if(!h.length)h=['Package','Item','Work Description','Qty.','Unit','Status','Remarks'];var tr=t.tBodies[0].insertRow(-1);h.forEach(function(x){var td=tr.insertCell(-1);if(/status/i.test(x)){td.innerHTML='<select class="a4-status-select"><option></option><option>Not Started</option><option>In Progress</option><option selected>Pending</option><option>Done</option><option>Issue</option><option>N/A</option></select><span class="a4-status-print">Pending</span>';}else{td.textContent=/package/i.test(x)?'Step 1':'';td.contentEditable='true';}});syncRows();setTimeout(function(){editable();if(window.AETERLINK_REPAGINATE_A4)window.AETERLINK_REPAGINATE_A4();},80);}
