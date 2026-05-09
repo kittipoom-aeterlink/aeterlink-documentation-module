@@ -1,7 +1,7 @@
 /**
  * AETERLINK Documentation Module — ProjectDetailManager.gs
  * Project detail editor API with confirmation, Google Sheet column setup,
- * and automatic project-detail sync to A4 documents.
+ * automatic project-detail sync to A4 documents, and safe ProjectCode rename.
  */
 
 var AETERLINK_PROJECT_DETAIL_MANAGER = (function () {
@@ -36,12 +36,13 @@ var AETERLINK_PROJECT_DETAIL_MANAGER = (function () {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
       var sh = ensureProjectSheet_();
       var headers = headers_(sh);
       var nowIso = new Date().toISOString();
       var user = activeUser_().email;
       var project = normalizeProject_(payload.project || payload);
+      var originalProjectCode = clean_(payload.originalProjectCode || payload.OriginalProjectCode || (payload.project && payload.project.OriginalProjectCode) || project.ProjectCode);
+
       if (!project.ProjectCode) throw new Error('ProjectCode is required.');
       if (!project.ProjectName) throw new Error('ProjectName is required.');
       project.Status = project.Status || 'Active';
@@ -49,7 +50,14 @@ var AETERLINK_PROJECT_DETAIL_MANAGER = (function () {
       project.UpdatedBy = user;
       project.IsDeleted = project.IsDeleted || 'FALSE';
 
-      var row = findRow_(sh, headers, 'ProjectCode', project.ProjectCode);
+      var originalRow = originalProjectCode ? findRow_(sh, headers, 'ProjectCode', originalProjectCode) : -1;
+      var targetRow = findRow_(sh, headers, 'ProjectCode', project.ProjectCode);
+      if (originalRow > 0 && targetRow > 0 && originalRow !== targetRow) {
+        throw new Error('Cannot change ProjectCode to "' + project.ProjectCode + '" because this ProjectCode already exists.');
+      }
+      var row = originalRow > 0 ? originalRow : targetRow;
+      var action = row > 0 ? (originalProjectCode && originalProjectCode !== project.ProjectCode ? 'renamed' : 'saved') : 'created';
+
       if (row < 0) {
         project.CreatedAt = nowIso;
         project.CreatedBy = user;
@@ -65,9 +73,9 @@ var AETERLINK_PROJECT_DETAIL_MANAGER = (function () {
         });
       }
 
-      var saved = rowObject_(headers, sh.getRange(row, 1, 1, headers.length).getDisplayValues()[0]);
-      var sync = syncProjectToDocuments_(saved);
-      return { ok: true, action: row > 0 ? 'saved' : 'created', project: normalizeProject_(saved), sync: sync, serverTime: nowIso };
+      var saved = normalizeProject_(rowObject_(headers, sh.getRange(row, 1, 1, headers.length).getDisplayValues()[0]));
+      var sync = syncProjectToDocuments_(saved, originalProjectCode);
+      return { ok: true, action: action, originalProjectCode: originalProjectCode, project: saved, sync: sync, serverTime: nowIso };
     } finally {
       lock.releaseLock();
     }
@@ -79,24 +87,24 @@ var AETERLINK_PROJECT_DETAIL_MANAGER = (function () {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      return { ok: true, projectCode: project.ProjectCode, sync: syncProjectToDocuments_(project), serverTime: new Date().toISOString() };
+      return { ok: true, projectCode: project.ProjectCode, sync: syncProjectToDocuments_(project, project.ProjectCode), serverTime: new Date().toISOString() };
     } finally {
       lock.releaseLock();
     }
   }
 
-  function syncProjectToDocuments_(project) {
-    var result = { formRecordsUpdated: 0, documentRegisterUpdated: 0 };
+  function syncProjectToDocuments_(project, originalProjectCode) {
+    var result = { formRecordsUpdated: 0, documentRegisterUpdated: 0, projectCodeRenamedFrom: originalProjectCode || project.ProjectCode };
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     if (!ss) return result;
     var form = ss.getSheetByName('FORM_RECORDS');
-    if (form) result.formRecordsUpdated = syncFormRecords_(form, project);
+    if (form) result.formRecordsUpdated = syncFormRecords_(form, project, originalProjectCode);
     var reg = ss.getSheetByName('DOCUMENT_REGISTER');
-    if (reg) result.documentRegisterUpdated = syncDocumentRegister_(reg, project);
+    if (reg) result.documentRegisterUpdated = syncDocumentRegister_(reg, project, originalProjectCode);
     return result;
   }
 
-  function syncFormRecords_(sheet, project) {
+  function syncFormRecords_(sheet, project, originalProjectCode) {
     var headers = headers_(sheet);
     if (!headers.length || sheet.getLastRow() < 2) return 0;
     ensureColumns_(sheet, DOCUMENT_PROJECT_COLUMNS);
@@ -104,11 +112,15 @@ var AETERLINK_PROJECT_DETAIL_MANAGER = (function () {
     var projectCol = headers.indexOf('ProjectCode') + 1;
     if (projectCol < 1) return 0;
     var dataCol = headers.indexOf('DataJson') + 1;
+    var oldCode = clean_(originalProjectCode || project.ProjectCode);
+    var newCode = clean_(project.ProjectCode);
     var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getDisplayValues();
     var changed = 0;
     for (var r = 0; r < values.length; r++) {
-      if (clean_(values[r][projectCol - 1]) !== project.ProjectCode) continue;
+      var rowProjectCode = clean_(values[r][projectCol - 1]);
+      if (rowProjectCode !== oldCode && rowProjectCode !== newCode) continue;
       var dirty = false;
+      if (rowProjectCode !== newCode) { values[r][projectCol - 1] = newCode; dirty = true; }
       DOCUMENT_PROJECT_COLUMNS.forEach(function (key) {
         var col = headers.indexOf(key);
         if (col >= 0 && values[r][col] !== project[key]) { values[r][col] = project[key] || ''; dirty = true; }
@@ -118,8 +130,9 @@ var AETERLINK_PROJECT_DETAIL_MANAGER = (function () {
         if (raw) {
           try {
             var json = JSON.parse(raw);
-            ['ProjectName', 'Client', 'MainContractor', 'ProjectManager', 'CurrentPhase'].forEach(function (key) {
-              if (project[key] !== undefined && json[key] !== project[key]) { json[key] = project[key] || ''; dirty = true; }
+            ['ProjectCode', 'ProjectName', 'Client', 'MainContractor', 'ProjectManager', 'CurrentPhase'].forEach(function (key) {
+              var nextValue = key === 'ProjectCode' ? newCode : (project[key] || '');
+              if (json[key] !== nextValue) { json[key] = nextValue; dirty = true; }
             });
             if (dirty) values[r][dataCol - 1] = JSON.stringify(json);
           } catch (err) {}
@@ -131,17 +144,21 @@ var AETERLINK_PROJECT_DETAIL_MANAGER = (function () {
     return changed;
   }
 
-  function syncDocumentRegister_(sheet, project) {
+  function syncDocumentRegister_(sheet, project, originalProjectCode) {
     ensureColumns_(sheet, DOCUMENT_PROJECT_COLUMNS);
     var headers = headers_(sheet);
     if (!headers.length || sheet.getLastRow() < 2) return 0;
     var projectCol = headers.indexOf('ProjectCode') + 1;
     if (projectCol < 1) return 0;
+    var oldCode = clean_(originalProjectCode || project.ProjectCode);
+    var newCode = clean_(project.ProjectCode);
     var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getDisplayValues();
     var changed = 0;
     for (var r = 0; r < values.length; r++) {
-      if (clean_(values[r][projectCol - 1]) !== project.ProjectCode) continue;
+      var rowProjectCode = clean_(values[r][projectCol - 1]);
+      if (rowProjectCode !== oldCode && rowProjectCode !== newCode) continue;
       var dirty = false;
+      if (rowProjectCode !== newCode) { values[r][projectCol - 1] = newCode; dirty = true; }
       DOCUMENT_PROJECT_COLUMNS.forEach(function (key) {
         var col = headers.indexOf(key);
         if (col >= 0 && values[r][col] !== project[key]) { values[r][col] = project[key] || ''; dirty = true; }
