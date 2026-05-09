@@ -27,3 +27,112 @@
   ]};};
   window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.render=function(data,options){data=Object.assign(window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.sampleData(),data||{});options=options||{};var tpl=window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST;var rows=data.ChecklistRows||[];return '<div class="a4-root a4-print-area" id="a4PrintArea">'+AETERLINK_A4_RENDERER.page({title:tpl.title,subtitle:tpl.subtitle,documentNo:data.DocumentNo||'',revisionNo:data.RevisionNo||'0',status:data.Status||'Draft',data:data,content:AETERLINK_A4_RENDERER.documentInfo(data)+AETERLINK_A4_RENDERER.section(tpl.sections.checklist)+AETERLINK_A4_RENDERER.table(tpl.columns,rows,'a4-scope-table')})+'</div>';};
 </script>
+<style id="project-detail-manager-style">
+  .project-v2-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px;}
+  .project-v2-search{border:1px solid var(--aeterlink-line);border-radius:10px;padding:8px 10px;min-width:260px;}
+  .project-v2-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;margin:10px 0;}
+  .project-v2-grid label{font-size:11px;font-weight:900;color:#466176;text-transform:uppercase;letter-spacing:.35px;}
+  .project-v2-grid input,.project-v2-grid select,.project-v2-grid textarea{width:100%;margin-top:5px;border:1px solid var(--aeterlink-line);border-radius:10px;padding:8px;font-family:inherit;color:#1e3446;background:#fff;}
+  .project-v2-grid textarea{min-height:58px;resize:vertical;}
+  .project-v2-editor{border:1px solid var(--aeterlink-line);border-radius:14px;background:#f7fbfd;padding:12px;margin:0 0 12px;}
+  .project-v2-editor h4{margin:0 0 8px;color:#17395d;}
+  .project-v2-confirm{border:1px solid #efd6a8;background:#fff9ed;border-radius:12px;padding:10px;margin-top:8px;color:#6f4d12;font-size:12px;}
+  .project-v2-confirm input[type="text"]{max-width:170px;text-transform:uppercase;font-weight:900;}
+  .project-v2-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+  .project-v2-link{border:1px solid #b9d7ea;background:#eef8ff;color:#0f4268;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:900;cursor:pointer;}
+  .project-v2-current{padding:9px 10px;border:1px solid #d9e6ee;border-radius:12px;background:#f7fbfd;color:#486074;font-size:12px;margin:7px 0 9px;line-height:1.35;}
+  .project-v2-selected{outline:2px solid #9bd5f0;background:#f7fcff!important;}
+  @media(max-width:1150px){.project-v2-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:720px){.project-v2-grid{grid-template-columns:1fr;}}
+</style>
+<script id="project-detail-manager-script">
+(function(){
+  var cache={projects:[],filter:'',editing:null};
+  function byId(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function val(id){var e=byId(id);return e?String(e.value||'').trim():'';}
+  function setVal(id,v){var e=byId(id);if(e)e.value=v||'';}
+  function pill(v){return '<span class="mod-pill">'+esc(v||'')+'</span>';}
+  function googleReady(){return typeof google!=='undefined'&&google.script&&google.script.run;}
+  function currentProjectCode(){return val('prodProjectCode')||val('fProjectCode');}
+  function projectByCode(code){code=String(code||'').trim();return cache.projects.filter(function(p){return String(p.ProjectCode||'').trim()===code;})[0]||null;}
+  function projectLine(p){if(!p)return 'No project selected.';return '<b>'+esc(p.ProjectCode||'')+'</b> — '+esc(p.ProjectName||'')+' · Client: '+esc(p.Client||'-')+' · Main-Contractor: '+esc(p.MainContractor||'-')+' · Phase: '+esc(p.CurrentPhase||'-');}
+  function applyProjectToDocument(p,updatePreview){
+    if(!p)return;
+    setVal('prodProjectCode',p.ProjectCode); setVal('fProjectCode',p.ProjectCode);
+    setVal('prodProjectName',p.ProjectName); setVal('fProjectName',p.ProjectName);
+    setVal('prodClient',p.Client); setVal('fClient',p.Client);
+    setVal('prodMainContractor',p.MainContractor||'AETERLINK'); setVal('fMainContractor',p.MainContractor||'AETERLINK');
+    var info=byId('projectCurrentInfo'); if(info)info.innerHTML=projectLine(p);
+    var stage=byId('prodStatusMsg'); if(stage)stage.textContent='Project detail linked: '+(p.ProjectCode||'')+' — '+(p.ProjectName||'');
+    if(updatePreview!==false&&typeof window.previewCurrentForm==='function')window.previewCurrentForm();
+    if(window.AETERLINK_UPDATE_A4_FOOTERS)setTimeout(window.AETERLINK_UPDATE_A4_FOOTERS,120);
+  }
+  function refreshCurrentInfo(){
+    var p=projectByCode(currentProjectCode());
+    var info=byId('projectCurrentInfo'); if(info)info.innerHTML=projectLine(p)||'No project selected.';
+  }
+  function ensureProjectSelector(){
+    var field=byId('prodProjectCode'); if(!field||field.__projectV2Bound)return;
+    field.__projectV2Bound=true;
+    var panel=document.createElement('div'); panel.className='project-v2-current'; panel.id='projectCurrentInfo'; panel.innerHTML='Loading project detail...';
+    field.parentNode.insertBefore(panel,field.nextSibling);
+    field.setAttribute('list','projectCodeList');
+    var dl=document.createElement('datalist'); dl.id='projectCodeList'; document.body.appendChild(dl);
+    field.addEventListener('change',function(){var p=projectByCode(field.value); if(p)applyProjectToDocument(p,true); else refreshCurrentInfo();});
+    field.addEventListener('blur',function(){var p=projectByCode(field.value); if(p)applyProjectToDocument(p,true);});
+  }
+  function updateDatalist(){var dl=byId('projectCodeList'); if(!dl)return; dl.innerHTML=cache.projects.map(function(p){return '<option value="'+esc(p.ProjectCode)+'">'+esc(p.ProjectName||'')+'</option>';}).join('');}
+  function editorHtml(p){p=p||{};return '<div class="project-v2-editor" id="projectV2Editor"><h4>'+esc(p.ProjectCode?'Edit Project Detail':'Add New Project')+'</h4><div class="project-v2-grid">'+
+    '<label>Project Code *<input id="pv2ProjectCode" value="'+esc(p.ProjectCode||'')+'" '+(p.ProjectCode?'readonly':'')+'></label>'+
+    '<label>Project Name / Site *<input id="pv2ProjectName" value="'+esc(p.ProjectName||'')+'"></label>'+
+    '<label>Client<input id="pv2Client" value="'+esc(p.Client||'')+'"></label>'+
+    '<label>Main-Contractor<input id="pv2MainContractor" value="'+esc(p.MainContractor||'AETERLINK')+'"></label>'+
+    '<label>Project Manager<input id="pv2ProjectManager" value="'+esc(p.ProjectManager||'')+'"></label>'+
+    '<label>Current Phase<input id="pv2CurrentPhase" value="'+esc(p.CurrentPhase||'Construction')+'"></label>'+
+    '<label>Progress %<input id="pv2ProgressPct" type="number" min="0" max="100" value="'+esc(p.ProgressPct||'0')+'"></label>'+
+    '<label>Status<select id="pv2Status"><option '+((p.Status||'Active')==='Active'?'selected':'')+'>Active</option><option '+((p.Status||'')==='On Hold'?'selected':'')+'>On Hold</option><option '+((p.Status||'')==='Completed'?'selected':'')+'>Completed</option><option '+((p.Status||'')==='Inactive'?'selected':'')+'>Inactive</option></select></label>'+
+    '<label>Start Date<input id="pv2StartDate" type="date" value="'+esc(p.StartDate||'')+'"></label>'+
+    '<label>Finish Date<input id="pv2FinishDate" type="date" value="'+esc(p.FinishDate||'')+'"></label>'+
+    '<label>Site Location<input id="pv2SiteLocation" value="'+esc(p.SiteLocation||'')+'"></label>'+
+    '<label>Description<textarea id="pv2Description">'+esc(p.Description||'')+'</textarea></label>'+
+    '</div><div class="project-v2-confirm"><b>Confirmation required</b><br>To prevent accidental update, tick confirm and type <b>CONFIRM</b> before saving. This will also sync project details to related documents.<div class="project-v2-actions"><label style="text-transform:none;letter-spacing:0"><input type="checkbox" id="pv2Confirmed"> I confirm this project detail update</label><input id="pv2ConfirmText" type="text" placeholder="CONFIRM"><button class="mod-btn primary" onclick="AETERLINK_PROJECTS_V2.save()">Save Project Detail</button><button class="mod-btn" onclick="AETERLINK_PROJECTS_V2.cancel()">Cancel</button></div></div><div id="projectV2Msg" class="aeterlink-muted" style="margin-top:8px"></div></div>';}
+  function readEditor(){return {ProjectCode:val('pv2ProjectCode'),ProjectName:val('pv2ProjectName'),Client:val('pv2Client'),MainContractor:val('pv2MainContractor'),ProjectManager:val('pv2ProjectManager'),CurrentPhase:val('pv2CurrentPhase'),ProgressPct:val('pv2ProgressPct'),Status:val('pv2Status'),StartDate:val('pv2StartDate'),FinishDate:val('pv2FinishDate'),SiteLocation:val('pv2SiteLocation'),Description:val('pv2Description')};}
+  function renderProjects(){
+    var box=byId('table_projects'); if(!box)return;
+    var q=cache.filter.toUpperCase(); var rows=cache.projects.filter(function(p){return !q||JSON.stringify(p).toUpperCase().indexOf(q)>=0;});
+    box.innerHTML='<div class="project-v2-toolbar"><input class="project-v2-search" id="projectV2Search" placeholder="Search project code / name / client..." value="'+esc(cache.filter)+'"><button class="mod-btn primary" onclick="AETERLINK_PROJECTS_V2.add()">+ Add Project</button><button class="mod-btn" onclick="AETERLINK_PROJECTS_V2.refresh()">Refresh</button><button class="mod-btn" onclick="AETERLINK_PROJECTS_V2.ensure()">Setup / Repair Project Sheet</button><span class="doc-reg-badge">'+rows.length+' project(s)</span></div><div id="projectV2EditorHost"></div>'+
+      '<div class="mod-table-wrap"><table class="mod-table"><thead><tr><th>Action</th><th>ProjectCode</th><th>ProjectName</th><th>Client</th><th>MainContractor</th><th>ProjectManager</th><th>CurrentPhase</th><th>ProgressPct</th><th>Status</th><th>UpdatedAt</th></tr></thead><tbody>'+rows.map(function(p){return '<tr data-project="'+esc(p.ProjectCode)+'" class="'+(p.ProjectCode===currentProjectCode()?'project-v2-selected':'')+'"><td><button class="project-v2-link" onclick="AETERLINK_PROJECTS_V2.edit(\''+esc(p.ProjectCode)+'\')">Edit</button> <button class="project-v2-link" onclick="AETERLINK_PROJECTS_V2.apply(\''+esc(p.ProjectCode)+'\')">Use</button></td><td><b>'+esc(p.ProjectCode)+'</b></td><td>'+esc(p.ProjectName)+'</td><td>'+esc(p.Client)+'</td><td>'+esc(p.MainContractor)+'</td><td>'+esc(p.ProjectManager)+'</td><td>'+esc(p.CurrentPhase)+'</td><td>'+esc(p.ProgressPct)+'</td><td>'+pill(p.Status)+'</td><td>'+esc(p.UpdatedAt)+'</td></tr>';}).join('')+'</tbody></table></div>';
+    var s=byId('projectV2Search'); if(s&&!s.__bound){s.addEventListener('input',function(){cache.filter=s.value;renderProjects();});s.__bound=true;}
+  }
+  function loadProjects(cb){
+    ensureProjectSelector();
+    if(!googleReady())return;
+    google.script.run.withSuccessHandler(function(r){cache.projects=(r&&r.rows)||[];updateDatalist();refreshCurrentInfo();renderProjects();if(cb)cb(cache.projects);}).withFailureHandler(function(e){var box=byId('table_projects');if(box)box.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiProjectsV2();
+  }
+  function patchProjectsView(){
+    if(window.showView&&!window.showView.__projectV2Patch){var old=window.showView;window.showView=function(name){var ret=old.apply(this,arguments);if(name==='projects'){setTimeout(loadProjects,250);setTimeout(loadProjects,1100);}if(name==='documents'){setTimeout(function(){ensureProjectSelector();loadProjects();},350);}return ret;};window.showView.__projectV2Patch=true;}
+    if(window.refreshData&&!window.refreshData.__projectV2Patch){var oldR=window.refreshData;window.refreshData=function(){var ret=oldR.apply(this,arguments);setTimeout(loadProjects,900);return ret;};window.refreshData.__projectV2Patch=true;}
+  }
+  function patchCollectFormData(){
+    if(window.collectFormData&&!window.collectFormData.__projectV2Patch){var old=window.collectFormData;window.collectFormData=function(){var d=old.apply(this,arguments);var p=projectByCode(d.ProjectCode||currentProjectCode());if(p){d.ProjectName=p.ProjectName||d.ProjectName;d.Client=p.Client||d.Client;d.MainContractor=p.MainContractor||d.MainContractor;d.ProjectManager=p.ProjectManager||d.ProjectManager;d.CurrentPhase=p.CurrentPhase||d.CurrentPhase;}return d;};window.collectFormData.__projectV2Patch=true;}
+  }
+  function boot(){patchProjectsView();patchCollectFormData();ensureProjectSelector();setTimeout(loadProjects,600);}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,900);setTimeout(boot,2200);});
+  var timer=setInterval(boot,1600);setTimeout(function(){clearInterval(timer);boot();},16000);
+  window.AETERLINK_PROJECTS_V2={
+    refresh:function(){loadProjects();},
+    ensure:function(){if(!googleReady())return;google.script.run.withSuccessHandler(function(){loadProjects();}).withFailureHandler(function(e){alert(e&&e.message?e.message:String(e));}).apiEnsureProjectDetailSheetV2();},
+    add:function(){var h=byId('projectV2EditorHost');if(h)h.innerHTML=editorHtml({Status:'Active',MainContractor:'AETERLINK',CurrentPhase:'Construction',ProgressPct:'0'});},
+    edit:function(code){var p=projectByCode(code);var h=byId('projectV2EditorHost');if(h)h.innerHTML=editorHtml(p||{});},
+    cancel:function(){var h=byId('projectV2EditorHost');if(h)h.innerHTML='';},
+    apply:function(code){var p=projectByCode(code);if(p)applyProjectToDocument(p,true);renderProjects();},
+    save:function(){
+      var msg=byId('projectV2Msg'); if(msg)msg.textContent='Saving project detail...';
+      var payload={project:readEditor(),confirmed:!!(byId('pv2Confirmed')&&byId('pv2Confirmed').checked),confirmText:val('pv2ConfirmText')};
+      if(!payload.confirmed||payload.confirmText.toUpperCase()!=='CONFIRM'){if(msg)msg.textContent='Please tick confirmation and type CONFIRM before saving.';return;}
+      google.script.run.withSuccessHandler(function(r){if(msg)msg.textContent='Saved. Synced FORM_RECORDS: '+((r&&r.sync&&r.sync.formRecordsUpdated)||0)+' / DOCUMENT_REGISTER: '+((r&&r.sync&&r.sync.documentRegisterUpdated)||0);loadProjects(function(){if(r&&r.project)applyProjectToDocument(r.project,true);});}).withFailureHandler(function(e){if(msg)msg.textContent='Save failed: '+(e&&e.message?e.message:String(e));}).apiSaveProjectDetailV2(payload);
+    }
+  };
+})();
+</script>
