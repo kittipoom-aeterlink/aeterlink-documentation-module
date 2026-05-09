@@ -1,0 +1,141 @@
+<!-- AETERLINK Documentation Module — A4_Photo_Report_Last_Page.html -->
+<script id="a4-photo-report-last-page-script">
+(function(){
+  var moving = false;
+  var scheduled = null;
+  function roots(){
+    var list = [].slice.call(document.querySelectorAll('#a4Preview .a4-print-area,#a4Preview #a4PrintArea,#a4CheckOutput .a4-print-area,#a4CheckOutput #a4PrintArea,.a4-print-area,#a4PrintArea'));
+    return list.filter(function(root,idx,arr){return root && arr.indexOf(root)===idx;});
+  }
+  function isPhotoPage(page){
+    if(!page || !page.querySelector) return false;
+    if(page.querySelector('.a4-photo-grid')) return true;
+    var title = page.querySelector('.a4-section-title');
+    return !!(title && String(title.textContent||'').trim().toUpperCase()==='PHOTO REPORT');
+  }
+  function directPages(root){
+    var pages=[].slice.call(root.children||[]).filter(function(n){return n.classList&&n.classList.contains('a4-page');});
+    if(pages.length) return pages;
+    return [].slice.call(root.querySelectorAll('.a4-page'));
+  }
+  function updateFooters(){
+    if(window.AETERLINK_UPDATE_A4_FOOTERS){
+      try{window.AETERLINK_UPDATE_A4_FOOTERS();return;}catch(e){}
+    }
+    roots().forEach(function(root){
+      var pages=directPages(root), total=pages.length;
+      pages.forEach(function(page,i){
+        var f=page.querySelector('.a4-footer');
+        if(!f) return;
+        var docNo='Not issued';
+        var meta=[].slice.call(page.querySelectorAll('.a4-meta-row'));
+        meta.some(function(row){
+          var b=row.querySelector('b');
+          if(b && /doc\s*no/i.test(b.textContent||'')){
+            var s=row.querySelector('span,.a4-editable');
+            docNo=String(s?s.textContent:'').trim()||docNo;
+            return true;
+          }
+          return false;
+        });
+        f.innerHTML='<span class="a4-footer-center">Document No.: '+docNo+' &nbsp;&nbsp;|&nbsp;&nbsp; Page No.: '+(i+1)+' / '+total+'</span>';
+      });
+    });
+  }
+  function moveInRoot(root){
+    var pages=directPages(root);
+    if(pages.length<2) return false;
+    var photoPages=pages.filter(isPhotoPage);
+    if(!photoPages.length) return false;
+    var lastNonPhoto=null;
+    pages.forEach(function(p){if(!isPhotoPage(p)) lastNonPhoto=p;});
+    if(!lastNonPhoto) return false;
+    var changed=false;
+    photoPages.forEach(function(p){
+      if(p.previousElementSibling===lastNonPhoto || lastNonPhoto.nextElementSibling===p){
+        lastNonPhoto=p;
+        return;
+      }
+      root.appendChild(p);
+      changed=true;
+      lastNonPhoto=p;
+    });
+    return changed;
+  }
+  function movePhotoReportToEnd(){
+    if(moving) return;
+    moving=true;
+    try{
+      var changed=false;
+      roots().forEach(function(root){ if(moveInRoot(root)) changed=true; });
+      updateFooters();
+      return changed;
+    }finally{moving=false;}
+  }
+  function schedule(delay){
+    clearTimeout(scheduled);
+    scheduled=setTimeout(movePhotoReportToEnd, delay==null?120:delay);
+  }
+  function patchRepaginate(){
+    if(window.AETERLINK_REPAGINATE_A4 && !window.AETERLINK_REPAGINATE_A4.__photoLastPatch){
+      var old=window.AETERLINK_REPAGINATE_A4;
+      window.AETERLINK_REPAGINATE_A4=function(){
+        var ret=old.apply(this,arguments);
+        schedule(150);
+        schedule(450);
+        return ret;
+      };
+      window.AETERLINK_REPAGINATE_A4.__photoLastPatch=true;
+    }
+  }
+  function patchPreview(){
+    if(window.previewCurrentForm && !window.previewCurrentForm.__photoLastPatch){
+      var old=window.previewCurrentForm;
+      window.previewCurrentForm=function(){
+        var ret=old.apply(this,arguments);
+        schedule(250);
+        schedule(650);
+        return ret;
+      };
+      window.previewCurrentForm.__photoLastPatch=true;
+    }
+  }
+  function patchPhotoManager(){
+    if(window.AETERLINK_PHOTO_REPORT && !window.AETERLINK_PHOTO_REPORT.__photoLastPatch){
+      var oldNorm=window.AETERLINK_PHOTO_REPORT.normalize;
+      if(typeof oldNorm==='function'){
+        window.AETERLINK_PHOTO_REPORT.normalize=function(){
+          var ret=oldNorm.apply(this,arguments);
+          schedule(100);
+          return ret;
+        };
+      }
+      var oldAdd=window.AETERLINK_PHOTO_REPORT.addPhotoReport;
+      if(typeof oldAdd==='function'){
+        window.AETERLINK_PHOTO_REPORT.addPhotoReport=function(){
+          var ret=oldAdd.apply(this,arguments);
+          schedule(100);
+          schedule(350);
+          return ret;
+        };
+      }
+      window.AETERLINK_PHOTO_REPORT.__photoLastPatch=true;
+    }
+  }
+  function installObserver(){
+    if(window.__a4PhotoReportLastObserver) return;
+    window.__a4PhotoReportLastObserver=new MutationObserver(function(mutations){
+      if(moving) return;
+      for(var i=0;i<mutations.length;i++){
+        var nodes=[].slice.call(mutations[i].addedNodes||[]).concat([].slice.call(mutations[i].removedNodes||[]));
+        if(nodes.some(function(n){return n&&n.nodeType===1&&((n.classList&&n.classList.contains('a4-page'))||(n.querySelector&&n.querySelector('.a4-photo-grid,.a4-page')));})){schedule(180);return;}
+      }
+    });
+    window.__a4PhotoReportLastObserver.observe(document.body,{childList:true,subtree:true});
+  }
+  function boot(){patchRepaginate();patchPreview();patchPhotoManager();installObserver();schedule(250);}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,300);setTimeout(boot,1200);setTimeout(boot,2500);});
+  var timer=setInterval(boot,1200);setTimeout(function(){clearInterval(timer);boot();},15000);
+  window.AETERLINK_MOVE_PHOTO_REPORT_LAST=movePhotoReportToEnd;
+})();
+</script>
