@@ -1,0 +1,188 @@
+<!-- AETERLINK Documentation Module — A4_Photo_Report_Manager.html -->
+<style id="a4-photo-report-manager-style">
+  .prod-photo-report-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px auto 10px;max-width:210mm;box-sizing:border-box;background:#fff;border:1px solid var(--aeterlink-line,#d8e5ec);border-radius:10px;padding:8px 10px;color:#35576d;font-size:12px;}
+  .prod-photo-report-toolbar button{border:1px solid #adc3d2;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;color:#07385b;cursor:pointer;}
+  .prod-photo-report-toolbar button.primary{background:#0f4268;color:#fff;border-color:#0f4268;}
+  .prod-photo-report-toolbar span{color:#6b7f90;font-weight:700;}
+  .a4-photo-page-empty{display:none!important;}
+  @media print{.prod-photo-report-toolbar{display:none!important}}
+</style>
+<script id="a4-photo-report-manager-script">
+(function(){
+  var PHOTO_SECTION='PHOTO REPORT';
+  var state={userRemovedAll:false,lastTemplate:''};
+  function byId(id){return document.getElementById(id);}
+  function renderer(){return window.AETERLINK_A4_RENDERER;}
+  function root(){return byId('a4Preview')||document;}
+  function printArea(){return root().querySelector('#a4PrintArea')||root().querySelector('.a4-print-area')||root();}
+  function isPhotoPage(page){return !!(page&&page.querySelector&&page.querySelector('.a4-photo-grid'));}
+  function photoPages(){return Array.prototype.slice.call(printArea().querySelectorAll('.a4-page')).filter(isPhotoPage);}
+  function firstNormalPage(){return printArea().querySelector('.a4-page:not(.a4-photo-page-empty)')||printArea().querySelector('.a4-page');}
+  function lastPhotoPage(){var pages=photoPages();return pages.length?pages[pages.length-1]:null;}
+  function pageAfterInsertTarget(){return lastPhotoPage()||firstNormalPage();}
+  function hasRealPhoto(block){var img=block&&block.querySelector&&block.querySelector('.a4-photo-box img');return !!(img&&img.getAttribute('src'));
+  }
+  function text(el){return String(el?el.textContent||'':'').trim();}
+  function collectPhotosFromDom(){
+    var photos=[];
+    photoPages().forEach(function(page){
+      Array.prototype.slice.call(page.querySelectorAll('.a4-photo-block')).forEach(function(block){
+        var img=block.querySelector('.a4-photo-box img');
+        var fields=block.querySelectorAll('.a4-photo-field-box,.a4-photo-text');
+        var item=text(fields[0]);
+        var desc=text(fields[1]);
+        var note=text(fields[2]);
+        var url=img?img.getAttribute('src')||'':'';
+        var has=url||item||desc||note;
+        if(has)photos.push({PhotoUrl:url,ItemNo:item,Description:desc,Caption:desc,Note:note});
+      });
+    });
+    return photos;
+  }
+  function emptyPhoto(){return {PhotoUrl:'',ItemNo:'',Description:'',Caption:'',Note:''};}
+  function currentTemplate(){var f=byId('fTemplate'),p=byId('prodDocType');return (f&&f.value)||(p&&p.value)||'';}
+  function makePhotoGrid(photos){return renderer().photoGrid((photos&&photos.length)?photos:[emptyPhoto(),emptyPhoto()]);}
+  function buildPhotoPage(photos){
+    var r=renderer();
+    var base=firstNormalPage();
+    var page=document.createElement('div');page.className='a4-page';
+    var inner=document.createElement('div');inner.className='a4-page-inner';
+    var header=base&&base.querySelector('.a4-header');
+    var project=base&&base.querySelector('.a4-project-grid');
+    var footer=base&&base.querySelector('.a4-footer');
+    if(header)inner.appendChild(header.cloneNode(true));
+    if(project)inner.appendChild(project.cloneNode(true));
+    var content=document.createElement('div');content.className='a4-content';
+    var sec=document.createElement('div');sec.innerHTML=r.section(PHOTO_SECTION);content.appendChild(sec.firstChild);
+    var box=document.createElement('div');box.innerHTML=makePhotoGrid(photos);while(box.firstChild)content.appendChild(box.firstChild);
+    inner.appendChild(content);
+    if(footer)inner.appendChild(footer.cloneNode(true));
+    page.appendChild(inner);
+    return page;
+  }
+  function insertPhotoPage(photos){
+    var target=pageAfterInsertTarget();
+    if(!target||!target.parentNode)return null;
+    var page=buildPhotoPage(photos);
+    target.parentNode.insertBefore(page,target.nextSibling);
+    normalize();
+    return page;
+  }
+  function addPhotoReport(){
+    state.userRemovedAll=false;
+    var p=photoPages();
+    if(!p.length){insertPhotoPage([emptyPhoto()]);return;}
+    var grid=p[p.length-1].querySelector('.a4-photo-grid');
+    if(!grid){insertPhotoPage([emptyPhoto()]);return;}
+    var blocks=grid.querySelectorAll('.a4-photo-block');
+    if(blocks.length<2){var tmp=document.createElement('div');tmp.innerHTML=renderer().photoBlock(emptyPhoto(),blocks.length);grid.appendChild(tmp.firstChild);}else{insertPhotoPage([emptyPhoto()]);}
+    normalize();
+  }
+  function removeEmptyPhotoPages(){
+    photoPages().forEach(function(page){
+      if(!page.querySelector('.a4-photo-block'))page.remove();
+    });
+  }
+  function renumberPhotos(){
+    var i=1;
+    photoPages().forEach(function(page){
+      Array.prototype.slice.call(page.querySelectorAll('.a4-photo-block')).forEach(function(block){
+        var box=block.querySelector('.a4-photo-box');
+        if(box&&!box.querySelector('img')&&!text(box))box.textContent='Photo '+i;
+        else if(box&&!box.querySelector('img')&&/^Photo\s+\d+$/i.test(text(box)))box.textContent='Photo '+i;
+        i++;
+      });
+    });
+  }
+  function toolbar(){
+    var a4=byId('a4Preview');if(!a4)return null;
+    var existing=byId('prodPhotoReportToolbar');
+    if(existing)return existing;
+    var div=document.createElement('div');
+    div.id='prodPhotoReportToolbar';
+    div.className='prod-photo-report-toolbar a4-no-print';
+    div.innerHTML='<button type="button" class="primary" onclick="AETERLINK_PHOTO_REPORT.addPhotoReport()">+ Add Photo Report / Photo</button><span id="prodPhotoReportHint">Add photos to create PHOTO REPORT pages. If every photo is deleted, the PHOTO REPORT page will be removed.</span>';
+    a4.parentNode.insertBefore(div,a4);
+    return div;
+  }
+  function updateToolbar(){
+    var tb=toolbar();if(!tb)return;
+    var pages=photoPages().length;
+    var count=printArea().querySelectorAll('.a4-photo-block').length;
+    var hint=byId('prodPhotoReportHint');
+    if(hint)hint.textContent=pages?('PHOTO REPORT active: '+count+' photo slot(s). Add more photos or delete all to remove the sheet.'):('No PHOTO REPORT sheet. Click the button to add a PHOTO REPORT sheet again.');
+  }
+  function normalize(){removeEmptyPhotoPages();renumberPhotos();updateToolbar();if(window.AETERLINK_REPAGINATE_A4)setTimeout(window.AETERLINK_REPAGINATE_A4,80);}
+  function ensureDefaultPhotoReport(){
+    var tpl=currentTemplate();
+    if(tpl&&tpl!==state.lastTemplate){state.lastTemplate=tpl;state.userRemovedAll=false;}
+    if(state.userRemovedAll)return;
+    if(!photoPages().length&&firstNormalPage())insertPhotoPage([emptyPhoto(),emptyPhoto()]);
+    else normalize();
+  }
+  function patchRenderer(){
+    var r=renderer();if(!r||r.__photoManagerPatched)return;
+    var oldDelete=r.deletePhotoBlock;
+    r.deletePhotoBlock=function(btn){
+      var block=btn&&btn.closest?btn.closest('.a4-photo-block'):null;
+      if(block&&block.parentNode)block.parentNode.removeChild(block);else if(oldDelete)oldDelete.apply(r,arguments);
+      removeEmptyPhotoPages();
+      if(!photoPages().length)state.userRemovedAll=true;
+      normalize();
+    };
+    var oldClear=r.clearPhoto;
+    r.clearPhoto=function(btn){
+      if(oldClear)oldClear.apply(r,arguments);
+      normalize();
+    };
+    var oldAdd=r.addPhotoBlock;
+    r.addPhotoBlock=function(btn){
+      state.userRemovedAll=false;
+      var grid=btn&&btn.closest?btn.closest('.a4-preview-actions')&&btn.closest('.a4-preview-actions').previousElementSibling:null;
+      if(!grid||!grid.classList||!grid.classList.contains('a4-photo-grid')){addPhotoReport();return;}
+      var count=grid.querySelectorAll('.a4-photo-block').length;
+      if(count<2){var tmp=document.createElement('div');tmp.innerHTML=r.photoBlock(emptyPhoto(),count);grid.appendChild(tmp.firstChild);}else{insertPhotoPage([emptyPhoto()]);}
+      normalize();
+    };
+    r.__photoManagerPatched=true;
+  }
+  function patchCollect(){
+    if(!window.collectFormData||window.collectFormData.__photoManagerPatched)return;
+    var old=window.collectFormData;
+    window.collectFormData=function(){
+      var data=old.apply(this,arguments);
+      var photos=collectPhotosFromDom();
+      if(photoPages().length||state.userRemovedAll)data.Photos=photos;
+      else if(!data.Photos)data.Photos=[];
+      return data;
+    };
+    window.collectFormData.__photoManagerPatched=true;
+  }
+  function patchPreview(){
+    if(!window.previewCurrentForm||window.previewCurrentForm.__photoManagerPatch2)return;
+    var old=window.previewCurrentForm;
+    window.previewCurrentForm=function(){
+      var before=collectPhotosFromDom();
+      var had=photoPages().length>0;
+      var r=old.apply(this,arguments);
+      setTimeout(function(){
+        if(had&&before.length){
+          photoPages().forEach(function(p){p.remove();});
+          for(var i=0;i<before.length;i+=2)insertPhotoPage(before.slice(i,i+2));
+        }
+        ensureDefaultPhotoReport();
+      },120);
+      return r;
+    };
+    window.previewCurrentForm.__photoManagerPatch2=true;
+  }
+  function patchTemplateChange(){
+    var f=byId('fTemplate'),p=byId('prodDocType');
+    [f,p].forEach(function(el){if(el&&!el.__photoManagerChange){el.addEventListener('change',function(){state.userRemovedAll=false;setTimeout(ensureDefaultPhotoReport,180);});el.__photoManagerChange=true;}});
+  }
+  function boot(){patchRenderer();patchCollect();patchPreview();patchTemplateChange();toolbar();setTimeout(ensureDefaultPhotoReport,180);}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,600);setTimeout(boot,1500);});
+  var timer=setInterval(boot,1200);setTimeout(function(){clearInterval(timer);boot();},12000);
+  window.AETERLINK_PHOTO_REPORT={addPhotoReport:addPhotoReport,collectPhotos:collectPhotosFromDom,normalize:normalize,ensureDefault:ensureDefaultPhotoReport,removeAll:function(){photoPages().forEach(function(p){p.remove();});state.userRemovedAll=true;normalize();}};
+})();
+</script>
