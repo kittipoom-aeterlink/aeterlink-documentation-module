@@ -11,7 +11,7 @@
  */
 
 var AETERLINK_BUILD = {
-  APP_VERSION: 'AETERLINK_DOCS_MODULAR_2026_05_08_R05',
+  APP_VERSION: 'AETERLINK_DOCS_MODULAR_2026_05_08_R06',
   BUILD_TIMESTAMP: '2026-05-08T00:00:00Z',
   SOURCE_BRANCH: 'main',
   DEPLOYMENT_MODE: 'GitHub Actions + clasp existing deployment',
@@ -138,13 +138,22 @@ var AETERLINK_API = (function() {
       var nowIso = now.toISOString();
       var user = activeUser().email;
       var existingId = String(payload.FormRecordId || '').trim();
-      var templateCode = String(payload.TemplateCode || 'PJ-WCR-001').trim();
-      var projectCode = String(payload.ProjectCode || 'TEST-PJ').trim();
-      var revisionNo = String(payload.RevisionNo || 'R00').trim();
-      var status = String(payload.Status || 'Draft').trim();
       var data = payload.Data || {};
+      var originalTemplateCode = String(payload.TemplateCode || 'PJ-WCR-001').trim();
+      var templateCode = canonicalTemplateCode_(originalTemplateCode);
+      var projectCode = String(payload.ProjectCode || data.ProjectCode || 'TEST-PJ').trim();
+      var revisionNo = normalizeRevisionNo_(payload.RevisionNo || data.RevisionNo || 'R00');
+      var status = String(payload.Status || 'Draft').trim();
       var formRecordId = existingId || createId_('FR');
-      var documentNo = String(payload.DocumentNo || '').trim() || createDocumentNo_(projectCode, templateCode);
+      var rawDocumentNo = String(payload.DocumentNo || data.DocumentNo || '').trim();
+      var documentNo = rawDocumentNo ? normalizeDocumentNo_(projectCode, templateCode, rawDocumentNo, revisionNo) : createDocumentNo_(projectCode, templateCode, revisionNo);
+
+      if (data && typeof data === 'object') {
+        data.TemplateCode = templateCode;
+        data.DocumentNo = documentNo;
+        data.RevisionNo = revisionNo;
+        data.Status = status;
+      }
 
       var record = {
         FormRecordId: formRecordId,
@@ -170,7 +179,7 @@ var AETERLINK_API = (function() {
         LockedAfterPdf: payload.LockedAfterPdf || 'FALSE',
         WorkflowGateId: payload.WorkflowGateId || '',
         ReviewComment: payload.ReviewComment || '',
-        IssueNo: payload.IssueNo || '',
+        IssueNo: payload.IssueNo || extractIssueNo_(documentNo),
         RevisionReason: payload.RevisionReason || ''
       };
 
@@ -215,11 +224,124 @@ var AETERLINK_API = (function() {
     return prefix + '-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd-HHmmss') + '-' + Math.floor(Math.random() * 9000 + 1000);
   }
 
-  function createDocumentNo_(projectCode, templateCode) {
+  function canonicalTemplateCode_(templateCode) {
+    var code = String(templateCode || '').trim().toUpperCase();
+    var aliases = {
+      'PJ-WORK-COMPLETE-001': 'PJ-WCR-001',
+      'PJ-WORK-COMPLETE': 'PJ-WCR-001'
+    };
+    return aliases[code] || code || 'PJ-WCR-001';
+  }
+
+  function templateNameForCode_(templateCode) {
+    var wanted = String(templateCode || '').trim();
+    var canonical = canonicalTemplateCode_(wanted);
+    try {
+      var rows = tableRows('FORM_TEMPLATES').rows;
+      for (var i = 0; i < rows.length; i++) {
+        var code = String(rows[i].TemplateCode || '').trim();
+        if (code === wanted || canonicalTemplateCode_(code) === canonical) return String(rows[i].TemplateName || rows[i].DocumentTitle || '').trim();
+      }
+    } catch (err) {}
+    return '';
+  }
+
+  function acronym3_(name, fallbackCode) {
+    var raw = String(name || '').trim();
+    var fallback = String(fallbackCode || '').trim().toUpperCase();
+    if (/WORK\s+COMPLETION\s+REPORT/i.test(raw) || /PJ-WCR/.test(fallback)) return 'WCR';
+    if (/MEETING\s+MINUTES|\bMOM\b/i.test(raw) || /PJ-MTG-MOM/.test(fallback)) return 'MOM';
+    if (/REQUEST\s+FOR\s+INFORMATION|\bRFI\b/i.test(raw) || /PJ-RFI/.test(fallback)) return 'RFI';
+    if (/REQUEST\s+FOR\s+APPROVAL|\bRFA\b/i.test(raw) || /PJ-RFA/.test(fallback)) return 'RFA';
+    var cleaned = raw.replace(/^[A-Z0-9-]+\s+[—-]\s+/, '').replace(/[()]/g, ' ').replace(/&/g, ' and ').replace(/\//g, ' ');
+    var stop = { AND: true, OR: true, OF: true, THE: true, FOR: true, TO: true, FROM: true, BY: true, WITH: true, A: true, AN: true };
+    var words = cleaned.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').split(/\s+/).filter(function(w) { return w && !stop[w] && !/^\d+$/.test(w); });
+    var letters = words.map(function(w) { return w.charAt(0); }).join('');
+    if (letters.length >= 3) return letters.substring(0, 3);
+    var compact = words.join('').replace(/[^A-Z0-9]/g, '');
+    for (var i = 0; letters.length < 3 && i < compact.length; i++) {
+      if (letters.indexOf(compact.charAt(i)) < 0 || letters.length < 2) letters += compact.charAt(i);
+    }
+    if (letters.length >= 3) return letters.substring(0, 3);
+    var m = fallback.match(/^PJ-([A-Z0-9]{3})-/);
+    if (m) return m[1];
+    var body = fallback.replace(/^PJ-/, '').replace(/-\d{3,4}$/, '').replace(/[^A-Z0-9]/g, '');
+    return (body + 'XXX').substring(0, 3);
+  }
+
+  function documentCodePrefix_(templateCode) {
+    var canonical = canonicalTemplateCode_(templateCode);
+    var name = templateNameForCode_(canonical) || templateNameForCode_(templateCode);
+    var acronym = acronym3_(name, canonical);
+    return 'PJ-' + acronym;
+  }
+
+  function normalizeRevisionNo_(revisionNo) {
+    var value = String(revisionNo || '').trim().toUpperCase();
+    if (!value || value === '0') return 'R00';
+    var n = parseInt(value.replace(/\D/g, ''), 10);
+    if (isNaN(n)) return value;
+    return 'R' + ('00' + n).slice(-2);
+  }
+
+  function stripRevisionSuffix_(documentNo) {
+    return String(documentNo || '').trim().replace(/-R\d{2}$/i, '');
+  }
+
+  function padIssueSeq_(seq) {
+    var n = parseInt(seq, 10);
+    if (isNaN(n) || n < 1) n = 1;
+    return ('000' + n).slice(-3);
+  }
+
+  function extractIssueNo_(documentNo) {
+    var m = stripRevisionSuffix_(documentNo).match(/-(\d{3,4})$/);
+    if (!m) return '';
+    return padIssueSeq_(m[1]);
+  }
+
+  function applyRevisionSuffix_(baseDocumentNo, revisionNo) {
+    var base = stripRevisionSuffix_(baseDocumentNo);
+    var rev = normalizeRevisionNo_(revisionNo);
+    if (rev && rev !== 'R00' && rev !== '0') return base + '-' + rev;
+    return base;
+  }
+
+  function normalizeDocumentNo_(projectCode, templateCode, documentNo, revisionNo) {
+    var project = String(projectCode || 'TEST-PJ').trim();
+    var prefix = project + '-' + documentCodePrefix_(templateCode) + '-';
+    var base = stripRevisionSuffix_(documentNo);
+    var issue = extractIssueNo_(base);
+    if (issue) base = prefix + issue;
+    else if (base.indexOf(prefix) !== 0) base = prefix + padIssueSeq_(nextIssueSeq_(project, templateCode));
+    return applyRevisionSuffix_(base, revisionNo);
+  }
+
+  function nextIssueSeq_(projectCode, templateCode) {
+    var project = String(projectCode || '').trim();
+    var canonical = canonicalTemplateCode_(templateCode);
+    var prefix = project + '-' + documentCodePrefix_(canonical) + '-';
     var rows = tableRows('FORM_RECORDS').rows;
-    var seq = rows.filter(function(r) { return String(r.ProjectCode || '') === projectCode && String(r.TemplateCode || '') === templateCode; }).length + 1;
-    var padded = ('0000' + seq).slice(-4);
-    return projectCode + '-' + templateCode + '-' + padded;
+    var max = 0, sameTemplateCount = 0;
+    rows.forEach(function(r) {
+      var rowTemplate = canonicalTemplateCode_(r.TemplateCode || '');
+      var docNo = String(r.DocumentNo || '').trim();
+      var sameTemplate = rowTemplate === canonical || docNo.indexOf(prefix) === 0;
+      if (!sameTemplate || String(r.ProjectCode || '') !== project) return;
+      sameTemplateCount++;
+      var issue = extractIssueNo_(docNo);
+      var n = parseInt(issue || '0', 10);
+      if (!isNaN(n) && n > max) max = n;
+    });
+    if (max > 0) return max + 1;
+    return sameTemplateCount + 1;
+  }
+
+  function createDocumentNo_(projectCode, templateCode, revisionNo) {
+    var project = String(projectCode || 'TEST-PJ').trim();
+    var canonical = canonicalTemplateCode_(templateCode);
+    var base = project + '-' + documentCodePrefix_(canonical) + '-' + padIssueSeq_(nextIssueSeq_(project, canonical));
+    return applyRevisionSuffix_(base, revisionNo);
   }
 
   function include(fileName) { fileName = String(fileName || '').trim(); if (!fileName) throw new Error('Missing include file name'); return HtmlService.createHtmlOutputFromFile(fileName).getContent(); }
