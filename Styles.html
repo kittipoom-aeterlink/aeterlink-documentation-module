@@ -65,7 +65,31 @@
     display: table-cell;
   }
 
-  /* Production A4 detail template spacing — applies to every detailed document type. */
+  /* Production A4 spacing system — keeps every document section readable and print-safe. */
+  #a4Preview .a4-content > .a4-section-title,
+  #a4CheckOutput .a4-content > .a4-section-title {
+    margin-top: 0 !important;
+    margin-bottom: 2.4mm !important;
+  }
+
+  #a4Preview .a4-content > .a4-section-title:not(:first-child),
+  #a4CheckOutput .a4-content > .a4-section-title:not(:first-child) {
+    margin-top: 4.5mm !important;
+    clear: both !important;
+  }
+
+  #a4Preview .a4-info-table,
+  #a4CheckOutput .a4-info-table {
+    margin-top: 0 !important;
+    margin-bottom: 4.8mm !important;
+  }
+
+  #a4Preview .a4-scope-table,
+  #a4CheckOutput .a4-scope-table {
+    margin-top: 0 !important;
+    margin-bottom: 3.5mm !important;
+  }
+
   #a4Preview .a4-detail-section-wrap,
   #a4CheckOutput .a4-detail-section-wrap {
     margin-top: 5mm !important;
@@ -89,8 +113,8 @@
   #a4Preview .a4-detail-note,
   #a4CheckOutput .a4-detail-note {
     display: block !important;
-    margin: 2mm 0 3mm !important;
-    padding: 1.8mm 2.2mm !important;
+    margin: 1.5mm 0 3mm !important;
+    padding: 1.6mm 2.2mm !important;
     border: .18mm solid #d9e6ee !important;
     background: #f7fbfd !important;
     border-radius: 1.5mm !important;
@@ -99,13 +123,18 @@
 
   #a4Preview table.a4-detail-table,
   #a4CheckOutput table.a4-detail-table {
-    margin-top: 2.2mm !important;
+    margin-top: 0 !important;
     margin-bottom: 3mm !important;
   }
 
   #a4Preview .a4-info-table + .a4-detail-section-wrap,
   #a4CheckOutput .a4-info-table + .a4-detail-section-wrap {
     margin-top: 6mm !important;
+  }
+
+  #a4Preview .a4-preview-actions,
+  #a4CheckOutput .a4-preview-actions {
+    margin-top: 2mm !important;
   }
 
   @media print {
@@ -115,11 +144,27 @@
     .photo-actions {
       display: none !important;
     }
+    .a4-detail-note {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+    }
+    .a4-content > .a4-section-title:not(:first-child),
     .a4-detail-section-wrap,
     .a4-info-table + .a4-section-title {
-      margin-top: 5mm !important;
+      margin-top: 4.5mm !important;
       break-inside: auto !important;
       page-break-inside: auto !important;
+    }
+    .a4-info-table {
+      margin-bottom: 4.5mm !important;
+    }
+    table.a4-detail-table,
+    .a4-scope-table {
+      margin-bottom: 3mm !important;
     }
   }
 </style>
