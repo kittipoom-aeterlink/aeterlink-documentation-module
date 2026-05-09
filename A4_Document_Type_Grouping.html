@@ -9,164 +9,29 @@
 <script id="a4-document-type-grouping-script">
 (function(){
   var state={select:null,search:null,allOptions:[],rendering:false,observer:null};
-  var STAGES=[
-    {key:'00_CORE',label:'00 — Core / Standard Forms'},
-    {key:'01_INITIATION',label:'01 — Initiation / Kick-off'},
-    {key:'02_PLANNING',label:'02 — Planning / Schedule / Control'},
-    {key:'03_DESIGN',label:'03 — Design / Engineering / Submittal'},
-    {key:'04_PROCUREMENT',label:'04 — Procurement / Material'},
-    {key:'05_CONSTRUCTION',label:'05 — Construction / Installation / Work Permit'},
-    {key:'06_TESTING',label:'06 — Testing / Commissioning'},
-    {key:'07_HANDOVER',label:'07 — Handover / Completion / Payment'},
-    {key:'08_WARRANTY',label:'08 — Warranty / DLP'},
-    {key:'09_RISK',label:'09 — Risk / Issue / Safety'},
-    {key:'99_OTHER',label:'99 — Other / Template / System'}
-  ];
-  var ORDER={}; STAGES.forEach(function(s,i){ORDER[s.key]=i;});
+  var STAGES=[['00_CORE','00 — Core / Standard Forms'],['01_INITIATION','01 — Initiation / Kick-off'],['02_PLANNING','02 — Planning / Schedule / Control'],['03_DESIGN','03 — Design / Engineering / Submittal'],['04_PROCUREMENT','04 — Procurement / Material'],['05_CONSTRUCTION','05 — Construction / Installation / Work Permit'],['06_TESTING','06 — Testing / Commissioning'],['07_HANDOVER','07 — Handover / Completion / Payment'],['08_WARRANTY','08 — Warranty / DLP'],['09_RISK','09 — Risk / Issue / Safety'],['99_OTHER','99 — Other / Template / System']];
+  var ORDER={};STAGES.forEach(function(s,i){ORDER[s[0]]=i;});
   var ALIAS={'PJ-WORK-COMPLETE-001':'PJ-WCR-001','PJ-WORK-COMPLETE':'PJ-WCR-001'};
   function byId(id){return document.getElementById(id);}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-  function canonicalCode(code){code=String(code||'').trim().toUpperCase();return ALIAS[code]||code;}
-  function cleanName(text,code){
-    var value=String(text||code||'').replace(/^[A-Z0-9-]+\s+[—-]\s*/,'').trim();
-    if(!value||/^PJ-[A-Z0-9-]+$/.test(value))value=String(code||'').replace(/^PJ-/,'').replace(/-\d{3,4}$/,'').replace(/-/g,' ');
-    return value;
-  }
+  function canonical(code){code=String(code||'').trim().toUpperCase();return ALIAS[code]||code;}
   function letters(w){return String(w||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
-  function consonants(w){return letters(w).replace(/[AEIOU]/g,'');}
-  function significantWords(name){
-    var stop={AND:1,OR:1,OF:1,THE:1,FOR:1,TO:1,FROM:1,BY:1,WITH:1,A:1,AN:1};
-    return cleanName(name).replace(/[()]/g,' ').replace(/&/g,' AND ').replace(/\//g,' ').toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(/\s+/).filter(function(w){return w&&!stop[w]&&!/^\d+$/.test(w);});
-  }
-  function firstSound(w){return (consonants(w)||letters(w)||'X').charAt(0);}
-  function secondSound(w){return (consonants(w)||letters(w)||'').charAt(1);}
-  function baseAbbrev(name,code,len){
-    code=canonicalCode(code);
-    name=cleanName(name,code);
-    if(/WORK\s+COMPLETION\s+REPORT/i.test(name)||code==='PJ-WCR-001')return len>3?'WCRP':'WCR';
-    var words=significantWords(name);
-    if(!words.length)words=significantWords(code);
-    var out='';
-    if(words.length>=3){
-      out=firstSound(words[0])+firstSound(words[1])+firstSound(words[2]);
-      if(len>3)out+=firstSound(words[3])||secondSound(words[2])||secondSound(words[1])||secondSound(words[0])||'X';
-    }else if(words.length===2){
-      var w1=consonants(words[0])||letters(words[0]);
-      var w2=consonants(words[1])||letters(words[1]);
-      out=(w1+'XX').substring(0,2)+(w2+'X').substring(0,1);
-      if(len>3)out=(w1+'XX').substring(0,2)+(w2+'XX').substring(0,2);
-    }else{
-      var w=consonants(words[0]||code)||letters(words[0]||code);
-      out=(w+letters(words[0]||code)+'XXXX').substring(0,len>3?4:3);
-    }
-    var src=words.map(function(w){return consonants(w)||letters(w);}).join('')+words.map(letters).join('')+code.replace(/[^A-Z0-9]/g,'');
-    out=String(out||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-    while(out.length<(len>3?4:3))out+=src.charAt(out.length)||'X';
-    return out.substring(0,len>3?4:3);
-  }
-  function classify(opt){
-    var code=canonicalCode(opt.value||'').toUpperCase();
-    var text=(code+' '+String(opt.rawText||opt.text||'').toUpperCase()).replace(/[_-]+/g,' ');
-    if(/^TEMPLATE/.test(code)||/ TEMPLATE | SYSTEM /.test(text))return '99_OTHER';
-    if(/WARRANTY|DLP|DEFECT/.test(text))return '08_WARRANTY';
-    if(/RISK|ISSUE|NCR|SAFETY|HSE|INCIDENT/.test(text))return '09_RISK';
-    if(/HANDOVER|CLOSEOUT|CLOSE OUT|AS BUILT|O&M|OM MANUAL|WCR|WORK COMPLETION|COMPLETION REPORT|RELEASE NOTE|PAY|PAYMENT|CLAIM|MILESTONE|VO|VARIATION|CONTRACT|INSURANCE/.test(text))return '07_HANDOVER';
-    if(/TEST|COMMISSION|COMMISSIONING|T&C|T AND C|SAT|FAT|FUNCTIONAL/.test(text))return '06_TESTING';
-    if(/WORK PERMIT|PERMIT|INSTALL|INSTALLATION|CONSTRUCTION|SITE|INSPECTION|CHECKLIST|PUNCH/.test(text))return '05_CONSTRUCTION';
-    if(/PROCURE|PURCHASE|PO|MATERIAL|REQUISITION|EQUIPMENT|SHOPPING|SUPPLIER|DELIVERY|GRN|STOCK/.test(text))return '04_PROCUREMENT';
-    if(/DESIGN|DRAWING|DRW|ENGINEERING|RFI|RFA|SUBMITTAL|CALC|CALCULATION|SPEC|TECHNICAL|SHOP DRAWING/.test(text))return '03_DESIGN';
-    if(/SCHEDULE|SCH|PLAN|MOM|MEETING|MTG|AGENDA|PROGRESS|FORECAST|TRACKER|MASTER SCHEDULE/.test(text))return '02_PLANNING';
-    if(/KICKOFF|KICK OFF|START|INITIATION|CHARTER|PROJECT OPEN/.test(text))return '01_INITIATION';
-    return '99_OTHER';
-  }
-  function rawOptions(select){
-    var seen={};
-    return Array.prototype.slice.call(select.querySelectorAll('option')).filter(function(o){return o.value;}).map(function(o){
-      var raw=o.value, code=canonicalCode(raw), rawText=o.textContent||o.innerText||raw, name=cleanName(rawText,code);
-      return {value:code,sourceValue:raw,rawText:rawText,name:name,selected:o.selected,stage:classify({value:code,rawText:rawText})};
-    }).filter(function(o){if(seen[o.value])return false;seen[o.value]=true;return true;});
-  }
-  function withUniqueLabels(items){
-    var baseCount={};
-    items.forEach(function(o){o.base=baseAbbrev(o.name,o.value,3);baseCount[o.base]=(baseCount[o.base]||0)+1;});
-    var used={};
-    items.forEach(function(o){
-      var abbr=baseCount[o.base]>1?baseAbbrev(o.name,o.value,4):o.base;
-      if(used[abbr])abbr=baseAbbrev(o.name,o.value,4);
-      var n=2;
-      while(used[abbr]){abbr=(baseAbbrev(o.name,o.value,4)+String(n)).substring(0,5);n++;}
-      used[abbr]=true;
-      var seq=(String(o.value).match(/-(\d{3})$/)||[])[1]||'001';
-      o.displayCode='PJ-'+abbr+'-'+seq;
-      o.text=o.displayCode+' — '+o.name;
-    });
-    return items;
-  }
-  function optionList(select){return withUniqueLabels(rawOptions(select));}
-  function signature(list){return list.map(function(o){return o.value+'|'+o.text;}).join('\n');}
-  function ensureTools(select){
-    var field=select.closest('.prod-field')||select.parentNode;
-    if(!field)return null;
-    var existing=byId('prodDocTypeSearch');
-    if(existing)return existing;
-    var tools=document.createElement('div');
-    tools.className='prod-doc-type-tools';
-    tools.innerHTML='<input id="prodDocTypeSearch" class="prod-doc-type-search" type="search" placeholder="Search document type by code / name / phase..."><div class="prod-doc-type-hint">Document Type is grouped by phase. Abbreviation rule: 3+ words = first sound of first 3 words; 2 words = first 2 sounds of word 1 + first sound of word 2. Example: Material Requisition = MTR. Duplicate names extend to 4 letters, e.g. MTRQ.</div>';
-    field.insertBefore(tools,select);
-    var input=byId('prodDocTypeSearch');
-    input.addEventListener('input',function(){renderGrouped(select,false);});
-    return input;
-  }
-  function filteredOptions(){
-    var q=(state.search&&state.search.value||'').trim().toUpperCase();
-    var list=state.allOptions.slice();
-    if(!q)return list;
-    return list.filter(function(o){
-      var label=(o.value+' '+o.text+' '+o.rawText+' '+o.name+' '+(STAGES[ORDER[o.stage]]?STAGES[ORDER[o.stage]].label:'')).toUpperCase();
-      return label.indexOf(q)>=0;
-    });
-  }
-  function renderGrouped(select,refreshBase){
-    if(!select)return;
-    if(refreshBase){var next=optionList(select);if(next.length&&signature(next)!==signature(state.allOptions))state.allOptions=next;}
-    if(!state.allOptions.length)state.allOptions=optionList(select);
-    var selected=canonicalCode(select.value || (byId('fTemplate')&&byId('fTemplate').value) || '');
-    if(!state.allOptions.some(function(o){return o.value===selected;}))selected=state.allOptions[0]?state.allOptions[0].value:selected;
-    var list=filteredOptions().sort(function(a,b){
-      var da=(ORDER[a.stage]==null?99:ORDER[a.stage]), db=(ORDER[b.stage]==null?99:ORDER[b.stage]);
-      if(da!==db)return da-db;
-      return String(a.displayCode||a.value).localeCompare(String(b.displayCode||b.value));
-    });
-    var groups={}; list.forEach(function(o){(groups[o.stage]||(groups[o.stage]=[])).push(o);});
-    var html='';
-    STAGES.forEach(function(s){
-      var items=groups[s.key]||[]; if(!items.length)return;
-      html+='<optgroup label="'+esc(s.label)+'">'+items.map(function(o){return '<option value="'+esc(o.value)+'" '+(o.value===selected?'selected':'')+'>'+esc(o.text)+'</option>';}).join('')+'</optgroup>';
-    });
-    if(!html)html='<option value="'+esc(selected)+'" selected>No matching document type</option>';
-    state.rendering=true;
-    select.innerHTML=html;
-    select.value=selected;
-    var hidden=byId('fTemplate'); if(hidden)hidden.value=selected;
-    state.rendering=false;
-  }
-  function setup(){
-    var select=byId('prodDocType');
-    if(!select)return false;
-    if(state.select!==select){
-      if(state.observer)state.observer.disconnect();
-      state.select=select;
-      state.search=ensureTools(select);
-      state.allOptions=optionList(select);
-      state.observer=new MutationObserver(function(){if(state.rendering)return;setTimeout(function(){if(state.select)renderGrouped(state.select,true);},30);});
-      state.observer.observe(select,{childList:true,subtree:true});
-      renderGrouped(select,true);
-      return true;
-    }
-    return true;
-  }
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(setup,500);setTimeout(setup,1200);setTimeout(setup,2500);});
-  var timer=setInterval(setup,900);
-  setTimeout(function(){clearInterval(timer);setup();},12000);
+  function cleanName(text,code){var v=String(text||code||'').replace(/^[A-Z0-9-]+\s+[—-]\s*/,'').trim();if(!v||/^PJ-[A-Z0-9-]+$/.test(v))v=String(code||'').replace(/^PJ-/,'').replace(/-\d{3,4}$/,'').replace(/-/g,' ');return v;}
+  function words(name){return cleanName(name).replace(/\([^)]*\)/g,' ').replace(/&/g,' AND ').replace(/[\/]/g,' ').replace(/[-–—]/g,' ').toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(/\s+/).filter(function(w){return w&&!/^\d+$/.test(w);});}
+  function first(w){return (letters(w)||'X').charAt(0);}
+  function nextConsonant(w){w=letters(w);for(var i=1;i<w.length;i++){if(!/[AEIOU]/.test(w.charAt(i)))return w.charAt(i);}return w.charAt(1)||w.charAt(0)||'X';}
+  function nextLetter(w){return (letters(w)||'').charAt(1);}
+  function explicitAcronym(name){var s=String(name||'');var m=s.match(/\(([A-Z0-9]{2,6})\)/);if(m)return m[1].toUpperCase();var x=s.match(/[\/]\s*([A-Z0-9]{2,6})\b/);return x?x[1].toUpperCase():'';}
+  function extend(ac,name,len){ac=letters(ac);if(len<=3)return (ac+'XXX').substring(0,3);if(ac.length>=4)return ac.substring(0,4);var src=words(name).map(letters).join('')+ac+'X';while(ac.length<4)ac+=src.charAt(ac.length)||'X';return ac.substring(0,4);}
+  function baseAbbrev(name,code,len){code=canonical(code);name=cleanName(name,code);var ex=explicitAcronym(name);if(ex)return extend(ex,name,len);if(/WORK\s+COMPLETION\s+REPORT/i.test(name)||code==='PJ-WCR-001')return len>3?'WCRP':'WCR';var ws=words(name);if(!ws.length)ws=words(code);var out='';if(ws.length>=3){out=first(ws[0])+first(ws[1])+first(ws[2]);if(len>3)out+=first(ws[3])||nextLetter(ws[2])||nextLetter(ws[1])||nextLetter(ws[0])||'X';}else if(ws.length===2){out=first(ws[0])+nextConsonant(ws[0])+first(ws[1]);if(len>3)out=first(ws[0])+nextConsonant(ws[0])+first(ws[1])+nextConsonant(ws[1]);}else{out=first(ws[0]||code)+nextConsonant(ws[0]||code)+nextConsonant(String(ws[0]||code).substring(1));if(len>3)out+=nextLetter(ws[0]||code)||'X';}out=letters(out);var src=ws.map(letters).join('')+code.replace(/[^A-Z0-9]/g,'');while(out.length<(len>3?4:3))out+=src.charAt(out.length)||'X';return out.substring(0,len>3?4:3);}
+  function classify(o){var code=canonical(o.value||'');var text=(code+' '+String(o.rawText||o.name||'').toUpperCase()).replace(/[_-]+/g,' ');if(/^TEMPLATE/.test(code)||/ TEMPLATE | SYSTEM /.test(text))return '99_OTHER';if(/WARRANTY|DLP|DEFECT/.test(text))return '08_WARRANTY';if(/RISK|ISSUE|NCR|SAFETY|HSE|INCIDENT/.test(text))return '09_RISK';if(/HANDOVER|CLOSEOUT|CLOSE OUT|AS BUILT|O&M|OM MANUAL|WCR|WORK COMPLETION|COMPLETION REPORT|RELEASE NOTE|PAY|PAYMENT|CLAIM|MILESTONE|VO|VARIATION|CONTRACT|INSURANCE/.test(text))return '07_HANDOVER';if(/TEST|COMMISSION|COMMISSIONING|T&C|T AND C|SAT|FAT|FUNCTIONAL|ITP|ITR/.test(text))return '06_TESTING';if(/WORK PERMIT|PERMIT|INSTALL|INSTALLATION|CONSTRUCTION|SITE|INSPECTION|CHECKLIST|PUNCH/.test(text))return '05_CONSTRUCTION';if(/PROCURE|PURCHASE|PO|MATERIAL|REQUISITION|EQUIPMENT|SHOPPING|SUPPLIER|DELIVERY|GRN|STOCK/.test(text))return '04_PROCUREMENT';if(/DESIGN|DRAWING|DRW|ENGINEERING|RFI|RFA|SUBMITTAL|CALC|CALCULATION|SPEC|TECHNICAL|SHOP DRAWING/.test(text))return '03_DESIGN';if(/SCHEDULE|SCH|PLAN|MOM|MEETING|MTG|AGENDA|PROGRESS|FORECAST|TRACKER|MASTER SCHEDULE/.test(text))return '02_PLANNING';if(/KICKOFF|KICK OFF|START|INITIATION|CHARTER|PROJECT OPEN/.test(text))return '01_INITIATION';return '99_OTHER';}
+  function rawOptions(select){var seen={};return Array.prototype.slice.call(select.querySelectorAll('option')).filter(function(o){return o.value;}).map(function(o){var raw=o.value,code=canonical(raw),rawText=o.textContent||o.innerText||raw,name=cleanName(rawText,code);return {value:code,sourceValue:raw,rawText:rawText,name:name,selected:o.selected,stage:classify({value:code,rawText:rawText,name:name})};}).filter(function(o){if(seen[o.value])return false;seen[o.value]=true;return true;});}
+  function optionList(select){var items=rawOptions(select),count={};items.forEach(function(o){o.base=baseAbbrev(o.name,o.value,3);count[o.base]=(count[o.base]||0)+1;});var used={};items.forEach(function(o){var abbr=count[o.base]>1?baseAbbrev(o.name,o.value,4):o.base;if(used[abbr])abbr=baseAbbrev(o.name,o.value,4);var n=2;while(used[abbr]){abbr=(baseAbbrev(o.name,o.value,4)+String(n)).substring(0,5);n++;}used[abbr]=true;var seq=(String(o.value).match(/-(\d{3})$/)||[])[1]||'001';o.displayCode='PJ-'+abbr+'-'+seq;o.text=o.displayCode+' — '+o.name;});return items;}
+  function sig(list){return list.map(function(o){return o.value+'|'+o.text;}).join('\n');}
+  function ensureTools(select){var field=select.closest('.prod-field')||select.parentNode;if(!field)return null;var existing=byId('prodDocTypeSearch');if(existing)return existing;var tools=document.createElement('div');tools.className='prod-doc-type-tools';tools.innerHTML='<input id="prodDocTypeSearch" class="prod-doc-type-search" type="search" placeholder="Search document type by code / name / phase..."><div class="prod-doc-type-hint">Document Type is grouped by phase. Examples: List of Materials = LOM, Inspection Test Plan (ITP) = ITP, Inspection Test Record (ITR) = ITR, Material Requisition = MTR.</div>';field.insertBefore(tools,select);var input=byId('prodDocTypeSearch');input.addEventListener('input',function(){renderGrouped(select,false);});return input;}
+  function filtered(){var q=(state.search&&state.search.value||'').trim().toUpperCase(),list=state.allOptions.slice();if(!q)return list;return list.filter(function(o){var s=(o.value+' '+o.text+' '+o.rawText+' '+o.name+' '+(STAGES[ORDER[o.stage]]?STAGES[ORDER[o.stage]][1]:'')).toUpperCase();return s.indexOf(q)>=0;});}
+  function renderGrouped(select,refreshBase){if(!select)return;if(refreshBase){var next=optionList(select);if(next.length&&sig(next)!==sig(state.allOptions))state.allOptions=next;}if(!state.allOptions.length)state.allOptions=optionList(select);var selected=canonical(select.value||(byId('fTemplate')&&byId('fTemplate').value)||'');if(!state.allOptions.some(function(o){return o.value===selected;}))selected=state.allOptions[0]?state.allOptions[0].value:selected;var list=filtered().sort(function(a,b){var da=(ORDER[a.stage]==null?99:ORDER[a.stage]),db=(ORDER[b.stage]==null?99:ORDER[b.stage]);if(da!==db)return da-db;return String(a.displayCode||a.value).localeCompare(String(b.displayCode||b.value));});var groups={};list.forEach(function(o){(groups[o.stage]||(groups[o.stage]=[])).push(o);});var html='';STAGES.forEach(function(s){var items=groups[s[0]]||[];if(!items.length)return;html+='<optgroup label="'+esc(s[1])+'">'+items.map(function(o){return '<option value="'+esc(o.value)+'" '+(o.value===selected?'selected':'')+'>'+esc(o.text)+'</option>';}).join('')+'</optgroup>';});if(!html)html='<option value="'+esc(selected)+'" selected>No matching document type</option>';state.rendering=true;select.innerHTML=html;select.value=selected;var hidden=byId('fTemplate');if(hidden)hidden.value=selected;state.rendering=false;}
+  function setup(){var select=byId('prodDocType');if(!select)return false;if(state.select!==select){if(state.observer)state.observer.disconnect();state.select=select;state.search=ensureTools(select);state.allOptions=optionList(select);state.observer=new MutationObserver(function(){if(state.rendering)return;setTimeout(function(){if(state.select)renderGrouped(state.select,true);},30);});state.observer.observe(select,{childList:true,subtree:true});renderGrouped(select,true);return true;}return true;}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(setup,500);setTimeout(setup,1200);setTimeout(setup,2500);});var timer=setInterval(setup,900);setTimeout(function(){clearInterval(timer);setup();},12000);
 })();
 </script>
