@@ -13,6 +13,7 @@ function include(fileName) {
   }
   if (fileName === 'Client_App') {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('UI_Japanese_Corporate').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('UI_Brand_Logo_Clean').getContent(); } catch (err) {}
   }
   return content;
 }
