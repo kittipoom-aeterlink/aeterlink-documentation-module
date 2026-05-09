@@ -1,0 +1,460 @@
+<!-- AETERLINK Documentation Module — UI_Japanese_Corporate.html -->
+<style id="aeterlink-jp-corporate-ui-style">
+  :root{
+    --jp-bg:#f5f8fa;
+    --jp-surface:#ffffff;
+    --jp-surface-2:#f8fbfd;
+    --jp-line:#dce8ef;
+    --jp-line-2:#edf3f7;
+    --jp-text:#122f45;
+    --jp-muted:#6b7f8f;
+    --jp-primary:#0f4a73;
+    --jp-primary-2:#176c9d;
+    --jp-blue-soft:#eaf5fb;
+    --jp-gold:#d6b56d;
+    --jp-radius:16px;
+    --jp-shadow:0 12px 30px rgba(20,64,92,.055);
+  }
+
+  html,body{
+    background:var(--jp-bg)!important;
+    color:var(--jp-text)!important;
+  }
+
+  body{
+    font-family:Inter,Arial,"Noto Sans Thai",sans-serif!important;
+    letter-spacing:.01em;
+  }
+
+  .mod-app{
+    grid-template-columns:264px 1fr!important;
+    min-height:100vh!important;
+    background:
+      radial-gradient(circle at top left, rgba(16,129,188,.08), transparent 320px),
+      linear-gradient(180deg,#f8fbfd 0%,#f4f8fb 100%)!important;
+  }
+
+  .mod-sidebar{
+    background:rgba(255,255,255,.92)!important;
+    border-right:1px solid var(--jp-line)!important;
+    box-shadow:4px 0 20px rgba(17,67,99,.035)!important;
+    padding:18px 14px!important;
+  }
+
+  .mod-brand{
+    align-items:flex-start!important;
+    gap:11px!important;
+    padding:10px 8px 14px!important;
+    margin-bottom:12px!important;
+    border-bottom:1px solid var(--jp-line-2)!important;
+  }
+
+  .mod-logo{
+    width:44px!important;
+    height:44px!important;
+    border:0!important;
+    border-radius:12px!important;
+    background:#fff!important;
+    box-shadow:0 6px 18px rgba(13,100,157,.08)!important;
+    overflow:hidden!important;
+    color:transparent!important;
+    flex:0 0 44px!important;
+  }
+
+  .mod-logo svg{
+    width:38px!important;
+    height:38px!important;
+    display:block!important;
+  }
+
+  .mod-brand h1{
+    margin:0!important;
+    font-size:14px!important;
+    line-height:1.2!important;
+    letter-spacing:.02em!important;
+    color:var(--jp-text)!important;
+    font-weight:900!important;
+  }
+
+  .mod-brand .jp-company{
+    display:block;
+    font-size:12px;
+    color:var(--jp-muted);
+    margin-top:3px;
+    font-weight:700;
+  }
+
+  .mod-brand small{
+    color:#7c909e!important;
+    font-size:10.5px!important;
+    line-height:1.25!important;
+    max-width:172px!important;
+    word-break:break-word!important;
+  }
+
+  .mod-nav{
+    padding-top:2px!important;
+  }
+
+  .mod-nav button{
+    position:relative!important;
+    min-height:38px!important;
+    border-radius:12px!important;
+    padding:10px 12px!important;
+    margin:2px 0!important;
+    color:#36586c!important;
+    font-size:13px!important;
+    font-weight:700!important;
+    transition:background .15s ease,color .15s ease,transform .15s ease!important;
+  }
+
+  .mod-nav button:hover{
+    background:#f0f7fb!important;
+    color:var(--jp-primary)!important;
+    transform:translateX(1px);
+  }
+
+  .mod-nav button.active{
+    background:linear-gradient(90deg,#e8f4fb,#f7fbfd)!important;
+    color:var(--jp-primary)!important;
+    font-weight:900!important;
+    box-shadow:inset 3px 0 0 var(--jp-primary-2)!important;
+  }
+
+  .mod-nav .sep{
+    background:var(--jp-line-2)!important;
+    margin:12px 6px!important;
+  }
+
+  .mod-main{
+    padding:18px 20px 32px!important;
+    overflow:auto!important;
+  }
+
+  .mod-topbar{
+    background:rgba(255,255,255,.78)!important;
+    border:1px solid var(--jp-line)!important;
+    border-radius:18px!important;
+    padding:14px 16px!important;
+    box-shadow:var(--jp-shadow)!important;
+    margin-bottom:12px!important;
+    backdrop-filter:blur(8px);
+  }
+
+  .mod-title h2{
+    color:var(--jp-text)!important;
+    font-size:21px!important;
+    font-weight:900!important;
+    letter-spacing:.01em!important;
+  }
+
+  .mod-title p{
+    color:var(--jp-muted)!important;
+    font-size:12px!important;
+    margin-top:5px!important;
+  }
+
+  #versionBadge{
+    color:#78909f!important;
+    font-size:11px!important;
+    margin:4px 2px 12px!important;
+  }
+
+  .mod-actions{
+    gap:8px!important;
+  }
+
+  .mod-btn,
+  .project-v2-link,
+  .mod-link-btn,
+  .a4-preview-actions button,
+  .prod-photo-report-toolbar button{
+    border-radius:10px!important;
+    border:1px solid #cfe0ea!important;
+    background:#fff!important;
+    color:#174b6b!important;
+    font-weight:800!important;
+    box-shadow:0 2px 5px rgba(21,74,105,.035)!important;
+    transition:background .15s ease,box-shadow .15s ease,transform .15s ease!important;
+  }
+
+  .mod-btn:hover,
+  .project-v2-link:hover,
+  .mod-link-btn:hover,
+  .a4-preview-actions button:hover,
+  .prod-photo-report-toolbar button:hover{
+    background:#eef7fc!important;
+    box-shadow:0 4px 10px rgba(21,74,105,.07)!important;
+    transform:translateY(-1px);
+  }
+
+  .mod-btn.primary,
+  .prod-photo-report-toolbar button.primary{
+    background:linear-gradient(180deg,#174f76,#113e63)!important;
+    border-color:#113e63!important;
+    color:#fff!important;
+  }
+
+  .aeterlink-card,
+  .mod-panel{
+    background:rgba(255,255,255,.96)!important;
+    border:1px solid var(--jp-line)!important;
+    border-radius:18px!important;
+    box-shadow:var(--jp-shadow)!important;
+  }
+
+  .mod-panel{
+    padding:16px!important;
+    margin-bottom:14px!important;
+  }
+
+  .mod-panel h3{
+    display:flex!important;
+    align-items:center!important;
+    gap:8px!important;
+    color:var(--jp-text)!important;
+    font-size:16px!important;
+    font-weight:900!important;
+    margin:0 0 12px!important;
+  }
+
+  .mod-panel h3:before{
+    content:"";
+    width:4px;
+    height:17px;
+    border-radius:8px;
+    background:linear-gradient(180deg,var(--jp-primary-2),var(--jp-primary));
+    display:inline-block;
+  }
+
+  .mod-grid{
+    gap:12px!important;
+  }
+
+  .mod-kpi{
+    min-height:92px!important;
+    padding:17px 18px!important;
+    border-radius:18px!important;
+    background:linear-gradient(180deg,#fff,#f8fbfd)!important;
+  }
+
+  .mod-kpi .label{
+    color:var(--jp-muted)!important;
+    font-size:12px!important;
+    font-weight:800!important;
+  }
+
+  .mod-kpi .value{
+    color:var(--jp-primary)!important;
+    font-size:30px!important;
+    letter-spacing:-.03em!important;
+  }
+
+  .form-grid,
+  .project-v2-grid{
+    gap:12px!important;
+  }
+
+  .form-grid label,
+  .project-v2-grid label{
+    color:#496a7d!important;
+    font-size:11px!important;
+    letter-spacing:.04em!important;
+    text-transform:uppercase!important;
+    font-weight:900!important;
+  }
+
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea,
+  .project-v2-grid input,
+  .project-v2-grid select,
+  .project-v2-grid textarea,
+  .project-v2-search,
+  .doc-reg-search,
+  .project-v2-select{
+    border:1px solid #d5e5ee!important;
+    border-radius:11px!important;
+    background:#fff!important;
+    padding:9px 10px!important;
+    color:var(--jp-text)!important;
+    font-size:13px!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.75)!important;
+  }
+
+  .form-grid input:focus,
+  .form-grid select:focus,
+  .form-grid textarea:focus,
+  .project-v2-grid input:focus,
+  .project-v2-grid select:focus,
+  .project-v2-grid textarea:focus,
+  .project-v2-search:focus,
+  .doc-reg-search:focus,
+  .project-v2-select:focus{
+    outline:2px solid rgba(23,108,157,.16)!important;
+    border-color:#96c9e2!important;
+  }
+
+  .row-editor{
+    background:#fbfdfe!important;
+    border:1px solid #d5e5ee!important;
+    border-radius:12px!important;
+    padding:10px!important;
+  }
+
+  .mod-table-wrap{
+    border:1px solid var(--jp-line)!important;
+    border-radius:16px!important;
+    background:#fff!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.85)!important;
+    max-height:58vh!important;
+  }
+
+  table.mod-table{
+    border-collapse:separate!important;
+    border-spacing:0!important;
+    font-size:12px!important;
+  }
+
+  .mod-table th{
+    background:#f0f7fb!important;
+    color:#17435e!important;
+    font-weight:900!important;
+    letter-spacing:.015em!important;
+    border-bottom:1px solid var(--jp-line)!important;
+    padding:10px 10px!important;
+  }
+
+  .mod-table td{
+    border-bottom:1px solid #edf3f7!important;
+    color:#17384e!important;
+    padding:9px 10px!important;
+  }
+
+  .mod-table tbody tr:hover td{
+    background:#fbfdfe!important;
+  }
+
+  .mod-pill{
+    border:1px solid #cfe0ea!important;
+    background:#f5fbff!important;
+    color:#245a77!important;
+    border-radius:999px!important;
+    font-size:11px!important;
+    font-weight:900!important;
+    padding:4px 10px!important;
+  }
+
+  .mod-link-btn{
+    background:#f3f9fd!important;
+    color:#0f4a73!important;
+    padding:5px 10px!important;
+    text-decoration:none!important;
+  }
+
+  .mod-page-tabs button{
+    border-radius:12px!important;
+    border:1px solid #d5e5ee!important;
+    background:#fff!important;
+    color:#31576c!important;
+    font-weight:800!important;
+  }
+
+  .mod-page-tabs button.active{
+    background:#123f63!important;
+    color:#fff!important;
+    border-color:#123f63!important;
+  }
+
+  .project-v2-editor,
+  .project-v2-current,
+  .project-v2-confirm,
+  .prod-photo-report-toolbar{
+    border-radius:16px!important;
+    border:1px solid var(--jp-line)!important;
+    background:#fbfdfe!important;
+  }
+
+  .project-v2-confirm{
+    background:#fffaf0!important;
+    border-color:#ead7ac!important;
+  }
+
+  .doc-reg-toolbar,
+  .project-v2-toolbar{
+    background:#fbfdfe!important;
+    border:1px solid var(--jp-line)!important;
+    border-radius:16px!important;
+    padding:10px!important;
+    margin-bottom:12px!important;
+  }
+
+  .a4-root{
+    border-radius:14px!important;
+  }
+
+  #a4Preview,
+  #a4CheckOutput{
+    background:#eef3f6!important;
+    border-radius:16px!important;
+    padding:10px!important;
+    overflow:auto!important;
+  }
+
+  @media(max-width:1150px){
+    .mod-app{grid-template-columns:1fr!important;}
+    .mod-sidebar{height:auto!important;position:relative!important;}
+    .mod-main{padding:14px!important;}
+  }
+</style>
+<script id="aeterlink-jp-corporate-ui-script">
+(function(){
+  function logoSvg(){
+    return '<svg viewBox="0 0 1200 165" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" aria-label="AETERLINK Logo"><g fill="#0b86c6"><path d="M25 135c52-32 78-68 88-134h42c-3 42-26 66-70 86-21 10-34 25-45 54-9 20-34 18-15-6z"/><circle cx="190" cy="123" r="38"/><text x="285" y="122" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="112" letter-spacing="18">AETERLINK</text></g></svg>';
+  }
+  function applyBrand(){
+    var logo=document.querySelector('.mod-logo');
+    if(logo && !logo.__jpLogoApplied){
+      logo.innerHTML=logoSvg();
+      logo.__jpLogoApplied=true;
+    }
+    var h=document.querySelector('.mod-brand h1');
+    if(h && !h.__jpBrandApplied){
+      h.innerHTML='Aeterlink<br><span class="jp-company">(Thailand)</span>';
+      h.__jpBrandApplied=true;
+    }
+    var small=document.getElementById('sideVersion');
+    if(small && !small.__jpLabelApplied){
+      small.textContent='Documentation Control';
+      small.__jpLabelApplied=true;
+    }
+    var pageSub=document.querySelector('.mod-title p');
+    if(pageSub) pageSub.textContent='Aeterlink (Thailand) — Documentation Control / Documents & Forms A4';
+  }
+  function relabelNavigation(){
+    var labels={
+      dashboard:'Dashboard',
+      documents:'Documents & Forms A4',
+      templates:'Form Templates',
+      records:'Form Records / PDF',
+      register:'Document Register',
+      lifecycle:'Document Lifecycle',
+      a4check:'A4 Layout Check',
+      settings:'Settings'
+    };
+    document.querySelectorAll('.mod-nav button[data-view]').forEach(function(btn){
+      var key=btn.getAttribute('data-view');
+      if(labels[key] && !btn.__jpRelabel){
+        var icon=(btn.textContent||'').trim().split(' ')[0];
+        if(!/[\u{1F300}-\u{1FAFF}]/u.test(icon)) icon='';
+        btn.innerHTML=(icon?icon+' ':'')+labels[key];
+        btn.__jpRelabel=true;
+      }
+    });
+  }
+  function boot(){applyBrand();relabelNavigation();}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,100);setTimeout(boot,800);});
+  var timer=setInterval(boot,1200);setTimeout(function(){clearInterval(timer);boot();},12000);
+  window.AETERLINK_APPLY_JP_UI=boot;
+})();
+</script>
