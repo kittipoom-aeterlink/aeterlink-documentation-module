@@ -1,0 +1,138 @@
+<!-- AETERLINK Documentation Module — A4_Draft_Issue_Edit_UI.html -->
+<script id="a4-draft-issue-edit-ui-script">
+(function(){
+  if(window.__AETERLINK_DRAFT_ISSUE_EDIT_UI__) return;
+  window.__AETERLINK_DRAFT_ISSUE_EDIT_UI__=true;
+  var editState={formRecordId:'',documentNo:''};
+  function byId(id){return document.getElementById(id);}
+  function val(id){var e=byId(id);return e?String(e.value||'').trim():'';}
+  function setVal(id,v){var e=byId(id);if(e)e.value=v||'';}
+  function msg(t){var e=byId('prodStatusMsg')||byId('saveStatus');if(e)e.textContent=t;}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function googleReady(){return typeof google!=='undefined'&&google.script&&google.script.run;}
+  function syncHidden(){
+    var map={prodProjectCode:'fProjectCode',prodProjectName:'fProjectName',prodClient:'fClient',prodMainContractor:'fMainContractor',prodRevisionNo:'fRevisionNo',prodStatus:'fStatus'};
+    Object.keys(map).forEach(function(s){var a=byId(s),b=byId(map[s]);if(a&&b)b.value=a.value;});
+    var dt=byId('prodDocType'),ft=byId('fTemplate');if(dt&&ft)ft.value=dt.value;
+  }
+  function collectPayload(status){
+    syncHidden();
+    if(window.AETERLINK_A4_ROW_CONTROLS&&AETERLINK_A4_ROW_CONTROLS.syncRows)AETERLINK_A4_ROW_CONTROLS.syncRows();
+    var data=window.collectFormData?window.collectFormData():{};
+    status=status||'Draft';
+    var issued=String(status).toUpperCase()==='ISSUED';
+    data.Status=status;
+    data.FormRecordId=editState.formRecordId||data.FormRecordId||'';
+    if(!issued){data.DocumentNo='';}
+    return {
+      FormRecordId:editState.formRecordId||'',
+      ProjectCode:data.ProjectCode||val('fProjectCode')||val('prodProjectCode'),
+      TemplateCode:val('fTemplate')||val('prodDocType')||data.TemplateCode||'PJ-WCR-001',
+      DocumentNo:issued?(editState.documentNo||data.DocumentNo||val('fDocumentNo')||''):'',
+      RevisionNo:data.RevisionNo||val('fRevisionNo')||val('prodRevisionNo')||'R00',
+      Status:status,
+      DocumentStatus:status,
+      Data:data,
+      RevisionReason:val('prodRevisionReason'),
+      SubmittedAt:issued?new Date().toISOString():'',
+      LockedAfterPdf:'FALSE',
+      Html:issued&&window.AETERLINK_PROD_NEXT&&AETERLINK_PROD_NEXT.buildPrintReadyHtml?AETERLINK_PROD_NEXT.buildPrintReadyHtml():'',
+      Styles:issued&&window.AETERLINK_PROD_NEXT&&AETERLINK_PROD_NEXT.collectPrintCss?AETERLINK_PROD_NEXT.collectPrintCss():''
+    };
+  }
+  function applySavedRecord(r,status){
+    r=r||{};
+    editState.formRecordId=r.FormRecordId||editState.formRecordId||'';
+    editState.documentNo=r.DocumentNo||editState.documentNo||'';
+    setVal('fDocumentNo',r.DocumentNo||'');
+    setVal('prodDocumentNo',r.DocumentNo||'');
+    setVal('fRevisionNo',r.RevisionNo||r.Revision||val('fRevisionNo')||'R00');
+    setVal('prodRevisionNo',r.RevisionNo||r.Revision||val('prodRevisionNo')||'R00');
+    setVal('fStatus',r.Status||status||'Draft');
+    setVal('prodStatus',r.Status||status||'Draft');
+    var box=byId('prodDocNoBox');if(box)box.textContent=r.DocumentNo||'Not issued';
+    var fr=byId('prodRecordIdBox');if(fr)fr.textContent=editState.formRecordId||'Not saved yet';
+    var pill=byId('prodStatusPill');if(pill)pill.textContent=r.Status||status||'Draft';
+  }
+  function saveStatus(status){
+    if(!googleReady()){msg('Cannot save: google.script.run is not available.');return;}
+    var payload;
+    try{payload=collectPayload(status);}catch(e){msg('Save failed: '+e.message);return;}
+    msg(status==='Issued'?'Issuing document and generating document number...':'Saving draft without document number...');
+    google.script.run.withSuccessHandler(function(res){
+      var rec=res&&res.record?res.record:{};
+      applySavedRecord(rec,status);
+      if(status!=='Issued'){
+        setVal('fDocumentNo','');setVal('prodDocumentNo','');editState.documentNo='';
+        var box=byId('prodDocNoBox');if(box)box.textContent='Not issued';
+        msg('Draft saved. Document No. has not been generated. FormRecordId: '+(editState.formRecordId||'-'));
+      }else{
+        msg('Issued: '+(rec.DocumentNo||'-')+(res&&res.fileUrl?' | PDF saved to Drive':''));
+      }
+      if(window.refreshData)window.refreshData();
+      if(window.previewCurrentForm)setTimeout(window.previewCurrentForm,100);
+    }).withFailureHandler(function(e){msg('Save failed: '+(e&&e.message?e.message:String(e)));}).apiModularSaveFormRecordV2(payload);
+  }
+  function loadForEdit(payload){
+    if(!googleReady())return;
+    msg('Loading record for edit...');
+    google.script.run.withSuccessHandler(function(res){
+      var r=res.record||{},d=res.data||{};
+      editState.formRecordId=r.FormRecordId||'';
+      editState.documentNo=r.DocumentNo||'';
+      setVal('fTemplate',r.TemplateCode||d.TemplateCode||val('fTemplate'));
+      setVal('prodDocType',r.TemplateCode||d.TemplateCode||val('prodDocType'));
+      setVal('fProjectCode',d.ProjectCode||r.ProjectCode||'');setVal('prodProjectCode',d.ProjectCode||r.ProjectCode||'');
+      setVal('fProjectName',d.ProjectName||'');setVal('prodProjectName',d.ProjectName||'');
+      setVal('fClient',d.Client||'');setVal('prodClient',d.Client||'');
+      setVal('fMainContractor',d.MainContractor||'');setVal('prodMainContractor',d.MainContractor||'');
+      setVal('fDocumentNo',r.DocumentNo||d.DocumentNo||'');setVal('prodDocumentNo',r.DocumentNo||d.DocumentNo||'');
+      setVal('fRevisionNo',r.RevisionNo||d.RevisionNo||'R00');setVal('prodRevisionNo',r.RevisionNo||d.RevisionNo||'R00');
+      setVal('fStatus',r.Status||d.Status||'Draft');setVal('prodStatus',r.Status||d.Status||'Draft');
+      var rows=d.ChecklistRows||d.ScopeRows||d.Rows||[];setVal('fRows',JSON.stringify(rows,null,2));
+      applySavedRecord(r,r.Status||'Draft');
+      if(window.showView)window.showView('documents');
+      if(window.previewCurrentForm)setTimeout(window.previewCurrentForm,200);
+      msg('Loaded for edit: '+(r.DocumentNo||r.FormRecordId||'-'));
+    }).withFailureHandler(function(e){msg('Load failed: '+(e&&e.message?e.message:String(e)));}).apiGetFormRecordForEditV2(payload);
+  }
+  function softDelete(payload){
+    if(!googleReady())return;
+    if(!confirm('Delete this record? This will soft-delete it from the WebApp list.'))return;
+    google.script.run.withSuccessHandler(function(){msg('Record deleted.');if(window.AETERLINK_REGISTER_V2)AETERLINK_REGISTER_V2.refresh();if(window.refreshData)window.refreshData();}).withFailureHandler(function(e){msg('Delete failed: '+(e&&e.message?e.message:String(e)));}).apiSoftDeleteFormRecordV2(payload);
+  }
+  function patchActions(){
+    window.prodSaveDraft=function(){saveStatus('Draft');};
+    window.prodIssueSend=function(){saveStatus('Issued');};
+    window.saveCurrentForm=function(){saveStatus(val('prodStatus')||val('fStatus')||'Draft');};
+    window.prodNewDraft=function(){editState.formRecordId='';editState.documentNo='';setVal('fDocumentNo','');setVal('prodDocumentNo','');setVal('fStatus','Draft');setVal('prodStatus','Draft');if(window.loadSampleForTemplate)window.loadSampleForTemplate();var box=byId('prodDocNoBox');if(box)box.textContent='Not issued';var fr=byId('prodRecordIdBox');if(fr)fr.textContent='Not saved yet';};
+  }
+  function patchRegister(){
+    if(!window.AETERLINK_REGISTER_V2||window.AETERLINK_REGISTER_V2.__editPatch)return;
+    var oldRefresh=window.AETERLINK_REGISTER_V2.refresh;
+    window.AETERLINK_REGISTER_V2.refresh=function(){var ret=oldRefresh.apply(this,arguments);setTimeout(addActionButtons,650);setTimeout(addActionButtons,1400);return ret;};
+    window.AETERLINK_REGISTER_V2.__editPatch=true;
+  }
+  function rowPayload(tr){
+    var cells=[].slice.call(tr.cells||[]).map(function(td){return String(td.textContent||'').trim();});
+    return {FormRecordId:cells[0]||'',DocumentNo:cells[3]||cells[0]||'',DocumentId:cells[0]||'',DocumentCode:cells[0]||''};
+  }
+  function addActionButtons(){
+    document.querySelectorAll('#recordsTable table.mod-table,#registerTable table.mod-table').forEach(function(table){
+      if(table.__editButtonsAdded)return;
+      table.__editButtonsAdded=true;
+      var head=table.tHead&&table.tHead.rows[0];if(head){var th=document.createElement('th');th.textContent='Action';head.insertBefore(th,head.firstChild);}
+      [].slice.call(table.tBodies[0].rows).forEach(function(tr){
+        var p=rowPayload(tr);var td=document.createElement('td');td.innerHTML='<button class="mod-link-btn" type="button">Edit</button> <button class="mod-link-btn" type="button">Delete</button>';
+        td.querySelectorAll('button')[0].onclick=function(){loadForEdit(p);};
+        td.querySelectorAll('button')[1].onclick=function(){softDelete(p);};
+        tr.insertBefore(td,tr.firstChild);
+      });
+    });
+  }
+  function boot(){patchActions();patchRegister();addActionButtons();}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,900);setTimeout(boot,2200);});
+  var tm=setInterval(boot,1200);setTimeout(function(){clearInterval(tm);boot();},15000);
+  window.AETERLINK_DRAFT_ISSUE_EDIT_UI={saveDraft:function(){saveStatus('Draft');},issue:function(){saveStatus('Issued');},loadForEdit:loadForEdit,softDelete:softDelete,state:editState};
+})();
+</script>
