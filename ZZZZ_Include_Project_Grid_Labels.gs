@@ -1,6 +1,6 @@
 /**
  * AETERLINK Documentation Module — ZZZZ_Include_Project_Grid_Labels.gs
- * Adds late A4 production patches, Japanese corporate UI, logo, dashboard, and permanent A4 row controls without changing deploy.yml.
+ * Adds late A4 production patches, Japanese corporate UI, logo, dashboard, permanent A4 row controls, and draft/issue edit behavior without changing deploy.yml.
  */
 
 function include(fileName) {
@@ -18,6 +18,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('UI_Official_Logo_Force').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Dashboard_Document_Control').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Dashboard_Project_Filter_Override').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Draft_Issue_Edit_UI').getContent(); } catch (err) {}
   }
   return content;
 }
