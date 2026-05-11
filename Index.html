@@ -765,7 +765,7 @@ async function openEdit(table, id) {
   var headers = (APP.schemas || {})[table] || [];
   var rec = {};
   if (id) {
-    try { var res = await server('apiGetRecord', [table, id]); rec = res.record || {}; }
+    try { var res = await serverT('apiGetRecord', [table, id], 15000); rec = res.record || {}; }
     catch (e) { toast('Could not load record: ' + ((e && e.message) || e)); return; }
   }
   var fields = headers.map(function(h) {
@@ -786,7 +786,7 @@ async function saveEdit(table) {
   var rec = {};
   document.querySelectorAll('#modalBody [data-k]').forEach(function(el) { rec[el.dataset.k] = el.value; });
   try {
-    await server('apiSaveRecord', [table, rec]);
+    await serverT('apiSaveRecord', [table, rec], 20000);
     closeModal();
     if (current === table) await loadTable(table);
     toast('Saved');
@@ -818,7 +818,7 @@ async function quickCreate() {
   var tpl = document.getElementById('qcTpl').value;
   var pc = document.getElementById('qcProject').value;
   try {
-    var res = await server('apiCreateFormRecordFromTemplate', [tpl, pc, data]);
+    var res = await serverT('apiCreateFormRecordFromTemplate', [tpl, pc, data], 25000);
     closeModal();
     current = 'FORM_RECORDS';
     await loadTable('FORM_RECORDS');
@@ -830,7 +830,7 @@ async function quickCreate() {
 async function generatePdf(id) {
   if (!confirm('Generate PDF for this record?')) return;
   try {
-    var res = await server('apiGeneratePdfFromFormRecord', [id]);
+    var res = await serverT('apiGeneratePdfFromFormRecord', [id], 60000);
     if (current === 'FORM_RECORDS') await loadTable('FORM_RECORDS');
     toast('PDF generated');
     if (res.url) window.open(res.url, '_blank');
@@ -839,7 +839,7 @@ async function generatePdf(id) {
 
 async function previewPdf(id) {
   try {
-    var res = await server('apiPreviewHtmlFromFormRecord', [id]);
+    var res = await serverT('apiPreviewHtmlFromFormRecord', [id], 30000);
     openModal('A4 Preview', '<iframe class="preview" srcdoc="' + esc(res.html) + '"></iframe>');
   } catch (e) { toast('Preview failed: ' + ((e && e.message) || e)); }
 }
@@ -848,11 +848,11 @@ async function createSubmittal(documentId) {
   try {
     if (!documentId) throw new Error('DocumentId is empty. Please refresh Document Register and try again.');
     toast('Creating submittal...');
-    var res = await server('apiCreateSubmittal', [documentId]);
+    var res = await serverT('apiCreateSubmittal', [documentId], 20000);
     if (!res) {
       // Older deployed Code.gs versions may return null. Retry once after a short delay.
       await new Promise(function(r){ setTimeout(r, 700); });
-      res = await server('apiCreateSubmittal', [documentId]);
+      res = await serverT('apiCreateSubmittal', [documentId], 20000);
     }
     if (!res) throw new Error('Server returned empty response. Please deploy Code.gs V12 as New Version.');
     var sub = res.submittal || res.record || res;
@@ -1034,7 +1034,7 @@ async function loadPreview() {
   previewEl.style.pointerEvents = 'none';
   try {
     var projectCode = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
-    var html = await server('apiPreviewHtml', [currentTemplate.TemplateCode, projectCode, JSON.stringify(currentData || {}), { editable: true, record: currentRecord || {} }]);
+    var html = await serverT('apiPreviewHtml', [currentTemplate.TemplateCode, projectCode, JSON.stringify(currentData || {}), { editable: true, record: currentRecord || {} }], 30000);
     previewEl.innerHTML = html;
     bindA4Inputs();
     updateIssuePanel();
@@ -1117,7 +1117,7 @@ async function saveDraft() {
   var data = collectA4();
   try {
     toast('Saving draft...');
-    var res = await server('apiSaveDraftV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
+    var res = await serverT('apiSaveDraftV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()], 25000);
     currentRecord = res.record || res.formRecord || currentRecord;
     currentData = data;
     updateIssuePanel();
@@ -1138,7 +1138,7 @@ async function issueDoc() {
       return;
     }
     toast('Issuing document...');
-    var res = await server('apiIssueDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
+    var res = await serverT('apiIssueDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()], 30000);
     currentRecord = res.record || res.formRecord || currentRecord;
     currentData = data;
     updateIssuePanel();
@@ -1153,7 +1153,7 @@ async function startRevision() {
   var reason = document.getElementById('revisionReason').value.trim();
   if (!reason) { toast('Revision reason is required'); return; }
   try {
-    var res = await server('apiStartRevisionV19', [currentRecord.FormRecordId, reason]);
+    var res = await serverT('apiStartRevisionV19', [currentRecord.FormRecordId, reason], 25000);
     currentRecord = res.record || currentRecord;
     currentData = JSON.parse(currentRecord.DataJson || '{}');
     updateIssuePanel();
@@ -1166,7 +1166,7 @@ async function deleteDraft() {
   if (!currentRecord || !currentRecord.FormRecordId) { newDraft(); return; }
   if (!confirm('Move this form record to Recycle Bin?')) return;
   try {
-    await server('apiSoftDeleteFormRecordV19', [currentRecord.FormRecordId]);
+    await serverT('apiSoftDeleteFormRecordV19', [currentRecord.FormRecordId], 20000);
     newDraft();
     toast('Deleted');
   } catch (e) { toast('Delete failed: ' + ((e && e.message) || e)); }
@@ -1198,7 +1198,7 @@ function simpleA4Records(rows) {
 
 async function openA4Record(id) {
   try {
-    var res = await server('apiGetRecord', ['FORM_RECORDS', id]);
+    var res = await serverT('apiGetRecord', ['FORM_RECORDS', id], 15000);
     currentRecord = res.record;
     currentData = JSON.parse(currentRecord.DataJson || '{}');
     var tplCode = currentRecord.TemplateCode;
@@ -1218,7 +1218,7 @@ async function validateDocV19(showOk) {
   if (!currentTemplate) { toast('Select a template first'); return null; }
   var data = collectA4();
   try {
-    var res = await server('apiValidateDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
+    var res = await serverT('apiValidateDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()], 20000);
     if (showOk !== false) renderV19ReportModal('V19 Validation Result', res);
     if (!res.ok) toast('Validation found required issues');
     else if (res.warnings && res.warnings.length) toast('Validation passed with warnings');
@@ -1234,7 +1234,7 @@ async function layoutCheckV19() {
   if (!currentTemplate) { toast('Select a template first'); return; }
   var data = collectA4();
   try {
-    var res = await server('apiA4LayoutQaV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()]);
+    var res = await serverT('apiA4LayoutQaV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), currentFormRecordIdV19()], 30000);
     renderV19ReportModal('V19 A4 Layout Check', res);
     toast('Layout check completed');
   } catch (e) { toast('Layout check failed: ' + ((e && e.message) || e)); }
@@ -1245,7 +1245,7 @@ async function aiAssistV19() {
   var data = collectA4();
   try {
     toast('AI Assist reviewing document…');
-    var res = await server('apiAIAssistDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), 'review']);
+    var res = await serverT('apiAIAssistDocumentV19', [currentTemplate.TemplateCode, currentProjectCodeV19(), JSON.stringify(data), 'review'], 60000);
     renderV19AssistModal(res);
     toast('AI Assist completed');
   } catch (e) { toast('AI Assist failed: ' + ((e && e.message) || e)); }
@@ -1460,29 +1460,33 @@ function a4PickPhoto(idx) {
     if (!file) return;
     var reader = new FileReader();
     reader.onload = function() {
-      var data = collectA4();
-      var arr = parseArr(data.PhotoItemsJson);
-      while (arr.length <= idx) arr.push({ ItemNo: '', Description: '', Note: '', ImageKey: '', ImageData: '' });
-      arr[idx].ImageData = String(reader.result || '');
-      arr[idx].ImageKey = '';
-      data.PhotoItemsJson = JSON.stringify(arr);
-      currentData = data;
-      setDirty(true);
-      loadPreview();
+      try {
+        var data = collectA4();
+        var arr = parseArr(data.PhotoItemsJson);
+        while (arr.length <= idx) arr.push({ ItemNo: '', Description: '', Note: '', ImageKey: '', ImageData: '' });
+        arr[idx].ImageData = String(reader.result || '');
+        arr[idx].ImageKey = '';
+        data.PhotoItemsJson = JSON.stringify(arr);
+        currentData = data;
+        setDirty(true);
+        loadPreview();
+      } catch (e) {
+        toast('Photo load failed: ' + ((e && e.message) || e));
+      }
     };
     reader.readAsDataURL(file);
   };
   input.click();
 }
 
-function a4ClearPhoto(idx) {
+async function a4ClearPhoto(idx) {
   var data = collectA4();
   var arr = parseArr(data.PhotoItemsJson);
   if (arr[idx]) { arr[idx].ImageData = ''; arr[idx].ImageKey = ''; }
   data.PhotoItemsJson = JSON.stringify(arr);
   currentData = data;
   setDirty(true);
-  loadPreview();
+  await loadPreview();
 }
 
 /* ─── Utilities ──────────────────────────────────────────── */
