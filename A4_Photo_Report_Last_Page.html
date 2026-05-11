@@ -1,8 +1,13 @@
 <!-- AETERLINK Documentation Module — A4_Photo_Report_Last_Page.html -->
 <script id="a4-photo-report-last-page-script">
 (function(){
+  if(window.__AETERLINK_PHOTO_REPORT_LAST_PAGE_STABLE_V2__) return;
+  window.__AETERLINK_PHOTO_REPORT_LAST_PAGE_STABLE_V2__ = true;
+
   var moving = false;
   var scheduled = null;
+  var bootTries = 0;
+  var bootTimer = null;
   function roots(){
     var list = [].slice.call(document.querySelectorAll('#a4Preview .a4-print-area,#a4Preview #a4PrintArea,#a4CheckOutput .a4-print-area,#a4CheckOutput #a4PrintArea,.a4-print-area,#a4PrintArea'));
     return list.filter(function(root,idx,arr){return root && arr.indexOf(root)===idx;});
@@ -63,7 +68,7 @@
     return changed;
   }
   function movePhotoReportToEnd(){
-    if(moving) return;
+    if(moving) return false;
     moving=true;
     try{
       var changed=false;
@@ -81,8 +86,7 @@
       var old=window.AETERLINK_REPAGINATE_A4;
       window.AETERLINK_REPAGINATE_A4=function(){
         var ret=old.apply(this,arguments);
-        schedule(150);
-        schedule(450);
+        schedule(160);
         return ret;
       };
       window.AETERLINK_REPAGINATE_A4.__photoLastPatch=true;
@@ -93,8 +97,7 @@
       var old=window.previewCurrentForm;
       window.previewCurrentForm=function(){
         var ret=old.apply(this,arguments);
-        schedule(250);
-        schedule(650);
+        schedule(180);
         return ret;
       };
       window.previewCurrentForm.__photoLastPatch=true;
@@ -115,7 +118,6 @@
         window.AETERLINK_PHOTO_REPORT.addPhotoReport=function(){
           var ret=oldAdd.apply(this,arguments);
           schedule(100);
-          schedule(350);
           return ret;
         };
       }
@@ -123,19 +125,28 @@
     }
   }
   function installObserver(){
-    if(window.__a4PhotoReportLastObserver) return;
+    if(!document.body || window.__a4PhotoReportLastObserver) return;
     window.__a4PhotoReportLastObserver=new MutationObserver(function(mutations){
       if(moving) return;
       for(var i=0;i<mutations.length;i++){
-        var nodes=[].slice.call(mutations[i].addedNodes||[]).concat([].slice.call(mutations[i].removedNodes||[]));
-        if(nodes.some(function(n){return n&&n.nodeType===1&&((n.classList&&n.classList.contains('a4-page'))||(n.querySelector&&n.querySelector('.a4-photo-grid,.a4-page')));})){schedule(180);return;}
+        var nodes=[].slice.call(mutations[i].addedNodes||[]);
+        if(nodes.some(function(n){return n&&n.nodeType===1&&((n.classList&&n.classList.contains('a4-page'))||(n.querySelector&&n.querySelector('.a4-photo-grid')));})){schedule(180);return;}
       }
     });
-    window.__a4PhotoReportLastObserver.observe(document.body,{childList:true,subtree:true});
+    var preview=document.getElementById('a4Preview')||document.getElementById('a4CheckOutput')||document.body;
+    window.__a4PhotoReportLastObserver.observe(preview,{childList:true,subtree:true});
   }
-  function boot(){patchRepaginate();patchPreview();patchPhotoManager();installObserver();schedule(250);}
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,300);setTimeout(boot,1200);setTimeout(boot,2500);});
-  var timer=setInterval(boot,1200);setTimeout(function(){clearInterval(timer);boot();},15000);
+  function boot(){patchRepaginate();patchPreview();patchPhotoManager();installObserver();schedule(180);}
+  function scheduleBoot(delay){
+    clearTimeout(bootTimer);
+    bootTimer=setTimeout(function(){
+      boot();
+      bootTries++;
+      if(bootTries<6 && (!window.previewCurrentForm || !window.AETERLINK_PHOTO_REPORT)) scheduleBoot(500);
+    }, delay==null?0:delay);
+  }
+  document.addEventListener('DOMContentLoaded',function(){scheduleBoot(0);});
+  window.addEventListener('load',function(){scheduleBoot(0);});
   window.AETERLINK_MOVE_PHOTO_REPORT_LAST=movePhotoReportToEnd;
 })();
 </script>
