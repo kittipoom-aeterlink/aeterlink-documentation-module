@@ -17,6 +17,8 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Disable_Recursive_Pagination').getContent(); } catch (err) {}
   }
   if (fileName === 'Client_App') {
+    // Must load before any logo patch because UI_Brand_Logo_Clean may inject PNG data URLs in older deployments.
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('UI_DataUrl_Image_Guard').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Table_Event_Guard').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('UI_Japanese_Corporate').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('UI_Brand_Logo_Clean').getContent(); } catch (err) {}
