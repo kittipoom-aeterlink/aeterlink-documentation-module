@@ -4,8 +4,9 @@
  *
  * IMPORTANT:
  * - Old stacked A4 runtime/hotfix modules are intentionally NOT loaded.
- * - A4_Runtime_Clean_V2 is the only active A4 runtime for Add/Delete/Pagination.
- * - Do not load A4_Runtime_Fast_Final, Dedupe, Pagination, Row_Pagination, or Add Row guards together.
+ * - A4_Runtime_Clean_V3 is the only active A4 runtime for Add/Delete/Pagination.
+ * - V3 builds table HTML itself to avoid legacy renderer Add Row controls.
+ * - Do not load A4_Runtime_Clean_V2, A4_Runtime_Fast_Final, Dedupe, Pagination, Row_Pagination, or Add Row guards together.
  */
 
 function include(fileName) {
@@ -25,9 +26,9 @@ function include(fileName) {
       '</style>',
       '<script id="a4-overrides-final-safe-inline-script">',
       '(function(){',
-      'if(window.__AETERLINK_A4_OVERRIDES_FINAL_CLEAN_SAFE_V1__)return;window.__AETERLINK_A4_OVERRIDES_FINAL_CLEAN_SAFE_V1__=true;',
+      'if(window.__AETERLINK_A4_OVERRIDES_FINAL_CLEAN_SAFE_V2__)return;window.__AETERLINK_A4_OVERRIDES_FINAL_CLEAN_SAFE_V2__=true;',
       'function logoSvg(){return "<svg class=\\\"a4-logo-img\\\" viewBox=\\\"0 0 1200 165\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\" preserveAspectRatio=\\\"xMidYMid meet\\\" aria-label=\\\"AETERLINK Logo\\\"><g fill=\\\"#0b86c6\\\"><path d=\\\"M25 135c52-32 78-68 88-134h42c-3 42-26 66-70 86-21 10-34 25-45 54-9 20-34 18-15-6z\\\"/><circle cx=\\\"190\\\" cy=\\\"123\\\" r=\\\"38\\\"/><text x=\\\"285\\\" y=\\\"122\\\" font-family=\\\"Arial,Helvetica,sans-serif\\\" font-weight=\\\"900\\\" font-size=\\\"112\\\" letter-spacing=\\\"18\\\">AETERLINK</text></g></svg>";}',
-      'function patchLogo(){var rr=window.AETERLINK_A4_RENDERER;if(!rr||rr.__aeterlinkLogoCleanInterceptV1)return;rr.__aeterlinkLogoCleanInterceptV1=true;rr.logoSvg=logoSvg;}',
+      'function patchLogo(){var rr=window.AETERLINK_A4_RENDERER;if(!rr||rr.__aeterlinkLogoCleanInterceptV2)return;rr.__aeterlinkLogoCleanInterceptV2=true;rr.logoSvg=logoSvg;}',
       'document.addEventListener("DOMContentLoaded",function(){setTimeout(patchLogo,0);setTimeout(patchLogo,300);});window.addEventListener("load",function(){setTimeout(patchLogo,0);});setTimeout(patchLogo,250);',
       '})();',
       '</script>'
@@ -40,7 +41,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Project_Grid_Labels').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Project_Context_Preserve').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Photo_Report_Last_Page').getContent(); } catch (err) {}
-    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Clean_V2').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Clean_V3').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
