@@ -7,291 +7,59 @@
 <style id="a4-row-controls-restore-style">
   #a4Preview .a4-row-control-bar,
   #a4CheckOutput .a4-row-control-bar,
-  .a4-print-area .a4-row-control-bar{
-    display:flex!important;
-    visibility:visible!important;
-    gap:6px!important;
-    align-items:center!important;
-    justify-content:flex-start!important;
-    flex-wrap:wrap!important;
-    margin:0 0 1.2mm 0!important;
-    min-height:18px!important;
-    position:relative!important;
-    z-index:20!important;
-  }
-  .a4-row-control-bar button{
-    border:1px solid #adc3d2!important;
-    background:#fff!important;
-    color:#07385b!important;
-    border-radius:6px!important;
-    padding:3px 8px!important;
-    font-size:7pt!important;
-    font-weight:900!important;
-    cursor:pointer!important;
-    line-height:1.2!important;
-    box-shadow:0 1px 3px rgba(7,56,91,.08)!important;
-  }
+  .a4-print-area .a4-row-control-bar{display:flex!important;visibility:visible!important;gap:6px!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:wrap!important;margin:0 0 1.2mm 0!important;min-height:18px!important;position:relative!important;z-index:20!important;}
+  .a4-row-control-bar button{border:1px solid #adc3d2!important;background:#fff!important;color:#07385b!important;border-radius:6px!important;padding:3px 8px!important;font-size:7pt!important;font-weight:900!important;cursor:pointer!important;line-height:1.2!important;box-shadow:0 1px 3px rgba(7,56,91,.08)!important;}
   .a4-row-control-bar button:hover{background:#eaf3f8!important;}
-  .a4-row-delete-cell,
-  .prod-row-delete-cell{position:relative!important;padding-left:5mm!important;}
-  .a4-row-delete-btn{
-    position:absolute!important;
-    left:1mm!important;
-    top:50%!important;
-    transform:translateY(-50%)!important;
-    width:3.4mm!important;
-    height:3.4mm!important;
-    min-width:3.4mm!important;
-    line-height:2.8mm!important;
-    padding:0!important;
-    border:1px solid #d15b5b!important;
-    background:#fff!important;
-    color:#a91d1d!important;
-    border-radius:50%!important;
-    font-size:8px!important;
-    font-weight:900!important;
-    cursor:pointer!important;
-    text-align:center!important;
-    z-index:25!important;
-  }
+  .a4-row-delete-cell,.prod-row-delete-cell{position:relative!important;padding-left:5mm!important;}
+  .a4-row-item-value{display:block!important;min-height:10px!important;outline:none!important;cursor:text!important;}
+  .a4-row-item-value:focus{background:#fffbe8!important;box-shadow:inset 0 0 0 1px #d7a540!important;}
+  .a4-row-delete-btn{position:absolute!important;left:1mm!important;top:50%!important;transform:translateY(-50%)!important;width:3.4mm!important;height:3.4mm!important;min-width:3.4mm!important;line-height:2.8mm!important;padding:0!important;border:1px solid #d15b5b!important;background:#fff!important;color:#a91d1d!important;border-radius:50%!important;font-size:8px!important;font-weight:900!important;cursor:pointer!important;text-align:center!important;z-index:25!important;}
   .a4-row-delete-btn:hover{background:#fff1f1!important;border-color:#a91d1d!important;}
-  @media print{
-    .a4-row-control-bar,.a4-row-delete-btn{display:none!important;visibility:hidden!important;}
-    .a4-row-delete-cell,.prod-row-delete-cell{padding-left:1mm!important;}
-  }
+  @media print{.a4-row-control-bar,.a4-row-delete-btn{display:none!important;visibility:hidden!important;}.a4-row-delete-cell,.prod-row-delete-cell{padding-left:1mm!important;}.a4-row-item-value{display:inline!important;}}
 </style>
 <script id="a4-row-controls-restore-script">
 (function(){
-  if(window.__AETERLINK_A4_ROW_CONTROLS_RESTORE_V2__) return;
-  window.__AETERLINK_A4_ROW_CONTROLS_RESTORE_V2__ = true;
-
+  window.__AETERLINK_A4_ROW_CONTROLS_RESTORE_V3__ = true;
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-  function roots(){
-    return [].slice.call(document.querySelectorAll('#a4Preview,#a4CheckOutput,.a4-print-area,#a4PrintArea')).filter(function(r,i,a){return r&&a.indexOf(r)===i;});
-  }
-  function isDataTable(table){
-    if(!table || !table.tBodies || !table.tBodies.length) return false;
-    if(table.classList.contains('a4-info-table')) return false;
-    if(table.classList.contains('a4-project-grid')) return false;
-    if(table.closest('.a4-photo-block')) return false;
-    if(table.closest('.mod-table-wrap')) return false;
-    if(!table.closest('.a4-page')) return false;
-    return true;
-  }
-  function dataTables(root){
-    root=root||document;
-    return [].slice.call(root.querySelectorAll('.a4-page .a4-content table')).filter(isDataTable);
-  }
-  function headerLabels(table){
-    var row=table.tHead&&table.tHead.rows&&table.tHead.rows[0];
-    if(!row) return [];
-    return [].slice.call(row.cells).map(function(th){return String(th.textContent||'').trim();});
-  }
-  function statusCell(value){
-    var opts=['','Not Started','In Progress','Pending','Done','Issue','N/A','Open','Closed','Approved','Submitted'];
-    var v=String(value==null?'Pending':value).trim();
-    var html='<select class="a4-status-select">';
-    opts.forEach(function(o){html+='<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+(o?esc(o):'-')+'</option>';});
-    html+='</select><span class="a4-status-print">'+esc(v)+'</span>';
-    return html;
-  }
-  function markEditable(td){
-    if(!td) return;
+  function roots(){return [].slice.call(document.querySelectorAll('#a4Preview,#a4CheckOutput,.a4-print-area,#a4PrintArea')).filter(function(r,i,a){return r&&a.indexOf(r)===i;});}
+  function isDataTable(table){if(!table||!table.tBodies||!table.tBodies.length)return false;if(table.classList.contains('a4-info-table'))return false;if(table.classList.contains('a4-project-grid'))return false;if(table.closest('.a4-photo-block'))return false;if(table.closest('.mod-table-wrap'))return false;if(!table.closest('.a4-page'))return false;return true;}
+  function dataTables(root){return [].slice.call((root||document).querySelectorAll('.a4-page .a4-content table')).filter(isDataTable);}
+  function headerLabels(table){var row=table.tHead&&table.tHead.rows&&table.tHead.rows[0];if(!row)return[];return [].slice.call(row.cells).map(function(th){return String(th.textContent||'').trim();});}
+  function statusCell(value){var opts=['','Not Started','In Progress','Pending','Done','Issue','N/A','Open','Closed','Approved','Submitted'];var v=String(value==null?'Pending':value).trim();var html='<select class="a4-status-select">';opts.forEach(function(o){html+='<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+(o?esc(o):'-')+'</option>';});return html+'</select><span class="a4-status-print">'+esc(v)+'</span>';}
+  function ensureEditableTextSpan(td){
+    if(!td)return;
+    if(td.querySelector('select,img,input,textarea'))return;
+    var btn=td.querySelector('.a4-row-delete-btn');
+    var span=td.querySelector('.a4-row-item-value');
+    if(!span){
+      var current='';
+      [].slice.call(td.childNodes).forEach(function(n){if(n!==btn)current+=n.textContent||'';});
+      [].slice.call(td.childNodes).forEach(function(n){if(n!==btn)td.removeChild(n);});
+      if(btn)td.appendChild(btn);
+      span=document.createElement('span');span.className='a4-row-item-value';span.contentEditable='true';span.spellcheck=false;span.textContent=String(current||'').trim();td.appendChild(span);
+    }else{span.contentEditable='true';span.spellcheck=false;}
+    td.contentEditable='false';
     td.classList.add('a4-editable');
-    if(!td.querySelector('select,img,button:not(.a4-row-delete-btn),input,textarea')){
-      td.contentEditable='true';
-      td.spellcheck=false;
-    }
   }
-  function updateStatusPrint(select){
-    var td=select && select.closest ? select.closest('td') : null;
-    if(!td) return;
-    var sp=td.querySelector('.a4-status-print');
-    if(!sp){sp=document.createElement('span');sp.className='a4-status-print';td.appendChild(sp);}
-    sp.textContent=select.value || '';
-  }
-  function deleteRow(btn){
-    var tr=btn && btn.closest ? btn.closest('tr') : null;
-    if(!tr || !tr.parentNode) return;
-    var table=tr.closest('table');
-    tr.parentNode.removeChild(tr);
-    syncRowsFromPreviewTable();
-    normalize(table && table.closest('.a4-page') || document);
-    repaginateSoon();
-  }
-  function ensureRowDeleteButtons(table){
-    if(!isDataTable(table)) return;
-    [].slice.call(table.tBodies[0].rows).forEach(function(tr){
-      var first=tr.cells&&tr.cells[0];
-      if(!first) return;
-      first.classList.add('a4-row-delete-cell');
-      first.classList.add('prod-row-delete-cell');
-      if(!first.querySelector('.a4-row-delete-btn')){
-        var btn=document.createElement('button');
-        btn.type='button';
-        btn.className='a4-row-delete-btn prod-row-delete a4-no-print';
-        btn.title='Delete this row';
-        btn.setAttribute('aria-label','Delete this row');
-        btn.setAttribute('contenteditable','false');
-        btn.textContent='×';
-        btn.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();deleteRow(btn);});
-        first.insertBefore(btn,first.firstChild);
-      }
-      [].slice.call(tr.cells).forEach(markEditable);
-    });
-  }
+  function markEditable(td){if(!td)return;td.classList.add('a4-editable');if(td.querySelector('select,img,input,textarea')){td.contentEditable='false';return;}ensureEditableTextSpan(td);}
+  function updateStatusPrint(select){var td=select&&select.closest?select.closest('td'):null;if(!td)return;var sp=td.querySelector('.a4-status-print');if(!sp){sp=document.createElement('span');sp.className='a4-status-print';td.appendChild(sp);}sp.textContent=select.value||'';}
+  function deleteRow(btn){var tr=btn&&btn.closest?btn.closest('tr'):null;if(!tr||!tr.parentNode)return;var table=tr.closest('table');tr.parentNode.removeChild(tr);syncRowsFromPreviewTable();normalize(table&&table.closest('.a4-page')||document);repaginateSoon();}
+  function ensureRowDeleteButtons(table){if(!isDataTable(table))return;[].slice.call(table.tBodies[0].rows).forEach(function(tr){var first=tr.cells&&tr.cells[0];if(!first)return;first.classList.add('a4-row-delete-cell','prod-row-delete-cell');var btn=first.querySelector('.a4-row-delete-btn');if(!btn){btn=document.createElement('button');btn.type='button';btn.className='a4-row-delete-btn prod-row-delete a4-no-print';btn.title='Delete this row';btn.setAttribute('aria-label','Delete this row');btn.setAttribute('contenteditable','false');btn.textContent='×';btn.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();deleteRow(btn);});first.insertBefore(btn,first.firstChild);}markEditable(first);[].slice.call(tr.cells).slice(1).forEach(markEditable);});}
   function controlBarHtml(){return '<button type="button" class="a4-add-row-btn">+ Add Row</button>';}
-  function findControlBar(table){
-    var prev=table.previousElementSibling;
-    if(prev && prev.classList && prev.classList.contains('a4-row-control-bar')) return prev;
-    var next=table.nextElementSibling;
-    if(next && next.classList && next.classList.contains('a4-row-control-bar')) return next;
-    return null;
-  }
-  function ensureControlBar(table){
-    if(!isDataTable(table)) return;
-    var bar=findControlBar(table);
-    if(!bar){
-      bar=document.createElement('div');
-      bar.className='a4-row-control-bar a4-no-print';
-      bar.innerHTML=controlBarHtml();
-      table.parentNode.insertBefore(bar,table);
-    }else if(bar.nextElementSibling!==table){
-      table.parentNode.insertBefore(bar,table);
-    }
-    bar.style.display='flex';
-    bar.style.visibility='visible';
-    var btn=bar.querySelector('.a4-add-row-btn');
-    if(!btn){bar.innerHTML=controlBarHtml();btn=bar.querySelector('.a4-add-row-btn');}
-    if(!btn.__a4AddRowBound){
-      btn.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();addRow(table);});
-      btn.__a4AddRowBound=true;
-    }
-  }
-  function addRow(table){
-    if(!table || !isDataTable(table)) return;
-    var labels=headerLabels(table);
-    var cols=labels.length || (table.tBodies[0].rows[0] ? table.tBodies[0].rows[0].cells.length : 1);
-    var tr=table.tBodies[0].insertRow(-1);
-    for(var i=0;i<cols;i++){
-      var td=tr.insertCell(-1);
-      var label=labels[i]||'';
-      if(/status/i.test(label)){
-        td.innerHTML=statusCell('Pending');
-        td.contentEditable='false';
-      }else{
-        td.textContent='';
-        markEditable(td);
-      }
-    }
-    ensureRowDeleteButtons(table);
-    ensureControlBar(table);
-    syncRowsFromPreviewTable();
-    repaginateSoon();
-  }
-  function normalize(root){
-    dataTables(root||document).forEach(function(table){
-      ensureControlBar(table);
-      ensureRowDeleteButtons(table);
-    });
-  }
-  function cleanCellText(td){
-    var select=td.querySelector('select');
-    if(select) return String(select.value||'').trim();
-    var clone=td.cloneNode(true);
-    clone.querySelectorAll('.a4-row-delete-btn,.prod-row-delete,.a4-no-print,button,input,select,.a4-status-print').forEach(function(n){n.remove();});
-    return String(clone.textContent||'').trim();
-  }
-  function keyFromHeader(label,index){
-    var s=String(label||'').trim();
-    if(/work\s*description/i.test(s)) return 'WorkDescription';
-    if(/^qty\.?$/i.test(s)) return 'Qty';
-    if(/^remarks?$/i.test(s)) return 'Remarks';
-    if(/^no\.?$/i.test(s)) return 'No';
-    if(!s) return 'Col'+index;
-    return s.replace(/[^A-Za-z0-9]+/g,'');
-  }
-  function syncRowsFromPreviewTable(){
-    var fRows=document.getElementById('fRows');
-    if(!fRows) return;
-    var table=document.querySelector('#a4Preview table.a4-scope-table,#a4Preview .a4-page .a4-content table');
-    if(!isDataTable(table)) return;
-    var headers=headerLabels(table);
-    var rows=[].slice.call(table.tBodies[0].rows).map(function(tr){
-      var obj={};
-      [].slice.call(tr.cells).forEach(function(td,i){obj[keyFromHeader(headers[i],i)]=cleanCellText(td);});
-      return obj;
-    });
-    try{fRows.value=JSON.stringify(rows,null,2);}catch(e){}
-  }
-  function repaginateSoon(){
-    setTimeout(function(){
-      if(window.AETERLINK_REPAGINATE_A4) window.AETERLINK_REPAGINATE_A4();
-      if(window.AETERLINK_UPDATE_A4_FOOTERS) window.AETERLINK_UPDATE_A4_FOOTERS();
-      setTimeout(run,90);
-    },60);
-  }
-  function patchRenderer(){
-    if(!window.AETERLINK_A4_RENDERER) return;
-    window.AETERLINK_A4_RENDERER.addRow=function(btn){
-      var table=btn && btn.closest ? btn.closest('.a4-content').querySelector('table') : null;
-      if(!isDataTable(table)) table=document.querySelector('#a4Preview .a4-page .a4-content table');
-      addRow(table);
-    };
-    window.AETERLINK_A4_RENDERER.deleteRow=function(btn){deleteRow(btn);};
-    window.AETERLINK_A4_RENDERER.deleteLastRow=function(btn){
-      var table=btn && btn.closest ? btn.closest('.a4-content').querySelector('table') : null;
-      if(!isDataTable(table)) return;
-      var body=table.tBodies[0];
-      if(body && body.rows.length) body.deleteRow(body.rows.length-1);
-      syncRowsFromPreviewTable();
-      normalize(table.closest('.a4-page')||document);
-      repaginateSoon();
-    };
-  }
-  function patchPreview(){
-    if(window.previewCurrentForm && !window.previewCurrentForm.__rowControlsRestorePatchV2){
-      var old=window.previewCurrentForm;
-      window.previewCurrentForm=function(){
-        var ret=old.apply(this,arguments);
-        setTimeout(run,80);
-        setTimeout(run,250);
-        setTimeout(run,600);
-        return ret;
-      };
-      window.previewCurrentForm.__rowControlsRestorePatchV2=true;
-    }
-  }
-  function run(){
-    patchRenderer();
-    patchPreview();
-    roots().forEach(normalize);
-  }
-  document.addEventListener('change',function(ev){
-    if(ev.target && ev.target.classList && ev.target.classList.contains('a4-status-select')){
-      updateStatusPrint(ev.target);
-      syncRowsFromPreviewTable();
-    }
-  },true);
-  document.addEventListener('input',function(ev){
-    if(ev.target && ev.target.closest && ev.target.closest('#a4Preview')) syncRowsFromPreviewTable();
-  },true);
-  var scheduled=null;
-  function schedule(){clearTimeout(scheduled);scheduled=setTimeout(run,120);}
-  function installObserver(){
-    if(!document.body){setTimeout(installObserver,50);return;}
-    if(window.__AETERLINK_ROW_CONTROL_OBSERVER_V2__) return;
-    window.__AETERLINK_ROW_CONTROL_OBSERVER_V2__=new MutationObserver(function(muts){
-      for(var i=0;i<muts.length;i++){
-        var nodes=[].slice.call(muts[i].addedNodes||[]).concat([].slice.call(muts[i].removedNodes||[]));
-        if(nodes.some(function(n){return n&&n.nodeType===1&&((n.matches&&n.matches('.a4-page,table,.a4-row-control-bar'))||(n.querySelector&&n.querySelector('.a4-page,table,.a4-row-control-bar')));})){schedule();return;}
-      }
-    });
-    window.__AETERLINK_ROW_CONTROL_OBSERVER_V2__.observe(document.body,{childList:true,subtree:true});
-  }
-  document.addEventListener('DOMContentLoaded',function(){installObserver();setTimeout(run,150);setTimeout(run,700);setTimeout(run,1800);});
-  installObserver();
-  setInterval(run,1200);
-  window.AETERLINK_A4_ROW_CONTROLS={run:run,addRow:addRow,deleteRow:deleteRow,syncRows:syncRowsFromPreviewTable};
+  function findControlBar(table){var prev=table.previousElementSibling;if(prev&&prev.classList&&prev.classList.contains('a4-row-control-bar'))return prev;var next=table.nextElementSibling;if(next&&next.classList&&next.classList.contains('a4-row-control-bar'))return next;return null;}
+  function ensureControlBar(table){if(!isDataTable(table))return;var bar=findControlBar(table);if(!bar){bar=document.createElement('div');bar.className='a4-row-control-bar a4-no-print';bar.innerHTML=controlBarHtml();table.parentNode.insertBefore(bar,table);}else if(bar.nextElementSibling!==table){table.parentNode.insertBefore(bar,table);}bar.style.display='flex';bar.style.visibility='visible';var btn=bar.querySelector('.a4-add-row-btn');if(!btn){bar.innerHTML=controlBarHtml();btn=bar.querySelector('.a4-add-row-btn');}if(!btn.__a4AddRowBound){btn.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();addRow(table);});btn.__a4AddRowBound=true;}}
+  function addRow(table){if(!table||!isDataTable(table))return;var labels=headerLabels(table);var cols=labels.length||(table.tBodies[0].rows[0]?table.tBodies[0].rows[0].cells.length:1);var tr=table.tBodies[0].insertRow(-1);for(var i=0;i<cols;i++){var td=tr.insertCell(-1);var label=labels[i]||'';if(/status/i.test(label)){td.innerHTML=statusCell('Pending');td.contentEditable='false';}else{td.innerHTML='<span class="a4-row-item-value" contenteditable="true" spellcheck="false"></span>';td.contentEditable='false';td.classList.add('a4-editable');}}ensureRowDeleteButtons(table);ensureControlBar(table);syncRowsFromPreviewTable();repaginateSoon();}
+  function normalize(root){dataTables(root||document).forEach(function(table){ensureControlBar(table);ensureRowDeleteButtons(table);});}
+  function cleanCellText(td){var select=td.querySelector('select');if(select)return String(select.value||'').trim();var span=td.querySelector('.a4-row-item-value');if(span)return String(span.textContent||'').trim();var clone=td.cloneNode(true);clone.querySelectorAll('.a4-row-delete-btn,.prod-row-delete,.a4-no-print,button,input,select,.a4-status-print').forEach(function(n){n.remove();});return String(clone.textContent||'').trim();}
+  function keyFromHeader(label,index){var s=String(label||'').trim();if(/^item$/i.test(s))return'Item';if(/work\s*description/i.test(s))return'WorkDescription';if(/^qty\.?$/i.test(s))return'Qty';if(/^unit$/i.test(s))return'Unit';if(/^status$/i.test(s))return'Status';if(/^remarks?$/i.test(s))return'Remarks';if(/^no\.?$/i.test(s))return'No';if(!s)return'Col'+index;return s.replace(/[^A-Za-z0-9]+/g,'');}
+  function syncRowsFromPreviewTable(){var fRows=document.getElementById('fRows');if(!fRows)return;var table=document.querySelector('#a4Preview table.a4-scope-table,#a4Preview .a4-page .a4-content table');if(!isDataTable(table))return;var headers=headerLabels(table);var rows=[].slice.call(table.tBodies[0].rows).map(function(tr){var obj={};[].slice.call(tr.cells).forEach(function(td,i){obj[keyFromHeader(headers[i],i)]=cleanCellText(td);});return obj;});try{fRows.value=JSON.stringify(rows,null,2);}catch(e){}}
+  function repaginateSoon(){setTimeout(function(){if(window.AETERLINK_UPDATE_A4_FOOTERS)window.AETERLINK_UPDATE_A4_FOOTERS();setTimeout(run,90);},60);}
+  function patchRenderer(){if(!window.AETERLINK_A4_RENDERER)return;window.AETERLINK_A4_RENDERER.addRow=function(btn){var table=btn&&btn.closest?btn.closest('.a4-content').querySelector('table'):null;if(!isDataTable(table))table=document.querySelector('#a4Preview .a4-page .a4-content table');addRow(table);};window.AETERLINK_A4_RENDERER.deleteRow=function(btn){deleteRow(btn);};}
+  function patchPreview(){if(window.previewCurrentForm&&!window.previewCurrentForm.__rowControlsRestorePatchV3){var old=window.previewCurrentForm;window.previewCurrentForm=function(){var ret=old.apply(this,arguments);setTimeout(run,80);setTimeout(run,250);setTimeout(run,600);return ret;};window.previewCurrentForm.__rowControlsRestorePatchV3=true;}}
+  function run(){patchRenderer();patchPreview();roots().forEach(normalize);}
+  document.addEventListener('change',function(ev){if(ev.target&&ev.target.classList&&ev.target.classList.contains('a4-status-select')){updateStatusPrint(ev.target);syncRowsFromPreviewTable();}},true);
+  document.addEventListener('input',function(ev){if(ev.target&&ev.target.closest&&ev.target.closest('#a4Preview'))syncRowsFromPreviewTable();},true);
+  var scheduled=null;function schedule(){clearTimeout(scheduled);scheduled=setTimeout(run,120);}function installObserver(){if(!document.body){setTimeout(installObserver,50);return;}if(window.__AETERLINK_ROW_CONTROL_OBSERVER_V3__)return;window.__AETERLINK_ROW_CONTROL_OBSERVER_V3__=new MutationObserver(function(muts){for(var i=0;i<muts.length;i++){var nodes=[].slice.call(muts[i].addedNodes||[]).concat([].slice.call(muts[i].removedNodes||[]));if(nodes.some(function(n){return n&&n.nodeType===1&&((n.matches&&n.matches('.a4-page,table,.a4-row-control-bar'))||(n.querySelector&&n.querySelector('.a4-page,table,.a4-row-control-bar')));})){schedule();return;}}});window.__AETERLINK_ROW_CONTROL_OBSERVER_V3__.observe(document.body,{childList:true,subtree:true});}
+  document.addEventListener('DOMContentLoaded',function(){installObserver();setTimeout(run,150);setTimeout(run,700);setTimeout(run,1800);});installObserver();setInterval(run,1200);window.AETERLINK_A4_ROW_CONTROLS={run:run,addRow:addRow,deleteRow:deleteRow,syncRows:syncRowsFromPreviewTable};
 })();
 </script>
