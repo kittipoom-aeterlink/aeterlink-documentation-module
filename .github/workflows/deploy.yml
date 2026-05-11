@@ -65,6 +65,7 @@ jobs:
           python scripts/patch_v23.py
           python scripts/patch_v25_index.py
           python scripts/patch_v25_runtime_fix.py
+          python scripts/patch_row_controls.py
 
       - name: Install clasp
         run: |
