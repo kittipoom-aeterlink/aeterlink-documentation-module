@@ -1,0 +1,56 @@
+<!-- AETERLINK Documentation Module — A4_Disable_Recursive_Pagination.html -->
+<!-- Loaded after A4_Overrides_Final. Prevents recursive paginateScopeFrom / appendRowToContinuedPage stack overflow. -->
+<script id="a4-disable-recursive-pagination-script">
+(function(){
+  if(window.__AETERLINK_DISABLE_RECURSIVE_PAGINATION_V1__) return;
+  window.__AETERLINK_DISABLE_RECURSIVE_PAGINATION_V1__ = true;
+  var patching = false;
+  function patch(){
+    var rr = window.AETERLINK_A4_RENDERER;
+    if(!rr || patching) return;
+    patching = true;
+    try{
+      rr.paginateScopeFrom = function(){ return false; };
+      rr.appendRowToContinuedPage = function(){ return false; };
+      rr.createContinuedScopePage = function(){ return null; };
+      rr.paginateAllScopeTables = function(){ return false; };
+      rr.addRow = function(btn){
+        if(window.AETERLINK_A4_ROW_CONTROLS && window.AETERLINK_A4_ROW_CONTROLS.addRow){
+          window.AETERLINK_A4_ROW_CONTROLS.addRow(btn);
+          return false;
+        }
+        var wrap = btn && btn.closest ? btn.closest('.a4-content') : null;
+        var table = wrap ? wrap.querySelector('table.a4-scope-table') : document.querySelector('#a4Preview table.a4-scope-table');
+        if(!table || !table.tBodies || !table.tBodies.length) return false;
+        var cols = table.tHead && table.tHead.rows[0] ? table.tHead.rows[0].cells.length : 6;
+        var tr = document.createElement('tr');
+        for(var i=0;i<cols;i++){
+          var td=document.createElement('td');
+          td.className='a4-editable';
+          td.contentEditable='true';
+          td.spellcheck=false;
+          if(i===4){td.innerHTML='<select class="a4-status-select" contenteditable="false"><option value="Pending" selected>Pending</option><option value="Done">Done</option><option value="Not Started">Not Started</option><option value="In Progress">In Progress</option><option value="Issue">Issue</option><option value="N/A">N/A</option></select>';td.contentEditable='false';}
+          tr.appendChild(td);
+        }
+        table.tBodies[0].appendChild(tr);
+        if(window.AETERLINK_A4_ROW_CONTROLS && window.AETERLINK_A4_ROW_CONTROLS.run) window.AETERLINK_A4_ROW_CONTROLS.run();
+        if(window.AETERLINK_A4_ROW_CONTROLS && window.AETERLINK_A4_ROW_CONTROLS.syncRows) window.AETERLINK_A4_ROW_CONTROLS.syncRows();
+        return false;
+      };
+      rr.deleteLastRow = function(btn){
+        var wrap = btn && btn.closest ? btn.closest('.a4-content') : null;
+        var table = wrap ? wrap.querySelector('table.a4-scope-table') : document.querySelector('#a4Preview table.a4-scope-table');
+        if(!table || !table.tBodies || !table.tBodies.length) return false;
+        var body=table.tBodies[0];
+        if(body.rows.length) body.deleteRow(body.rows.length-1);
+        if(window.AETERLINK_A4_ROW_CONTROLS && window.AETERLINK_A4_ROW_CONTROLS.syncRows) window.AETERLINK_A4_ROW_CONTROLS.syncRows();
+        return false;
+      };
+    } finally { patching = false; }
+  }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(patch,0);setTimeout(patch,300);setTimeout(patch,900);});
+  window.addEventListener('load',function(){setTimeout(patch,0);setTimeout(patch,500);});
+  setTimeout(patch,250);
+  setInterval(patch,1500);
+})();
+</script>
