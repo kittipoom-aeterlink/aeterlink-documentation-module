@@ -1,0 +1,66 @@
+<!-- AETERLINK Documentation Module — A4_Delete_Row_Draft_Fix.html -->
+<!-- Delete-row only patch for loaded Draft/Edit documents. Do not modify Add Row behavior here. -->
+<style id="a4-delete-row-draft-fix-style">
+  #a4Preview .a4-row-delete-cell,#a4CheckOutput .a4-row-delete-cell{position:relative!important;padding-left:5mm!important;text-align:center!important;vertical-align:middle!important;}
+  #a4Preview .a4-draft-delete-row-btn,#a4CheckOutput .a4-draft-delete-row-btn{display:block!important;visibility:visible!important;position:absolute!important;left:1mm!important;top:50%!important;transform:translateY(-50%)!important;width:3.4mm!important;height:3.4mm!important;min-width:3.4mm!important;line-height:2.8mm!important;padding:0!important;border:1px solid #d15b5b!important;background:#fff!important;color:#a91d1d!important;border-radius:50%!important;font-size:8px!important;font-weight:900!important;cursor:pointer!important;text-align:center!important;z-index:160!important;pointer-events:auto!important;}
+  #a4Preview .a4-draft-delete-row-btn:hover,#a4CheckOutput .a4-draft-delete-row-btn:hover{background:#fff1f1!important;border-color:#a91d1d!important;}
+  @media print{.a4-draft-delete-row-btn{display:none!important;visibility:hidden!important}.a4-row-delete-cell{padding-left:1mm!important}}
+</style>
+<script id="a4-delete-row-draft-fix-script">
+(function(){
+  if(window.__AETERLINK_A4_DELETE_ROW_DRAFT_FIX_V1__) return;
+  window.__AETERLINK_A4_DELETE_ROW_DRAFT_FIX_V1__=true;
+  var timer=null, observer=null;
+  function root(){return document.getElementById('a4Preview')||document.getElementById('a4CheckOutput')||document;}
+  function tables(base){base=base||root();return [].slice.call(base.querySelectorAll('.a4-page .a4-content table.a4-scope-table,.a4-page .a4-content table')).filter(function(t){return t&&t.tBodies&&t.tBodies.length&&!t.classList.contains('a4-info-table')&&!t.classList.contains('a4-project-grid')&&!t.closest('.a4-photo-block')&&!t.closest('.a4-photo-grid')&&!t.closest('.mod-table-wrap');});}
+  function strip(v){return String(v==null?'':v).replace(/^[\s×xX*•-]+/,'').trim();}
+  function syncRows(){
+    if(window.AETERLINK_A4_ROW_PAGINATION_FINAL&&window.AETERLINK_A4_ROW_PAGINATION_FINAL.syncRows){try{window.AETERLINK_A4_ROW_PAGINATION_FINAL.syncRows();return;}catch(e){}}
+    if(window.AETERLINK_A4_ROW_CONTROLS_CLEAN&&window.AETERLINK_A4_ROW_CONTROLS_CLEAN.syncRows){try{window.AETERLINK_A4_ROW_CONTROLS_CLEAN.syncRows();return;}catch(e){}}
+    if(window.AETERLINK_A4_ROW_CONTROLS&&window.AETERLINK_A4_ROW_CONTROLS.syncRows){try{window.AETERLINK_A4_ROW_CONTROLS.syncRows();return;}catch(e){}}
+  }
+  function ensureDeleteButtons(base){
+    base=base||root();
+    tables(base).forEach(function(t){
+      [].slice.call(t.tBodies[0].rows).forEach(function(tr){
+        var td=tr.cells&&tr.cells[0]; if(!td) return;
+        td.classList.add('a4-row-delete-cell');
+        td.style.position='relative';
+        if(td.querySelector('.a4-draft-delete-row-btn,.a4-row-paged-delete,.a4-row-clean-delete,.a4-row-delete-btn')) return;
+        var val='';
+        var item=td.querySelector('.a4-row-item-value,.a4-row-item-text');
+        if(item) val=strip(item.textContent); else val=strip(td.textContent);
+        td.contentEditable='false';
+        td.innerHTML='<button type="button" class="a4-draft-delete-row-btn a4-no-print" title="Delete this row" aria-label="Delete this row" contenteditable="false">×</button><span class="a4-row-item-value" contenteditable="true" spellcheck="false">'+String(val).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];})+'</span>';
+      });
+    });
+  }
+  function deleteRow(btn){
+    var tr=btn&&btn.closest&&btn.closest('tr');
+    if(!tr) return false;
+    tr.remove();
+    syncRows();
+    setTimeout(function(){ensureDeleteButtons(root());syncRows();},80);
+    return false;
+  }
+  function scheduleEnsure(){clearTimeout(timer);timer=setTimeout(function(){ensureDeleteButtons(root());},120);}
+  document.addEventListener('click',function(e){
+    var btn=e.target&&e.target.closest?e.target.closest('.a4-draft-delete-row-btn,.a4-row-paged-delete,.a4-row-clean-delete,.a4-row-delete-btn'):null;
+    if(btn&&btn.closest&&btn.closest('#a4Preview,#a4CheckOutput')){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();deleteRow(btn);return false;}
+  },true);
+  function boot(){
+    ensureDeleteButtons(root());
+    var target=document.getElementById('a4Preview')||document.getElementById('a4CheckOutput');
+    if(target&&!observer&&window.MutationObserver){
+      observer=new MutationObserver(function(muts){
+        for(var i=0;i<muts.length;i++){if(muts[i].addedNodes&&muts[i].addedNodes.length){scheduleEnsure();break;}}
+      });
+      observer.observe(target,{childList:true,subtree:true});
+    }
+  }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,300);setTimeout(boot,1200);setTimeout(boot,3000);});
+  window.addEventListener('load',function(){setTimeout(boot,300);setTimeout(boot,1500);});
+  setTimeout(boot,500);setTimeout(boot,2000);
+  window.AETERLINK_A4_DELETE_ROW_DRAFT_FIX={run:ensureDeleteButtons,deleteRow:deleteRow,syncRows:syncRows};
+})();
+</script>
