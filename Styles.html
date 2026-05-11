@@ -1,7 +1,61 @@
 <!--
   AETERLINK Documentation Module — Styles.html
   Shared style partial for modular Index.html refactor.
+  Includes early browser guard before any other client script can run.
 -->
+<script id="a0-early-browser-guard-inline-script">
+(function(){
+  if(window.__AETERLINK_EARLY_BROWSER_GUARD_INLINE_V2__) return;
+  window.__AETERLINK_EARLY_BROWSER_GUARD_INLINE_V2__ = true;
+  function textOf(fn){ try { return String(fn || ''); } catch(e){ return ''; } }
+  function isBadDataImage(value){
+    value = String(value == null ? '' : value);
+    return /^data:image\/png;base64,/i.test(value) || /^data:image\/png;base6/i.test(value);
+  }
+  var originalSetInterval = window.setInterval;
+  window.setInterval = function(callback, delay){
+    var s = textOf(callback);
+    if(s.indexOf('cleanBrand') >= 0 || s.indexOf('stabilizedSet') >= 0 || s.indexOf('LOGO_B64') >= 0 || s.indexOf('data:image/png;base64') >= 0){
+      return 0;
+    }
+    return originalSetInterval.apply(window, arguments);
+  };
+  try{
+    var proto = window.HTMLImageElement && window.HTMLImageElement.prototype;
+    var desc = proto && Object.getOwnPropertyDescriptor(proto, 'src');
+    if(desc && desc.get && desc.set && !proto.__aeterlinkInlineImageGuard){
+      Object.defineProperty(proto, 'src', {
+        configurable: true,
+        enumerable: desc.enumerable,
+        get: function(){ return desc.get.call(this); },
+        set: function(value){
+          if(isBadDataImage(value)){
+            this.setAttribute('data-aeterlink-blocked-src', 'legacy-png-data-url');
+            this.removeAttribute('src');
+            return;
+          }
+          return desc.set.call(this, value);
+        }
+      });
+      proto.__aeterlinkInlineImageGuard = true;
+    }
+  }catch(e){}
+  function cleanupBadImages(){
+    try{
+      document.querySelectorAll('img').forEach(function(img){
+        var src = img.getAttribute('src') || img.src || '';
+        if(isBadDataImage(src)){
+          img.setAttribute('data-aeterlink-blocked-src', 'legacy-png-data-url');
+          img.removeAttribute('src');
+        }
+      });
+    }catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(cleanupBadImages, 0); setTimeout(cleanupBadImages, 250); });
+  window.addEventListener('load', function(){ setTimeout(cleanupBadImages, 0); });
+  setTimeout(cleanupBadImages, 100);
+})();
+</script>
 <style>
   :root {
     --aeterlink-ink: #1e3446;
@@ -18,202 +72,32 @@
     --aeterlink-card: #ffffff;
     --aeterlink-paper: #ffffff;
   }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  body {
-    margin: 0;
-    font-family: Arial, "Noto Sans Thai", sans-serif;
-    background: linear-gradient(180deg, #f8fbfd, #eef5f8);
-    color: var(--aeterlink-ink);
-  }
-
-  .aeterlink-card {
-    background: var(--aeterlink-card);
-    border: 1px solid var(--aeterlink-line);
-    border-radius: 18px;
-    box-shadow: 0 10px 24px rgba(23, 57, 93, .04);
-  }
-
-  .aeterlink-section-title {
-    color: var(--aeterlink-primary-dark);
-    font-weight: 800;
-    letter-spacing: .5px;
-    text-transform: uppercase;
-  }
-
-  .aeterlink-muted {
-    color: var(--aeterlink-muted);
-  }
-
-  .aeterlink-button-primary {
-    background: var(--aeterlink-primary);
-    color: #fff;
-    border: 1px solid var(--aeterlink-primary);
-    border-radius: 10px;
-    padding: 8px 11px;
-    font-weight: 700;
-  }
-
-  .aeterlink-print-hidden {
-    display: initial;
-  }
-
-  .aeterlink-action-column {
-    display: table-cell;
-  }
-
-  /* Production A4 spacing system — keeps every document section readable and print-safe. */
-  #a4Preview .a4-content > .a4-section-title,
-  #a4CheckOutput .a4-content > .a4-section-title {
-    margin-top: 0 !important;
-    margin-bottom: 2.4mm !important;
-  }
-
-  #a4Preview .a4-content > .a4-section-title:not(:first-child),
-  #a4CheckOutput .a4-content > .a4-section-title:not(:first-child) {
-    margin-top: 4.5mm !important;
-    clear: both !important;
-  }
-
-  #a4Preview .a4-info-table,
-  #a4CheckOutput .a4-info-table {
-    margin-top: 0 !important;
-    margin-bottom: 4.8mm !important;
-  }
-
-  #a4Preview .a4-scope-table,
-  #a4CheckOutput .a4-scope-table {
-    margin-top: 0 !important;
-    margin-bottom: 3.5mm !important;
-  }
-
-  #a4Preview .a4-detail-section-wrap,
-  #a4CheckOutput .a4-detail-section-wrap {
-    margin-top: 5mm !important;
-    padding-top: 0 !important;
-    clear: both !important;
-  }
-
-  #a4Preview .a4-info-table + .a4-section-title,
-  #a4CheckOutput .a4-info-table + .a4-section-title {
-    margin-top: 6mm !important;
-    margin-bottom: 2.5mm !important;
-    clear: both !important;
-  }
-
-  #a4Preview .a4-detail-section-wrap .a4-section-title,
-  #a4CheckOutput .a4-detail-section-wrap .a4-section-title {
-    margin-top: 0 !important;
-    margin-bottom: 2.2mm !important;
-  }
-
-  #a4Preview .a4-detail-note,
-  #a4CheckOutput .a4-detail-note {
-    display: block !important;
-    margin: 1.5mm 0 3mm !important;
-    padding: 1.6mm 2.2mm !important;
-    border: .18mm solid #d9e6ee !important;
-    background: #f7fbfd !important;
-    border-radius: 1.5mm !important;
-    line-height: 1.35 !important;
-  }
-
-  #a4Preview table.a4-detail-table,
-  #a4CheckOutput table.a4-detail-table {
-    margin-top: 0 !important;
-    margin-bottom: 3mm !important;
-  }
-
-  #a4Preview .a4-info-table + .a4-detail-section-wrap,
-  #a4CheckOutput .a4-info-table + .a4-detail-section-wrap {
-    margin-top: 6mm !important;
-  }
-
-  #a4Preview .a4-preview-actions,
-  #a4CheckOutput .a4-preview-actions {
-    margin-top: 2mm !important;
-  }
-
-  /* WCR scope-table guard: fixes missing Remarks border caused by column overflow. */
-  #a4Preview table.a4-scope-table,
-  #a4CheckOutput table.a4-scope-table {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-    overflow: visible !important;
-  }
-
-  #a4Preview table.a4-scope-table th,
-  #a4Preview table.a4-scope-table td,
-  #a4CheckOutput table.a4-scope-table th,
-  #a4CheckOutput table.a4-scope-table td {
-    box-sizing: border-box !important;
-    max-width: 100% !important;
-  }
-
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(1),
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(1),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(1),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(1) { width: 9% !important; }
-
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(2),
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(2),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(2),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(2) { width: 39% !important; }
-
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(3),
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(3),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(3),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(3) { width: 7% !important; }
-
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(4),
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(4),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(4),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(4) { width: 7% !important; }
-
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(5),
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(5),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(5),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(5) { width: 16% !important; }
-
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(6),
-  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(6),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(6),
-  #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(6) { width: 22% !important; }
-
-  @media print {
-    .aeterlink-print-hidden,
-    .aeterlink-action-column,
-    .row-actions,
-    .photo-actions {
-      display: none !important;
-    }
-    .a4-detail-note {
-      display: none !important;
-      visibility: hidden !important;
-      height: 0 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      border: 0 !important;
-    }
-    .a4-content > .a4-section-title:not(:first-child),
-    .a4-detail-section-wrap,
-    .a4-info-table + .a4-section-title {
-      margin-top: 4.5mm !important;
-      break-inside: auto !important;
-      page-break-inside: auto !important;
-    }
-    .a4-info-table {
-      margin-bottom: 4.5mm !important;
-    }
-    table.a4-detail-table,
-    .a4-scope-table {
-      margin-bottom: 3mm !important;
-    }
-  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, "Noto Sans Thai", sans-serif; background: linear-gradient(180deg, #f8fbfd, #eef5f8); color: var(--aeterlink-ink); }
+  .aeterlink-card { background: var(--aeterlink-card); border: 1px solid var(--aeterlink-line); border-radius: 18px; box-shadow: 0 10px 24px rgba(23, 57, 93, .04); }
+  .aeterlink-section-title { color: var(--aeterlink-primary-dark); font-weight: 800; letter-spacing: .5px; text-transform: uppercase; }
+  .aeterlink-muted { color: var(--aeterlink-muted); }
+  .aeterlink-button-primary { background: var(--aeterlink-primary); color: #fff; border: 1px solid var(--aeterlink-primary); border-radius: 10px; padding: 8px 11px; font-weight: 700; }
+  .aeterlink-print-hidden { display: initial; }
+  .aeterlink-action-column { display: table-cell; }
+  #a4Preview .a4-content > .a4-section-title, #a4CheckOutput .a4-content > .a4-section-title { margin-top: 0 !important; margin-bottom: 2.4mm !important; }
+  #a4Preview .a4-content > .a4-section-title:not(:first-child), #a4CheckOutput .a4-content > .a4-section-title:not(:first-child) { margin-top: 4.5mm !important; clear: both !important; }
+  #a4Preview .a4-info-table, #a4CheckOutput .a4-info-table { margin-top: 0 !important; margin-bottom: 4.8mm !important; }
+  #a4Preview .a4-scope-table, #a4CheckOutput .a4-scope-table { margin-top: 0 !important; margin-bottom: 3.5mm !important; }
+  #a4Preview .a4-detail-section-wrap, #a4CheckOutput .a4-detail-section-wrap { margin-top: 5mm !important; padding-top: 0 !important; clear: both !important; }
+  #a4Preview .a4-info-table + .a4-section-title, #a4CheckOutput .a4-info-table + .a4-section-title { margin-top: 6mm !important; margin-bottom: 2.5mm !important; clear: both !important; }
+  #a4Preview .a4-detail-section-wrap .a4-section-title, #a4CheckOutput .a4-detail-section-wrap .a4-section-title { margin-top: 0 !important; margin-bottom: 2.2mm !important; }
+  #a4Preview .a4-detail-note, #a4CheckOutput .a4-detail-note { display: block !important; margin: 1.5mm 0 3mm !important; padding: 1.6mm 2.2mm !important; border: .18mm solid #d9e6ee !important; background: #f7fbfd !important; border-radius: 1.5mm !important; line-height: 1.35 !important; }
+  #a4Preview table.a4-detail-table, #a4CheckOutput table.a4-detail-table { margin-top: 0 !important; margin-bottom: 3mm !important; }
+  #a4Preview .a4-info-table + .a4-detail-section-wrap, #a4CheckOutput .a4-info-table + .a4-detail-section-wrap { margin-top: 6mm !important; }
+  #a4Preview .a4-preview-actions, #a4CheckOutput .a4-preview-actions { margin-top: 2mm !important; }
+  #a4Preview table.a4-scope-table, #a4CheckOutput table.a4-scope-table { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; border-collapse: separate !important; border-spacing: 0 !important; overflow: visible !important; }
+  #a4Preview table.a4-scope-table th, #a4Preview table.a4-scope-table td, #a4CheckOutput table.a4-scope-table th, #a4CheckOutput table.a4-scope-table td { box-sizing: border-box !important; max-width: 100% !important; }
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(1), #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(1), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(1), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(1) { width: 9% !important; }
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(2), #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(2), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(2), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(2) { width: 39% !important; }
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(3), #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(3), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(3), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(3) { width: 7% !important; }
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(4), #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(4), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(4), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(4) { width: 7% !important; }
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(5), #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(5), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(5), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(5) { width: 16% !important; }
+  #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(6), #a4Preview table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(6), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) th:nth-child(6), #a4CheckOutput table.a4-scope-table:has(th:nth-child(6):last-child) td:nth-child(6) { width: 22% !important; }
+  @media print { .aeterlink-print-hidden, .aeterlink-action-column, .row-actions, .photo-actions { display: none !important; } .a4-detail-note { display: none !important; visibility: hidden !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; } .a4-content > .a4-section-title:not(:first-child), .a4-detail-section-wrap, .a4-info-table + .a4-section-title { margin-top: 4.5mm !important; break-inside: auto !important; page-break-inside: auto !important; } .a4-info-table { margin-bottom: 4.5mm !important; } table.a4-detail-table, .a4-scope-table { margin-bottom: 3mm !important; } }
 </style>
