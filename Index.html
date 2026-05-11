@@ -715,7 +715,8 @@ function renderTable(table, headers, rows) {
 }
 
 function filterTable(table) {
-  var q = document.getElementById('search').value.toLowerCase();
+  var searchEl = document.getElementById('search');
+  var q = searchEl ? searchEl.value.toLowerCase() : '';
   var rows = currentRows.filter(function(r) { return JSON.stringify(r).toLowerCase().indexOf(q) >= 0; });
   document.getElementById('tableBox').innerHTML = tableHtml(table, (APP.schemas || {})[table], rows);
 }
@@ -1045,7 +1046,7 @@ async function loadPreview() {
     previewEl.style.opacity = '';
     previewEl.style.pointerEvents = '';
     _previewInFlight = false;
-    if (_previewNeedsRefresh) { _previewNeedsRefresh = false; loadPreview(); }
+    if (_previewNeedsRefresh) { _previewNeedsRefresh = false; await loadPreview(); }
   }
 }
 
@@ -1150,7 +1151,8 @@ async function issueDoc() {
 
 async function startRevision() {
   if (!currentRecord || !currentRecord.FormRecordId) { toast('Open an issued record first'); return; }
-  var reason = document.getElementById('revisionReason').value.trim();
+  var revEl = document.getElementById('revisionReason');
+  var reason = revEl ? revEl.value.trim() : '';
   if (!reason) { toast('Revision reason is required'); return; }
   try {
     var res = await serverT('apiStartRevisionV19', [currentRecord.FormRecordId, reason], 25000);
@@ -1205,11 +1207,11 @@ async function openA4Record(id) {
     var pc = currentRecord.ProjectCode;
     currentTemplate = (APP.templates || []).find(function(t) { return t.TemplateCode === tplCode; }) || currentTemplate;
     goto('A4_WORKFLOW');
-    setTimeout(function() {
+    setTimeout(async function() {
       if (document.getElementById('projectSelect')) document.getElementById('projectSelect').value = pc;
       if (document.getElementById('templateSelect')) document.getElementById('templateSelect').value = tplCode;
       updateIssuePanel();
-      loadPreview();
+      await loadPreview();
     }, 250);
   } catch (e) { toast('Open A4 failed: ' + ((e && e.message) || e)); }
 }
@@ -1410,7 +1412,7 @@ function v24A4ClientLayoutHtml() {
 }
 
 function printA4() {
-  try { collectA4(); } catch(e) {}
+  try { collectA4(); } catch(e) { console.warn('collectA4 failed before print:', e); }
   v24A4LayoutGuard(true);
   document.body.classList.add('printing-a4');
   setTimeout(function(){ window.print(); }, 80);

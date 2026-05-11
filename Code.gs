@@ -3265,6 +3265,7 @@ function normalizeDocData_(tpl, project, data, record) {
 // ─────────────────────────────────────────────
 function createPdfForRecord_(record) {
   var tpl = findById_('FORM_TEMPLATES', record.TemplateCode);
+  if (!tpl) throw new Error('Template not found: ' + record.TemplateCode);
   var project = getProject_(record.ProjectCode);
   var data = parseJson_(record.DataJson, {});
   var html = renderA4Html_(tpl, project, data, {editable:false, printMode:true, record:record});
@@ -6266,6 +6267,7 @@ function apiPreviewHtmlFromFormRecord(formRecordId) {
   var rec = findById_('FORM_RECORDS', formRecordId);
   if (!rec) throw new Error('Form record not found: ' + formRecordId);
   var tpl = findById_('FORM_TEMPLATES', rec.TemplateCode) || v9DefaultTemplate_(rec.TemplateCode);
+  if (!tpl) throw new Error('Template not found: ' + rec.TemplateCode);
   var project = v19GetProjectSafe_(rec.ProjectCode);
   var data = v19ParseJson_(rec.DataJson, {});
   var html = renderA4Html_(tpl, project, data, { editable:false, printMode:false, record: rec });
