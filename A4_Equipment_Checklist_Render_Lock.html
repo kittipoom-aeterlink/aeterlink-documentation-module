@@ -1,0 +1,98 @@
+<!-- AETERLINK Documentation Module — A4_Equipment_Checklist_Render_Lock.html -->
+<!-- Final render lock for Equipment Checklist. Forces PJ-EQC-001 to render as real Equipment Checklist, not Generic Document. Does not touch Add/Delete/Pagination logic. -->
+<script id="a4-equipment-checklist-render-lock-script">
+(function(){
+  if(window.__AETERLINK_A4_EQUIPMENT_CHECKLIST_RENDER_LOCK_V1__) return;
+  window.__AETERLINK_A4_EQUIPMENT_CHECKLIST_RENDER_LOCK_V1__=true;
+
+  var KEEP_CODE='PJ-EQC-001';
+  var REMOVE={'PJ-EQCH2-001':true,'PJ-EQCH-02':true,'PJ-EQCH-002':true,'PJ-EQUIP-CHK-002':true,'PJ-EQC2-001':true};
+  var EQ_CODES={'PJ-EQC-001':true,'PJ-EQCH-001':true,'PJ-EQUIP-CHK-001':true};
+  var patchedPreview=false, patchedLoad=false, patchedRefresh=false;
+  var columns=[
+    {key:'No',label:'No.',width:'10mm'},
+    {key:'ItemDescription',label:'Item description',width:'23mm'},
+    {key:'Brand',label:'brand',width:'18mm'},
+    {key:'Model',label:'Model',width:'27mm'},
+    {key:'InstalledQuantity',label:'Installed Quantity',width:'18mm'},
+    {key:'Localisation',label:'Localisation',width:'18mm'},
+    {key:'Floor',label:'Floor',width:'18mm'},
+    {key:'InstallationPosition',label:'Installation Position (matches as-built drawing?)',width:'25mm'},
+    {key:'InstallationCondition',label:'Installation Condition (no risk of falling or detachment?)',width:'26mm'},
+    {key:'ConfirmationPower',label:'Confirmation of power-on (operate after power-on?)',width:'31mm'},
+    {key:'Remarks',label:'Remarks',width:'20mm'}
+  ];
+  function byId(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  function code(){return String((byId('fTemplate')&&byId('fTemplate').value)||(byId('prodDocType')&&byId('prodDocType').value)||'').trim();}
+  function isEq(v){v=String(v||'').trim().toUpperCase();return !!EQ_CODES[v]||(/^PJ-.*EQC/.test(v)&&!REMOVE[v]);}
+  function isRemove(v){return !!REMOVE[String(v||'').trim().toUpperCase()];}
+  function setEqCode(){var f=byId('fTemplate'),p=byId('prodDocType');if(f&&isEq(f.value))f.value=KEEP_CODE;if(p&&isEq(p.value))p.value=KEEP_CODE;}
+  function cleanOptions(sel){
+    if(!sel)return;
+    var had=false;
+    Array.prototype.slice.call(sel.querySelectorAll('option')).forEach(function(o){var v=String(o.value||'').trim();if(isRemove(v)){o.remove();return;}if(isEq(v)){if(had){o.remove();return;}o.value=KEEP_CODE;o.textContent=KEEP_CODE+' — Equipment Checklist';had=true;}});
+    if(!had){var group=Array.prototype.slice.call(sel.querySelectorAll('optgroup')).filter(function(g){return /construction|installation|work permit/i.test(g.label||'');})[0];if(!group){group=document.createElement('optgroup');group.label='05 — Construction / Installation / Work Permit';sel.appendChild(group);}var opt=document.createElement('option');opt.value=KEEP_CODE;opt.textContent=KEEP_CODE+' — Equipment Checklist';group.appendChild(opt);}
+    if(isEq(sel.value)||!sel.value)sel.value=KEEP_CODE;
+  }
+  function cleanDropdowns(){cleanOptions(byId('prodDocType'));cleanOptions(byId('fTemplate'));}
+  function mapRow(r,i){r=r||{};return {No:r.No||r.Item||String(i+1),ItemDescription:r.ItemDescription||r['Item description']||r.ItemDescriptionText||r.Description||r.WorkDescription||r.EquipmentTag||'',Brand:r.Brand||r.brand||'',Model:r.Model||r.ProductName||r['Product name']||r.Product||'',InstalledQuantity:r.InstalledQuantity||r['Installed Quantity']||r.InstalledQty||r.Qty||r.Quantity||'',Localisation:r.Localisation||r.Localization||r.Location||'',Floor:r.Floor||'',InstallationPosition:r.InstallationPosition||r['Installation Position']||r.Position||r.CheckItem||'',InstallationCondition:r.InstallationCondition||r['Installation Condition']||r.Condition||'',ConfirmationPower:r.ConfirmationPower||r['Confirmation of power-on']||r.PowerOn||r.PowerConfirmation||'',Remarks:r.Remarks||r.Remark||''};}
+  function defaultRows(){return [
+    {No:'1',ItemDescription:'Energy Meter',Brand:'Acrel',Model:'ADL400',InstalledQuantity:'10',Localisation:'MDB Room',Floor:'+1'},
+    {No:'2',ItemDescription:'Energy Meter',Brand:'Acrel',Model:'ADL400',InstalledQuantity:'6',Localisation:'EE Room',Floor:'+1'},
+    {No:'3',ItemDescription:'Split core current transformer',Brand:'YHDC',Model:'SCT045B 800A/5A',InstalledQuantity:'6',Localisation:'MDB Room',Floor:'+1'},
+    {No:'4',ItemDescription:'Split core current transformer',Brand:'YHDC',Model:'SCT024TS 150A/5A',InstalledQuantity:'12',Localisation:'MDB Room',Floor:'+1'},
+    {No:'5',ItemDescription:'Pulse Sensor',Brand:'Efento',Model:'SKU: 5906660327721',InstalledQuantity:'4',Localisation:'MDB Room',Floor:'+1'}
+  ].map(mapRow);}
+  function rowsFromFRows(){try{var f=byId('fRows');var arr=f&&f.value?JSON.parse(f.value):[];return Array.isArray(arr)&&arr.length?arr.map(mapRow):defaultRows();}catch(e){return defaultRows();}}
+  function dataFromForm(){
+    var d={};
+    if(typeof window.collectFormData==='function'){try{d=window.collectFormData()||{};}catch(e){d={};}}
+    d.ProjectCode=d.ProjectCode||(byId('fProjectCode')&&byId('fProjectCode').value)||'';
+    d.ProjectName=d.ProjectName||(byId('fProjectName')&&byId('fProjectName').value)||'';
+    d.Client=d.Client||(byId('fClient')&&byId('fClient').value)||'';
+    d.MainContractor=d.MainContractor||(byId('fMainContractor')&&byId('fMainContractor').value)||'';
+    d.DocumentNo=d.DocumentNo||(byId('fDocumentNo')&&byId('fDocumentNo').value)||'';
+    d.RevisionNo=d.RevisionNo||(byId('fRevisionNo')&&byId('fRevisionNo').value)||'R00';
+    d.Status=d.Status||(byId('fStatus')&&byId('fStatus').value)||'Draft';
+    d.WorkType='Controlled Project Document';
+    d.ReferenceDocuments=KEEP_CODE;
+    d.ChecklistRows=rowsFromFRows();
+    return d;
+  }
+  function patchTemplate(){
+    window.AETERLINK_TEMPLATES=window.AETERLINK_TEMPLATES||{};
+    var tpl=window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST=window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST||{};
+    tpl.templateCodes=[KEEP_CODE];tpl.title='EQUIPMENT CHECKLIST';tpl.displayName='Equipment Checklist';tpl.subtitle='Installation / Inspection / Verification';tpl.columns=columns;
+    tpl.sampleData=function(){var d=dataFromForm();d.ChecklistRows=defaultRows();return d;};
+    tpl.render=function(data){data=Object.assign(dataFromForm(),data||{});var rows=(data.ChecklistRows||data.ScopeRows||rowsFromFRows()).map(mapRow);return '<div class="a4-root a4-print-area" id="a4PrintArea">'+AETERLINK_A4_RENDERER.page({title:'EQUIPMENT CHECKLIST',subtitle:'Installation / Inspection / Verification',documentNo:data.DocumentNo||'',revisionNo:data.RevisionNo||'R00',status:data.Status||'Draft',data:data,content:AETERLINK_A4_RENDERER.documentInfo(data,[['Document Purpose','Capture the required information, references, responsibilities, status and records for this document type.'],['Document Type / Code',KEEP_CODE+' — Equipment Checklist'],['Work Type / Phase','Controlled Project Document'],['Reference Documents',KEEP_CODE],['Prepared By',data.PreparedBy||''],['Approval Status',data.Status||'Draft']])+AETERLINK_A4_RENDERER.section('EQUIPMENT CHECKLIST')+AETERLINK_A4_RENDERER.table(columns,rows,'a4-scope-table a4-equipment-checklist-table')})+'</div>';};
+  }
+  function afterRender(){
+    cleanDropdowns();
+    if(window.AETERLINK_A4_ROW_PAGINATION_FINAL&&window.AETERLINK_A4_ROW_PAGINATION_FINAL.run)try{window.AETERLINK_A4_ROW_PAGINATION_FINAL.run(document.getElementById('a4Preview')||document);}catch(e){}
+    if(window.AETERLINK_A4_ALL_DOCS_ADD_ROW_LOGO_FINAL&&window.AETERLINK_A4_ALL_DOCS_ADD_ROW_LOGO_FINAL.run)try{window.AETERLINK_A4_ALL_DOCS_ADD_ROW_LOGO_FINAL.run();}catch(e){}
+    if(window.AETERLINK_A4_HEADER_BOUNDS_FINAL&&window.AETERLINK_A4_HEADER_BOUNDS_FINAL.run)try{window.AETERLINK_A4_HEADER_BOUNDS_FINAL.run();}catch(e){}
+  }
+  function renderEq(){
+    setEqCode();patchTemplate();
+    var d=dataFromForm();
+    var f=byId('fRows');if(f)f.value=JSON.stringify(d.ChecklistRows,null,2);
+    var target=byId('a4Preview');if(target)target.innerHTML=window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.render(d);
+    var msg=byId('saveStatus');if(msg)msg.textContent='Preview updated. Equipment Checklist table header locked.';
+    var prod=byId('prodStatusMsg');if(prod)prod.textContent='Preview updated using Equipment Checklist final template.';
+    setTimeout(afterRender,60);setTimeout(afterRender,240);return false;
+  }
+  function patchPreview(){
+    if(typeof window.previewCurrentForm==='function'&&!patchedPreview){var old=window.previewCurrentForm;window.previewCurrentForm=function(){if(isEq(code()))return renderEq();return old.apply(this,arguments);};patchedPreview=true;}
+    if(typeof window.loadSampleForTemplate==='function'&&!patchedLoad){var oldLoad=window.loadSampleForTemplate;window.loadSampleForTemplate=function(){if(isEq(code())){setEqCode();var d=window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST.sampleData();var f=byId('fRows');if(f)f.value=JSON.stringify(d.ChecklistRows,null,2);return renderEq();}return oldLoad.apply(this,arguments);};patchedLoad=true;}
+    if(typeof window.prodRefreshA4==='function'&&!patchedRefresh){var oldR=window.prodRefreshA4;window.prodRefreshA4=function(){if(isEq(code()))return renderEq();return oldR.apply(this,arguments);};patchedRefresh=true;}
+  }
+  function boot(){patchTemplate();cleanDropdowns();patchPreview();if(isEq(code()))renderEq();}
+  document.addEventListener('change',function(e){if(e.target&&e.target.matches&&e.target.matches('#prodDocType,#fTemplate')){cleanDropdowns();if(isEq(e.target.value))setTimeout(renderEq,50);}},true);
+  document.addEventListener('focusin',function(e){if(e.target&&e.target.matches&&e.target.matches('#prodDocType,#fTemplate'))setTimeout(cleanDropdowns,30);},true);
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,900);setTimeout(boot,2200);setTimeout(boot,4200);});
+  window.addEventListener('load',function(){setTimeout(boot,900);setTimeout(boot,2200);});
+  setTimeout(boot,1200);setTimeout(boot,3200);setTimeout(boot,5200);
+  window.AETERLINK_EQUIPMENT_CHECKLIST_RENDER_LOCK={run:boot,render:renderEq,columns:columns,code:KEEP_CODE};
+})();
+</script>
