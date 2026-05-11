@@ -1,0 +1,106 @@
+<!-- AETERLINK Documentation Module — A4_Runtime_Fast_Dedupe_Fix.html -->
+<!-- Small hotfix for fast runtime: one Add Row button only, no Delete Last Row, stable WCR Remarks width. -->
+<style id="a4-runtime-fast-dedupe-fix-style">
+  #a4Preview .a4-content table.a4-scope-table:not(.a4-equipment-checklist-table),
+  #a4CheckOutput .a4-content table.a4-scope-table:not(.a4-equipment-checklist-table){
+    margin-left:5mm!important;
+    width:calc(100% - 5mm)!important;
+    max-width:calc(100% - 5mm)!important;
+    table-layout:fixed!important;
+    border-collapse:collapse!important;
+  }
+  #a4Preview .a4-content table.a4-scope-table:not(.a4-equipment-checklist-table) th,
+  #a4Preview .a4-content table.a4-scope-table:not(.a4-equipment-checklist-table) td,
+  #a4CheckOutput .a4-content table.a4-scope-table:not(.a4-equipment-checklist-table) th,
+  #a4CheckOutput .a4-content table.a4-scope-table:not(.a4-equipment-checklist-table) td{
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    word-break:break-word!important;
+  }
+  #a4Preview .a4-content table.a4-scope-table:not(.a4-equipment-checklist-table) td:last-child,
+  #a4CheckOutput .a4-content table.a4-scope-table:not(.a4-equipment-checklist-table) td:last-child{text-align:left!important;}
+  #a4Preview .a4-row-control-bar,#a4CheckOutput .a4-row-control-bar{margin-left:5mm!important;width:calc(100% - 5mm)!important;max-width:calc(100% - 5mm)!important;}
+  @media print{
+    .a4-content table.a4-scope-table:not(.a4-equipment-checklist-table),.a4-print-area table.a4-scope-table:not(.a4-equipment-checklist-table){margin-left:0!important;width:100%!important;max-width:100%!important;}
+    .a4-row-control-bar,.a4-fast-add-row-btn,.a4-eqc-fast-add-row-btn,.a4-fast-delete-row-btn{display:none!important;visibility:hidden!important;}
+  }
+</style>
+<script id="a4-runtime-fast-dedupe-fix-script">
+(function(){
+  if(window.__AETERLINK_A4_RUNTIME_FAST_DEDUPE_FIX_V1__) return;
+  window.__AETERLINK_A4_RUNTIME_FAST_DEDUPE_FIX_V1__=true;
+  var timer=null;
+  var W6=['18mm','73mm','14mm','14mm','24mm','41mm'];
+  var W7=['9mm','24mm','34mm','23mm','45mm','18mm','25mm'];
+  function root(){return document.getElementById('a4Preview')||document.getElementById('a4CheckOutput')||document;}
+  function isDocTable(t){return t&&t.tBodies&&t.tBodies.length&&!t.classList.contains('a4-info-table')&&!t.classList.contains('a4-project-grid')&&!t.closest('.a4-photo-block')&&!t.closest('.a4-photo-grid')&&!t.closest('.mod-table-wrap')&&t.closest('.a4-page')&&t.closest('.a4-content');}
+  function widthsFor(t){
+    if(t.classList.contains('a4-equipment-checklist-table')) return null;
+    var n=t.rows&&t.rows[0]?t.rows[0].cells.length:0;
+    if(n===6) return W6;
+    if(n===7) return W7;
+    return null;
+  }
+  function applyWidths(t){
+    var ws=widthsFor(t); if(!ws) return;
+    t.style.marginLeft='5mm';
+    t.style.width='calc(100% - 5mm)';
+    t.style.maxWidth='calc(100% - 5mm)';
+    t.style.tableLayout='fixed';
+    t.style.borderCollapse='collapse';
+    var cg=t.querySelector('colgroup');
+    if(!cg){cg=document.createElement('colgroup');t.insertBefore(cg,t.firstChild);}
+    cg.innerHTML='';
+    ws.slice(0,t.rows[0]?t.rows[0].cells.length:ws.length).forEach(function(w){var c=document.createElement('col');c.style.width=w;cg.appendChild(c);});
+    t.querySelectorAll('tr').forEach(function(tr){Array.prototype.slice.call(tr.children).forEach(function(cell,i){if(ws[i]){cell.style.width=ws[i];cell.style.minWidth=ws[i];cell.style.maxWidth=ws[i];}cell.style.boxSizing='border-box';cell.style.overflow='hidden';cell.style.whiteSpace='normal';cell.style.overflowWrap='anywhere';cell.style.wordBreak='break-word';});});
+  }
+  function normalizeBars(base){
+    base=base||root();
+    base.querySelectorAll('.a4-row-control-bar').forEach(function(bar){
+      var prev=bar.previousElementSibling;
+      if(!(prev&&prev.tagName==='TABLE'&&isDocTable(prev))) bar.remove();
+    });
+    Array.prototype.slice.call(base.querySelectorAll('.a4-page .a4-content table')).filter(isDocTable).forEach(function(t){
+      t.classList.add('a4-scope-table');
+      applyWidths(t);
+      var bars=[];
+      var n=t.nextElementSibling;
+      while(n&&n.classList&&n.classList.contains('a4-row-control-bar')){bars.push(n);n=n.nextElementSibling;}
+      bars.forEach(function(b){b.remove();});
+      var bar=document.createElement('div');
+      bar.className='a4-row-control-bar a4-no-print';
+      var cls=t.classList.contains('a4-equipment-checklist-table')?'a4-eqc-fast-add-row-btn':'a4-fast-add-row-btn';
+      bar.innerHTML='<button type="button" class="'+cls+'">+ Add Row</button>';
+      t.parentNode.insertBefore(bar,t.nextSibling);
+    });
+  }
+  function removeDeleteLast(base){
+    base=base||root();
+    base.querySelectorAll('button').forEach(function(btn){
+      if(/delete\s*last\s*row/i.test(String(btn.textContent||''))) btn.remove();
+    });
+  }
+  function run(){removeDeleteLast(root());normalizeBars(root());}
+  function schedule(){clearTimeout(timer);timer=setTimeout(run,90);}
+  function patch(){
+    if(typeof window.previewCurrentForm==='function'&&!window.previewCurrentForm.__a4FastDedupeFix){var old=window.previewCurrentForm;window.previewCurrentForm=function(){var ret=old.apply(this,arguments);setTimeout(run,120);setTimeout(run,500);return ret;};window.previewCurrentForm.__a4FastDedupeFix=true;}
+    if(typeof window.prodRefreshA4==='function'&&!window.prodRefreshA4.__a4FastDedupeFix){var oldR=window.prodRefreshA4;window.prodRefreshA4=function(){var ret=oldR.apply(this,arguments);setTimeout(run,120);setTimeout(run,500);return ret;};window.prodRefreshA4.__a4FastDedupeFix=true;}
+    if(window.AETERLINK_A4_RUNTIME_FAST_FINAL&&!window.AETERLINK_A4_RUNTIME_FAST_FINAL.__dedupeFix){
+      var oldRun=window.AETERLINK_A4_RUNTIME_FAST_FINAL.run;
+      window.AETERLINK_A4_RUNTIME_FAST_FINAL.run=function(){if(oldRun)try{oldRun.apply(this,arguments);}catch(e){}run();};
+      window.AETERLINK_A4_RUNTIME_FAST_FINAL.__dedupeFix=true;
+    }
+  }
+  document.addEventListener('click',function(e){
+    if(e.target&&e.target.closest&&e.target.closest('.a4-fast-add-row-btn,.a4-eqc-fast-add-row-btn,.a4-fast-delete-row-btn')) setTimeout(run,120);
+  },true);
+  document.addEventListener('change',function(e){if(e.target&&e.target.matches&&e.target.matches('#prodDocType,#fTemplate'))setTimeout(run,200);},true);
+  function boot(){patch();run();}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,500);setTimeout(boot,1600);});
+  window.addEventListener('load',function(){setTimeout(boot,500);});
+  setTimeout(boot,800);setTimeout(boot,2200);
+  window.AETERLINK_A4_RUNTIME_FAST_DEDUPE_FIX={run:run,applyWidths:applyWidths,normalizeBars:normalizeBars};
+})();
+</script>
