@@ -18,9 +18,14 @@
   .a4-print-area .a4-project-grid th,
   #a4Preview .a4-info-table th,
   #a4CheckOutput .a4-info-table th,
-  .a4-print-area .a4-info-table th{
+  .a4-print-area .a4-info-table th,
+  #a4Preview .a4-info-table tr > :first-child,
+  #a4CheckOutput .a4-info-table tr > :first-child,
+  .a4-print-area .a4-info-table tr > :first-child{
     text-align:left!important;
     vertical-align:middle!important;
+    padding-left:2.2mm!important;
+    padding-right:1.2mm!important;
     padding-top:1.05mm!important;
     padding-bottom:1.05mm!important;
   }
@@ -77,15 +82,15 @@
   .a4-print-area table.a4-scope-table td:nth-child(6){text-align:left!important;}
   @media print{
     table th{text-align:center!important;vertical-align:middle!important;}
-    table.a4-project-grid th,table.a4-info-table th{text-align:left!important;vertical-align:middle!important;}
+    table.a4-project-grid th,table.a4-info-table th,table.a4-info-table tr > :first-child{text-align:left!important;vertical-align:middle!important;padding-left:2.2mm!important;}
     table.a4-scope-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border:0.22mm solid #555!important;}
     table.a4-scope-table th,table.a4-scope-table td{border:0.22mm solid #555!important;box-shadow:none!important;background-clip:padding-box!important;}
   }
 </style>
 <script id="a4-print-pdf-table-parity-final-script">
 (function(){
-  if(window.__AETERLINK_A4_PRINT_PDF_TABLE_PARITY_FINAL_V3__) return;
-  window.__AETERLINK_A4_PRINT_PDF_TABLE_PARITY_FINAL_V3__=true;
+  if(window.__AETERLINK_A4_PRINT_PDF_TABLE_PARITY_FINAL_V4__) return;
+  window.__AETERLINK_A4_PRINT_PDF_TABLE_PARITY_FINAL_V4__=true;
   var WIDTHS=['16mm','74mm','13mm','13mm','20mm','43mm'];
   function normalizeStatus(v){
     v=String(v==null?'':v).trim();
@@ -106,6 +111,7 @@
   function alignHeaders(root){
     (root||document).querySelectorAll('.a4-page table th').forEach(function(th){th.style.textAlign='center';th.style.verticalAlign='middle';});
     (root||document).querySelectorAll('.a4-page table.a4-info-table th,.a4-page table.a4-project-grid th').forEach(function(th){th.style.textAlign='left';th.style.verticalAlign='middle';});
+    (root||document).querySelectorAll('.a4-page table.a4-info-table tr > :first-child').forEach(function(cell){cell.style.textAlign='left';cell.style.verticalAlign='middle';cell.style.paddingLeft='2.2mm';cell.style.paddingRight='1.2mm';});
   }
   function applyTableWidths(root){
     alignHeaders(root||document);
@@ -120,7 +126,7 @@
   }
   function normalize(root){applyTableWidths(root||document);}
   function patchProdNext(){
-    if(!window.AETERLINK_PROD_NEXT || window.AETERLINK_PROD_NEXT.__printParityFinalPatchV3) return;
+    if(!window.AETERLINK_PROD_NEXT || window.AETERLINK_PROD_NEXT.__printParityFinalPatchV4) return;
     var oldBuild=window.AETERLINK_PROD_NEXT.buildPrintReadyHtml;
     window.AETERLINK_PROD_NEXT.buildPrintReadyHtml=function(){
       var html=oldBuild?oldBuild.apply(this,arguments):'';
@@ -129,9 +135,9 @@
     var oldCss=window.AETERLINK_PROD_NEXT.collectPrintCss;
     window.AETERLINK_PROD_NEXT.collectPrintCss=function(){
       var styleNode=document.getElementById('a4-print-pdf-table-parity-final-style');
-      return (oldCss?oldCss.apply(this,arguments):'')+'\n'+(styleNode?styleNode.textContent:'')+'\n.a4-row-delete-btn,.prod-row-delete,.a4-row-control-bar,.a4-preview-actions,.a4-no-print,.prod-inline-editor,.prod-photo-report-toolbar{display:none!important;visibility:hidden!important}table th{text-align:center!important;vertical-align:middle!important}table.a4-info-table th,table.a4-project-grid th{text-align:left!important;vertical-align:middle!important}table.a4-scope-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border:0.22mm solid #555!important}table.a4-scope-table th,table.a4-scope-table td{border:0.22mm solid #555!important;box-shadow:none!important;background-clip:padding-box!important}';
+      return (oldCss?oldCss.apply(this,arguments):'')+'\n'+(styleNode?styleNode.textContent:'')+'\n.a4-row-delete-btn,.prod-row-delete,.a4-row-control-bar,.a4-preview-actions,.a4-no-print,.prod-inline-editor,.prod-photo-report-toolbar{display:none!important;visibility:hidden!important}table th{text-align:center!important;vertical-align:middle!important}table.a4-info-table th,table.a4-project-grid th,table.a4-info-table tr > :first-child{text-align:left!important;vertical-align:middle!important;padding-left:2.2mm!important}table.a4-scope-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border:0.22mm solid #555!important}table.a4-scope-table th,table.a4-scope-table td{border:0.22mm solid #555!important;box-shadow:none!important;background-clip:padding-box!important}';
     };
-    window.AETERLINK_PROD_NEXT.__printParityFinalPatchV3=true;
+    window.AETERLINK_PROD_NEXT.__printParityFinalPatchV4=true;
   }
   function boot(){patchProdNext();normalize(document.getElementById('a4Preview')||document);}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,300);setTimeout(boot,1200);setTimeout(boot,2600);});
