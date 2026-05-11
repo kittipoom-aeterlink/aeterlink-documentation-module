@@ -38,6 +38,8 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Clean_V3').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Add_Row_Pagination_Guard').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Data_Layout_Final').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Lotus_Project_Final').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Print_Logo_EQC_Final').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
