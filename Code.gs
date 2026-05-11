@@ -2778,60 +2778,6 @@ function seedDocumentRules_() {
 // ─────────────────────────────────────────────
 // Public APIs
 // ─────────────────────────────────────────────
-function apiInit() {
-  setupIfEmpty_();
-  var templates = readRows_('FORM_TEMPLATES', {maxRows:2000}).filter(function(t){ return String(t.Active || '').toUpperCase() !== 'FALSE'; });
-  return {
-    app: DMS,
-    schemas: SCHEMA,
-    modules: MODULES,
-    projects: readRows_('PROJECTS', {maxRows:200}),
-    activeProjectCode: getActiveProjectCode_(),
-    templates: templates,
-    lists: groupLists_(),
-    dashboard: apiDashboard()
-  };
-}
-
-function apiHealthCheck() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var tplCount = readRows_('FORM_TEMPLATES', {maxRows:3000}).length;
-  return {
-    ok:true,
-    version:DMS.version,
-    spreadsheetId:ss ? ss.getId() : '',
-    spreadsheetName:ss ? ss.getName() : '',
-    templateCount:tplCount,
-    equipmentRows:DEFAULT_EQUIPMENT_ROWS.length,
-    wcrWorkItems:DEFAULT_WCR_WORK_ITEMS.length,
-    a4Style:'formal header / navy section / print-safe / editable A4 workflow',
-    sourceList:'FORM_TEMPLATES list seeded from attached template export'
-  };
-}
-
-function apiDashboard() {
-  var docs = readRows_('DOCUMENT_REGISTER', {maxRows:5000});
-  var recs = readRows_('FORM_RECORDS', {maxRows:5000});
-  var tpls = readRows_('FORM_TEMPLATES', {maxRows:2000});
-  var out = {
-    totalTemplates: tpls.length,
-    totalDocuments: docs.length,
-    totalRecords: recs.length,
-    draft: recs.filter(function(r){ return /draft/i.test(String(r.Status||'')); }).length,
-    issued: recs.filter(function(r){ return /issued/i.test(String(r.Status||'')); }).length,
-    approved: docs.filter(function(r){ return /approved/i.test(String(r.Status||'')); }).length,
-    clientPending: docs.filter(function(r){ return /pending|submitted|review/i.test(String(r.ClientStatus||'')); }).length,
-    recentDocs: docs.slice(-10).reverse(),
-    recentRecords: recs.slice(-10).reverse()
-  };
-  return out;
-}
-
-function apiGetTable(table, options) {
-  assertTable_(table);
-  options = options || {};
-  return {table:table, headers:headers_(table), rows:readRows_(table, options)};
-}
 
 function apiSaveRecord(table, obj) {
   assertTable_(table);
@@ -2851,19 +2797,6 @@ function apiDeleteRecord(table, id, reason) {
   return saved;
 }
 
-function apiPreviewHtml(templateCode, projectCode, dataJson, options) {
-  setupIfEmpty_();
-  var tpl = findById_('FORM_TEMPLATES', templateCode);
-  if (!tpl) throw new Error('Template not found: ' + templateCode);
-  var project = getProject_(projectCode);
-  var data = parseJson_(dataJson, {});
-  options = options || {};
-  return renderA4Html_(tpl, project, data, {
-    editable: options.editable !== false,
-    printMode: !!options.printMode,
-    record: options.record || {}
-  });
-}
 
 function apiSaveDraft(templateCode, projectCode, dataJson, formRecordId) {
   var tpl = findById_('FORM_TEMPLATES', templateCode);
