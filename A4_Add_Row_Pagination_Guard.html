@@ -1,0 +1,138 @@
+<!-- AETERLINK Documentation Module — A4_Add_Row_Pagination_Guard.html -->
+<!-- Height-safe paginator for Clean V3. No MutationObserver, no interval, no legacy Add Row handler. -->
+<script id="a4-add-row-pagination-guard-script">
+(function(){
+  if(window.__AETERLINK_A4_ADD_ROW_PAGINATION_GUARD_V1__) return;
+  window.__AETERLINK_A4_ADD_ROW_PAGINATION_GUARD_V1__ = true;
+
+  var running = false;
+  var timer = null;
+  var LIMITS = { wcrFirst: 11, wcrNext: 18, eqFirst: 22, eqNext: 22 };
+
+  function root(){ return document.getElementById('a4Preview') || document.getElementById('a4CheckOutput') || document; }
+  function esc(v){ return String(v == null ? '' : v).replace(/[&<>\"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]; }); }
+  function pages(){ return Array.prototype.slice.call(root().querySelectorAll('.a4-page')); }
+  function tableType(table){ if(!table) return ''; return table.classList.contains('a4-equipment-checklist-table') ? 'eq' : (table.classList.contains('a4-work-completion-table') ? 'wcr' : ''); }
+  function tableSelector(type){ return type === 'eq' ? 'table.a4-equipment-checklist-table' : 'table.a4-work-completion-table'; }
+  function pageTable(page,type){ return page && page.querySelector(tableSelector(type)); }
+  function isSameTypePage(page,type){ return !!pageTable(page,type); }
+  function sectionHtml(type){ return '<div class="a4-section-title a4-editable a4-section-scope" contenteditable="true" spellcheck="false">' + (type === 'eq' ? 'EQUIPMENT CHECKLIST — CONTINUED' : 'SCOPE OF WORK — CONTINUED') + '</div>'; }
+  function barHtml(type){ return '<div class="a4-clean-row-bar a4-no-print"><button type="button" class="a4-clean-add-row" data-a4-type="' + type + '">+ Add Row</button></div>'; }
+  function emptyTableFrom(table){
+    var clone = table.cloneNode(true);
+    clone.querySelectorAll('tbody tr').forEach(function(tr){ tr.remove(); });
+    clone.querySelectorAll('.a4-clean-delete-row,.a4-no-print').forEach(function(n){ n.remove(); });
+    return clone.outerHTML;
+  }
+  function createContinuationPage(afterPage,type,sourceTable){
+    var page = afterPage.cloneNode(true);
+    var content = page.querySelector('.a4-content');
+    if(content) content.innerHTML = sectionHtml(type) + emptyTableFrom(sourceTable) + barHtml(type);
+    page.querySelectorAll('.a4-clean-delete-row').forEach(function(n){ n.remove(); });
+    afterPage.parentNode.insertBefore(page, afterPage.nextSibling);
+    decorate(page);
+    return page;
+  }
+  function nextTypePage(page,type,sourceTable){
+    var next = page.nextElementSibling;
+    if(next && next.classList && next.classList.contains('a4-page') && isSameTypePage(next,type)) return next;
+    return createContinuationPage(page,type,sourceTable);
+  }
+  function rowLimit(page,type){
+    var all = pages().filter(function(p){ return isSameTypePage(p,type); });
+    var idx = all.indexOf(page);
+    if(type === 'eq') return idx <= 0 ? LIMITS.eqFirst : LIMITS.eqNext;
+    return idx <= 0 ? LIMITS.wcrFirst : LIMITS.wcrNext;
+  }
+  function contentOverflow(page){
+    var c = page && page.querySelector('.a4-content');
+    return !!(c && c.scrollHeight > c.clientHeight + 2);
+  }
+  function shouldMove(page,type,table){
+    if(!table || !table.tBodies || !table.tBodies[0]) return false;
+    var count = table.tBodies[0].rows.length;
+    if(count <= 1) return false;
+    if(count > rowLimit(page,type)) return true;
+    return contentOverflow(page);
+  }
+  function moveLastRowForward(page,type){
+    var table = pageTable(page,type);
+    if(!shouldMove(page,type,table)) return false;
+    var body = table.tBodies[0];
+    var row = body.rows[body.rows.length - 1];
+    var next = nextTypePage(page,type,table);
+    var nextTable = pageTable(next,type);
+    if(!nextTable || !nextTable.tBodies || !nextTable.tBodies[0]) return false;
+    nextTable.tBodies[0].insertBefore(row, nextTable.tBodies[0].firstChild);
+    return true;
+  }
+  function decorate(base){
+    base = base || root();
+    base.querySelectorAll('.a4-row-control-bar:not(.a4-clean-row-bar)').forEach(function(n){ n.remove(); });
+    base.querySelectorAll('button').forEach(function(b){ if(/delete\s*last\s*row/i.test(b.textContent || '')) b.remove(); });
+    base.querySelectorAll('.a4-title,.a4-subtitle,.a4-section-title').forEach(function(n){ n.contentEditable = 'true'; n.spellcheck = false; });
+    base.querySelectorAll('table.a4-scope-table tbody tr').forEach(function(tr){
+      var td = tr.cells && tr.cells[0];
+      if(!td) return;
+      td.style.position = 'relative';
+      td.style.overflow = 'visible';
+      td.querySelectorAll('.a4-clean-delete-row').forEach(function(x){ x.remove(); });
+      td.insertAdjacentHTML('afterbegin','<button type="button" class="a4-clean-delete-row a4-no-print" title="Delete this row" aria-label="Delete this row">×</button>');
+    });
+  }
+  function updateFooters(){
+    var ps = pages();
+    var doc = (document.getElementById('fDocumentNo') && document.getElementById('fDocumentNo').value) || 'Not issued';
+    ps.forEach(function(p,i){
+      var f = p.querySelector('.a4-footer');
+      if(f) f.innerHTML = '<span class="a4-footer-center">Document No.: ' + esc(doc) + ' &nbsp;&nbsp;|&nbsp;&nbsp; Page No.: ' + (i+1) + ' / ' + ps.length + '</span>';
+    });
+  }
+  function repaginateType(type){
+    var safety = 0;
+    var changed = false;
+    while(safety++ < 160){
+      var did = false;
+      var list = pages().filter(function(p){ return isSameTypePage(p,type); });
+      for(var i=0;i<list.length;i++){
+        if(moveLastRowForward(list[i],type)){ did = true; changed = true; break; }
+      }
+      if(!did) break;
+    }
+    return changed;
+  }
+  function run(){
+    if(running) return;
+    running = true;
+    try{
+      decorate(root());
+      repaginateType('wcr');
+      repaginateType('eq');
+      decorate(root());
+      updateFooters();
+    } finally { running = false; }
+  }
+  function schedule(delay){ clearTimeout(timer); timer = setTimeout(run, delay == null ? 80 : delay); }
+  function patchPreview(){
+    if(typeof window.previewCurrentForm === 'function' && !window.previewCurrentForm.__a4PaginationGuardV1){
+      var old = window.previewCurrentForm;
+      window.previewCurrentForm = function(){ var ret = old.apply(this, arguments); schedule(180); return ret; };
+      window.previewCurrentForm.__a4PaginationGuardV1 = true;
+    }
+    if(typeof window.prodRefreshA4 === 'function' && !window.prodRefreshA4.__a4PaginationGuardV1){
+      var oldR = window.prodRefreshA4;
+      window.prodRefreshA4 = function(){ var ret = oldR.apply(this, arguments); schedule(180); return ret; };
+      window.prodRefreshA4.__a4PaginationGuardV1 = true;
+    }
+  }
+  document.addEventListener('click', function(e){
+    if(e.target && e.target.closest && e.target.closest('.a4-clean-add-row,.a4-clean-delete-row,.a4-fast-add-row-btn,.a4-eqc-fast-add-row-btn,.a4-paged-add-row-btn')) schedule(140);
+  }, true);
+  document.addEventListener('input', function(e){ if(e.target && e.target.closest && e.target.closest('#a4Preview table.a4-scope-table,#a4CheckOutput table.a4-scope-table')) schedule(220); }, true);
+  function boot(){ patchPreview(); schedule(220); }
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot,0); setTimeout(boot,700); });
+  window.addEventListener('load', function(){ setTimeout(boot,0); setTimeout(boot,700); });
+  setTimeout(boot,500);
+  window.AETERLINK_A4_ADD_ROW_PAGINATION_GUARD = { run:run, schedule:schedule };
+})();
+</script>
