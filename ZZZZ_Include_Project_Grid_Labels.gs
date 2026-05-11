@@ -40,6 +40,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Data_Layout_Final').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Lotus_Project_Final').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Print_Logo_EQC_Final').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Logo_Display_Fix').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
