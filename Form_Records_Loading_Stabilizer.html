@@ -1,32 +1,53 @@
 <!-- AETERLINK Documentation Module — Form_Records_Loading_Stabilizer.html -->
-<!-- Prevent Form Records / Document Register table flicker caused by repeated refresh calls. -->
+<!-- Stable Form Records / Document Register rendering guard. Prevents old V2 refresh loops from flashing Loading screens. -->
 <script id="form-records-loading-stabilizer-script">
 (function(){
-  if(window.__AETERLINK_FORM_RECORDS_LOADING_STABILIZER__) return;
-  window.__AETERLINK_FORM_RECORDS_LOADING_STABILIZER__ = true;
+  if(window.__AETERLINK_FORM_RECORDS_LOADING_STABILIZER_V2__) return;
+  window.__AETERLINK_FORM_RECORDS_LOADING_STABILIZER_V2__ = true;
+
+  var stableHtml = { recordsTable: '', registerTable: '' };
+  var lastRefreshAt = { recordsTable: 0, registerTable: 0, global: 0 };
 
   function isTarget(el){ return el && (el.id === 'recordsTable' || el.id === 'registerTable'); }
   function isLoadingHtml(v){ return /Loading\s+(Form Records|Document Register)/i.test(String(v || '')); }
+  function isStableHtml(v){ return /<table[\s\S]*<\/table>/i.test(String(v || '')); }
   function hasStableContent(el){ return !!(el && (el.querySelector('table') || el.querySelector('.mod-table-wrap'))); }
+  function currentHtml(el){ try { return el ? el.innerHTML : ''; } catch(err) { return ''; } }
+  function cacheStable(el, html){
+    if(!isTarget(el)) return;
+    html = html == null ? currentHtml(el) : String(html || '');
+    if(isStableHtml(html) || hasStableContent(el)) stableHtml[el.id] = html || currentHtml(el);
+  }
   function restoreActionButtons(){
+    try { if(window.AETERLINK_FORCE_RECORD_EDIT && window.AETERLINK_FORCE_RECORD_EDIT.run) window.AETERLINK_FORCE_RECORD_EDIT.run(); } catch(err) {}
+  }
+  function cleanDuplicateActionColumns(){
     try { if(window.AETERLINK_FORCE_RECORD_EDIT && window.AETERLINK_FORCE_RECORD_EDIT.run) window.AETERLINK_FORCE_RECORD_EDIT.run(); } catch(err) {}
   }
 
   try {
     var proto = Element.prototype;
     var desc = Object.getOwnPropertyDescriptor(proto, 'innerHTML');
-    if(desc && desc.set && desc.get && !desc.set.__aeterlinkStabilized){
+    if(desc && desc.set && desc.get && !desc.set.__aeterlinkStableRecordsV2){
       var originalSet = desc.set;
       var originalGet = desc.get;
       var stabilizedSet = function(value){
-        if(isTarget(this) && isLoadingHtml(value) && hasStableContent(this)){
-          this.setAttribute('data-aeterlink-refreshing', 'true');
+        if(isTarget(this)){
+          var id = this.id;
+          if(isLoadingHtml(value)){
+            this.setAttribute('data-aeterlink-refreshing', 'true');
+            // Never replace a stable table with a Loading message. This is the main flicker fix.
+            if(stableHtml[id]) { originalSet.call(this, stableHtml[id]); setTimeout(restoreActionButtons, 40); return; }
+            if(hasStableContent(this)) { cacheStable(this); return; }
+          }
+          originalSet.call(this, value);
+          if(isStableHtml(value) || hasStableContent(this)) cacheStable(this);
+          setTimeout(function(){ restoreActionButtons(); cleanDuplicateActionColumns(); }, 60);
           return;
         }
         originalSet.call(this, value);
-        if(isTarget(this)) setTimeout(restoreActionButtons, 80);
       };
-      stabilizedSet.__aeterlinkStabilized = true;
+      stabilizedSet.__aeterlinkStableRecordsV2 = true;
       Object.defineProperty(proto, 'innerHTML', {
         configurable: true,
         enumerable: desc.enumerable,
@@ -34,29 +55,52 @@
         set: stabilizedSet
       });
     }
-  } catch(err) {
-    // Ignore when browser sandbox prevents descriptor wrapping. The observer below still repairs action buttons.
-  }
+  } catch(err) {}
 
   function patchRegisterRefresh(){
-    if(!window.AETERLINK_REGISTER_V2 || !window.AETERLINK_REGISTER_V2.refresh || window.AETERLINK_REGISTER_V2.__stableRefreshPatch) return;
+    if(!window.AETERLINK_REGISTER_V2 || !window.AETERLINK_REGISTER_V2.refresh || window.AETERLINK_REGISTER_V2.__stableRefreshPatchV2) return;
     var old = window.AETERLINK_REGISTER_V2.refresh;
-    var last = 0;
     window.AETERLINK_REGISTER_V2.refresh = function(force){
       var now = Date.now();
-      if(!force && now - last < 1600) return;
-      last = now;
+      if(!force && now - lastRefreshAt.global < 2500) {
+        restoreActionButtons();
+        return;
+      }
+      lastRefreshAt.global = now;
       var ret = old.apply(this, arguments);
       setTimeout(restoreActionButtons, 400);
       setTimeout(restoreActionButtons, 1200);
       return ret;
     };
-    window.AETERLINK_REGISTER_V2.__stableRefreshPatch = true;
+    window.AETERLINK_REGISTER_V2.__stableRefreshPatchV2 = true;
   }
 
-  function boot(){ patchRegisterRefresh(); restoreActionButtons(); }
-  document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 300); setTimeout(boot, 1200); setTimeout(boot, 2500); });
-  var timer = setInterval(boot, 1000);
-  setTimeout(function(){ clearInterval(timer); boot(); }, 20000);
+  function watchTargets(){
+    ['recordsTable','registerTable'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el && hasStableContent(el)) cacheStable(el);
+    });
+  }
+
+  function installObserver(){
+    if(!document.body || window.__AETERLINK_FORM_RECORDS_LOADING_OBSERVER_V2__) return;
+    window.__AETERLINK_FORM_RECORDS_LOADING_OBSERVER_V2__ = new MutationObserver(function(muts){
+      var touched = false;
+      muts.forEach(function(m){
+        if(isTarget(m.target)) touched = true;
+        Array.prototype.slice.call(m.addedNodes || []).forEach(function(n){
+          if(n && n.nodeType === 1 && (isTarget(n) || (n.querySelector && (n.querySelector('#recordsTable') || n.querySelector('#registerTable'))))) touched = true;
+        });
+      });
+      if(touched) setTimeout(function(){ watchTargets(); restoreActionButtons(); }, 80);
+    });
+    window.__AETERLINK_FORM_RECORDS_LOADING_OBSERVER_V2__.observe(document.body,{childList:true,subtree:true});
+  }
+
+  function boot(){ patchRegisterRefresh(); installObserver(); watchTargets(); restoreActionButtons(); }
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 250); setTimeout(boot, 900); setTimeout(boot, 2000); });
+  var timer = setInterval(boot, 1500);
+  setTimeout(function(){ clearInterval(timer); boot(); }, 15000);
+  window.AETERLINK_FORM_RECORDS_STABILIZER = { boot: boot, cacheStable: cacheStable, stableHtml: stableHtml };
 })();
 </script>
