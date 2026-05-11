@@ -1,7 +1,15 @@
 <!-- AETERLINK Documentation Module — A4_Project_Grid_Labels.html -->
 <script id="a4-project-grid-labels-script">
 (function(){
+  if(window.__AETERLINK_PROJECT_GRID_LABELS_STABLE_V2__) return;
+  window.__AETERLINK_PROJECT_GRID_LABELS_STABLE_V2__ = true;
+
   var projectMap = {};
+  var loading = false;
+  var loaded = false;
+  var bootTries = 0;
+  var bootTimer = null;
+
   function byId(id){ return document.getElementById(id); }
   function esc(v){
     if(window.AETERLINK_A4_RENDERER && AETERLINK_A4_RENDERER.escapeHtml) return AETERLINK_A4_RENDERER.escapeHtml(v);
@@ -58,19 +66,35 @@
     window.collectFormData = function(){ return enrich(old.apply(this,arguments)); };
     window.collectFormData.__projectGridLabelsPatched = true;
   }
-  function loadProjects(){
-    if(typeof google==='undefined' || !google.script || !google.script.run || window.__a4ProjectGridLoading) return;
-    window.__a4ProjectGridLoading = true;
+  function loadProjects(force){
+    if(loaded && !force) return;
+    if(loading) return;
+    if(typeof google==='undefined' || !google.script || !google.script.run) return;
+    loading = true;
     google.script.run.withSuccessHandler(function(r){
-      window.__a4ProjectGridLoading = false;
+      loading = false;
+      loaded = true;
       rememberProjects((r&&r.rows)||[]);
-      if(typeof window.previewCurrentForm==='function' && byId('a4Preview')) setTimeout(window.previewCurrentForm,80);
-    }).withFailureHandler(function(){ window.__a4ProjectGridLoading=false; }).apiProjectsV2();
+      // Do not auto-call previewCurrentForm here. Project enrichment is applied on the next normal render/edit action.
+    }).withFailureHandler(function(){ loading=false; }).apiProjectsV2();
   }
-  function boot(){ patchRenderer(); patchCollect(); loadProjects(); }
-  document.addEventListener('DOMContentLoaded',function(){ setTimeout(boot,500); setTimeout(boot,1400); });
-  var timer=setInterval(boot,1200); setTimeout(function(){clearInterval(timer);boot();},12000);
+  function boot(){
+    patchRenderer();
+    patchCollect();
+    loadProjects(false);
+  }
+  function scheduleBoot(delay){
+    clearTimeout(bootTimer);
+    bootTimer = setTimeout(function(){
+      boot();
+      bootTries++;
+      if(bootTries < 5 && (!window.AETERLINK_A4_RENDERER || !window.collectFormData)) scheduleBoot(500);
+    }, delay==null?0:delay);
+  }
+  document.addEventListener('DOMContentLoaded',function(){ scheduleBoot(0); });
+  window.addEventListener('load',function(){ scheduleBoot(0); });
   window.AETERLINK_PROJECT_GRID_ENRICH = enrich;
   window.AETERLINK_PROJECT_GRID_REMEMBER = rememberProjects;
+  window.AETERLINK_PROJECT_GRID_LOAD = function(force){ loadProjects(!!force); };
 })();
 </script>
