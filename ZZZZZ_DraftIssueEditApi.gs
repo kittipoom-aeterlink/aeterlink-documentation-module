@@ -5,7 +5,9 @@
  * Rules:
  * - Save Draft must NOT run or reserve Document No.
  * - Document No. is generated only when Issue / Send is clicked.
- * - Draft and Issued records can be loaded back to the A4 workflow for editing.
+ * - Draft records can be loaded from FORM_RECORDS and edited in the A4 workflow.
+ * - Issued records are never overwritten by edit/issue. Editing an issued record creates a revision flow.
+ * - Issuing an edited issued record keeps the same base Document No. and increments Revision No. R01, R02, ...
  * - Delete is soft delete only.
  */
 
@@ -27,7 +29,7 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
 
   function save(payload) {
     payload = payload || {};
-    var status = String(payload.Status || payload.DocumentStatus || (payload.Data && payload.Data.Status) || 'Draft').trim();
+    var status = clean_(payload.Status || payload.DocumentStatus || (payload.Data && payload.Data.Status) || 'Draft');
     if (status.toUpperCase() === 'ISSUED') return saveIssued_(payload);
     return saveDraft_(payload);
   }
@@ -35,12 +37,52 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
   function saveIssued_(payload) {
     payload = payload || {};
     var data = payload.Data || {};
-    var docNo = clean_(payload.DocumentNo || data.DocumentNo || '');
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss && ss.getSheetByName(FORM_TABLE);
+    var headers = sh ? headers_(sh) : [];
+    var existingId = clean_(payload.FormRecordId || data.FormRecordId || '');
+    var existingRow = sh && existingId ? findRow_(sh, headers, 'FormRecordId', existingId) : -1;
+    var existing = existingRow > 0 ? rowObject_(headers, sh.getRange(existingRow, 1, 1, headers.length).getDisplayValues()[0]) : {};
+
+    var sourceDocNo = clean_(payload.SourceDocumentNo || data.SourceDocumentNo || payload.RevisionOf || data.RevisionOf || '');
+    var sourceFormRecordId = clean_(payload.SourceFormRecordId || data.SourceFormRecordId || '');
+    var oldStatus = clean_(existing.Status || existing.DocumentStatus || '').toUpperCase();
+    var oldDocNo = clean_(existing.DocumentNo || '');
+    var existingIsIssued = !!oldDocNo && (oldStatus.indexOf('ISSUED') >= 0 || oldStatus.indexOf('PDF') >= 0 || oldStatus.indexOf('APPROVED') >= 0);
+
+    if (!sourceDocNo && existingIsIssued) {
+      sourceDocNo = stripRevision_(oldDocNo);
+      sourceFormRecordId = existing.FormRecordId || sourceFormRecordId;
+    }
+
+    var revisionMode = !!sourceDocNo;
     var issuedPayload = copy_(payload);
     issuedPayload.Status = 'Issued';
     issuedPayload.DocumentStatus = 'Issued';
-    if (docNo) issuedPayload.DocumentNo = docNo;
-    if (issuedPayload.Data) {
+
+    if (revisionMode) {
+      var baseDocNo = stripRevision_(sourceDocNo);
+      var nextRev = normalizeRevision_(payload.RevisionNo || data.RevisionNo || nextRevisionNo_(baseDocNo));
+      if (nextRev === 'R00') nextRev = nextRevisionNo_(baseDocNo);
+      issuedPayload.DocumentNo = baseDocNo;
+      issuedPayload.RevisionNo = nextRev;
+      issuedPayload.Revision = nextRev;
+      // If the user opened an already issued record directly, do not overwrite it. Create a new revision record.
+      if (existingIsIssued && (!sourceFormRecordId || sourceFormRecordId === existingId)) {
+        issuedPayload.FormRecordId = '';
+      }
+      issuedPayload.RevisionReason = issuedPayload.RevisionReason || data.RevisionReason || 'Revision from issued document';
+      issuedPayload.Data = issuedPayload.Data || data;
+      issuedPayload.Data.SourceDocumentNo = baseDocNo;
+      issuedPayload.Data.SourceFormRecordId = sourceFormRecordId || existing.FormRecordId || '';
+      issuedPayload.Data.RevisionOf = baseDocNo;
+      issuedPayload.Data.DocumentNo = baseDocNo;
+      issuedPayload.Data.RevisionNo = nextRev;
+      issuedPayload.Data.Status = 'Issued';
+    } else {
+      var docNo = clean_(payload.DocumentNo || data.DocumentNo || '');
+      if (docNo) issuedPayload.DocumentNo = docNo;
+      issuedPayload.Data = issuedPayload.Data || data;
       issuedPayload.Data.Status = 'Issued';
       if (docNo) issuedPayload.Data.DocumentNo = docNo;
     }
@@ -56,8 +98,11 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
       data.TemplateCode = record.TemplateCode || issuedPayload.TemplateCode || data.TemplateCode || '';
       data.ProjectCode = record.ProjectCode || issuedPayload.ProjectCode || data.ProjectCode || '';
 
-      var html = String(issuedPayload.Html || '').trim();
-      var styles = String(issuedPayload.Styles || '').trim();
+      // Update DataJson after the numbering engine creates / updates the record.
+      updateDataJson_(record.FormRecordId, data);
+
+      var html = clean_(issuedPayload.Html || '');
+      var styles = clean_(issuedPayload.Styles || '');
       if (!html && typeof buildIssuedA4Html_ === 'function') {
         html = buildIssuedA4Html_(data, record);
         styles = typeof buildIssuedA4Styles_ === 'function' ? buildIssuedA4Styles_() : styles;
@@ -84,9 +129,13 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
           result.record.DocumentStatus = 'Issued / PDF Saved';
           result.record.Status = 'Issued';
           result.record.LockedAfterPdf = 'FALSE';
+          markEditableAfterIssue_(result.record.FormRecordId, result.record.DocumentNo);
         }
+      } else if (result.record) {
+        markEditableAfterIssue_(result.record.FormRecordId, result.record.DocumentNo);
       }
-      if (result.record) markEditableAfterIssue_(result.record.FormRecordId, result.record.DocumentNo);
+      result.revisionMode = revisionMode;
+      result.sourceDocumentNo = revisionMode ? stripRevision_(sourceDocNo) : '';
     } catch (err) {
       result.pdfStatus = 'PDF_SAVE_FAILED';
       result.pdfError = err && err.message ? err.message : String(err);
@@ -107,12 +156,30 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
       var nowIso = new Date().toISOString();
       var user = activeUser_().email;
       var data = payload.Data || {};
-      var formRecordId = clean_(payload.FormRecordId || data.FormRecordId || '') || id_('FR');
+      var requestedId = clean_(payload.FormRecordId || data.FormRecordId || '');
+      var row = requestedId ? findRow_(sh, headers, 'FormRecordId', requestedId) : -1;
+      var old = row > 0 ? rowObject_(headers, sh.getRange(row, 1, 1, headers.length).getDisplayValues()[0]) : {};
+      var oldStatus = clean_(old.Status || old.DocumentStatus || '').toUpperCase();
+      var oldDocNo = clean_(old.DocumentNo || '');
+      var oldIsIssued = !!oldDocNo && (oldStatus.indexOf('ISSUED') >= 0 || oldStatus.indexOf('PDF') >= 0 || oldStatus.indexOf('APPROVED') >= 0);
+      var sourceDocNo = clean_(payload.SourceDocumentNo || data.SourceDocumentNo || payload.RevisionOf || data.RevisionOf || '');
+      var sourceFormRecordId = clean_(payload.SourceFormRecordId || data.SourceFormRecordId || '');
+      if (!sourceDocNo && oldIsIssued) {
+        sourceDocNo = stripRevision_(oldDocNo);
+        sourceFormRecordId = old.FormRecordId || sourceFormRecordId;
+      }
+      var revisionMode = !!sourceDocNo;
+      var formRecordId = requestedId || id_('FR');
+      if (oldIsIssued) {
+        // Never convert an issued row back to Draft. Start a new revision draft instead.
+        formRecordId = id_('FR');
+        row = -1;
+        old = {};
+      }
       var templateCode = canonicalCode_(payload.TemplateCode || data.TemplateCode || 'PJ-WCR-001');
       var projectCode = clean_(payload.ProjectCode || data.ProjectCode || 'TEST-PJ');
-      var revisionNo = normalizeRevision_(payload.RevisionNo || data.RevisionNo || 'R00');
-      var row = findRow_(sh, headers, 'FormRecordId', formRecordId);
-      var old = row > 0 ? rowObject_(headers, sh.getRange(row, 1, 1, headers.length).getDisplayValues()[0]) : {};
+      var revisionNo = normalizeRevision_(payload.RevisionNo || data.RevisionNo || (revisionMode ? nextRevisionNo_(sourceDocNo) : 'R00'));
+      if (revisionMode && revisionNo === 'R00') revisionNo = nextRevisionNo_(sourceDocNo);
 
       data.TemplateCode = templateCode;
       data.ProjectCode = projectCode;
@@ -120,6 +187,11 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
       data.RevisionNo = revisionNo;
       data.Status = 'Draft';
       data.FormRecordId = formRecordId;
+      if (revisionMode) {
+        data.SourceDocumentNo = stripRevision_(sourceDocNo);
+        data.SourceFormRecordId = sourceFormRecordId;
+        data.RevisionOf = stripRevision_(sourceDocNo);
+      }
 
       var record = {
         FormRecordId: formRecordId,
@@ -140,22 +212,22 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
         Revision: revisionNo,
         IsDeleted: 'FALSE',
         RelatedTable: payload.RelatedTable || old.RelatedTable || '',
-        RelatedRecordId: payload.RelatedRecordId || old.RelatedRecordId || '',
-        DocumentStatus: 'Draft',
+        RelatedRecordId: revisionMode ? (sourceFormRecordId || old.RelatedRecordId || '') : (payload.RelatedRecordId || old.RelatedRecordId || ''),
+        DocumentStatus: revisionMode ? 'Draft Revision' : 'Draft',
         LockedAfterPdf: 'FALSE',
         WorkflowGateId: payload.WorkflowGateId || old.WorkflowGateId || '',
         ReviewComment: payload.ReviewComment || old.ReviewComment || '',
-        IssueNo: 'XXX',
+        IssueNo: revisionMode ? extractIssueNo_(sourceDocNo) : 'XXX',
         RevisionReason: payload.RevisionReason || old.RevisionReason || '',
         DriveFileId: old.DriveFileId || '',
         DriveFolderUrl: old.DriveFolderUrl || '',
-        PdfStatus: old.PdfStatus || 'Draft',
+        PdfStatus: 'Draft',
         IssuedPdfFileName: old.IssuedPdfFileName || ''
       };
       var values = headers.map(function (h) { return Object.prototype.hasOwnProperty.call(record, h) ? record[h] : ''; });
       if (row > 0) sh.getRange(row, 1, 1, headers.length).setValues([values]);
       else { sh.appendRow(values); row = sh.getLastRow(); }
-      return { ok: true, action: row > 0 && old.FormRecordId ? 'updated' : 'created', tableName: FORM_TABLE, row: row, record: record, numbering: 'DRAFT_NO_DOCUMENT_NO' };
+      return { ok: true, action: row > 0 && old.FormRecordId ? 'updated' : 'created', tableName: FORM_TABLE, row: row, record: record, numbering: 'DRAFT_NO_DOCUMENT_NO', revisionMode: revisionMode, sourceDocumentNo: revisionMode ? stripRevision_(sourceDocNo) : '' };
     } finally {
       lock.releaseLock();
     }
@@ -175,7 +247,10 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
     var record = rowObject_(headers, sh.getRange(row, 1, 1, headers.length).getDisplayValues()[0]);
     var data = {};
     try { data = record.DataJson ? JSON.parse(record.DataJson) : {}; } catch (err) { data = {}; }
-    return { ok: true, row: row, record: record, data: data };
+    var baseDoc = stripRevision_(record.DocumentNo || data.SourceDocumentNo || data.RevisionOf || '');
+    var st = clean_(record.Status || record.DocumentStatus || '').toUpperCase();
+    var isIssued = !!record.DocumentNo && (st.indexOf('ISSUED') >= 0 || st.indexOf('PDF') >= 0 || st.indexOf('APPROVED') >= 0);
+    return { ok: true, row: row, record: record, data: data, isIssued: isIssued, baseDocumentNo: baseDoc, nextRevisionNo: baseDoc ? nextRevisionNo_(baseDoc) : 'R00' };
   }
 
   function softDelete(payload) {
@@ -220,6 +295,16 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
     }
   }
 
+  function updateDataJson_(formRecordId, data) {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss && ss.getSheetByName(FORM_TABLE);
+    if (!sh || !formRecordId) return;
+    ensureColumns_(sh, FORM_COLUMNS);
+    var headers = headers_(sh);
+    var row = findRow_(sh, headers, 'FormRecordId', formRecordId);
+    if (row > 0) setRowValues_(sh, headers, row, { DataJson: JSON.stringify(data), LockedAfterPdf: 'FALSE' });
+  }
+
   function markEditableAfterIssue_(formRecordId, documentNo) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sh = ss && ss.getSheetByName(FORM_TABLE);
@@ -229,6 +314,42 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
     var row = formRecordId ? findRow_(sh, headers, 'FormRecordId', formRecordId) : -1;
     if (row < 0 && documentNo) row = findRow_(sh, headers, 'DocumentNo', documentNo);
     if (row > 0) setRowValues_(sh, headers, row, { LockedAfterPdf: 'FALSE' });
+  }
+
+  function nextRevisionNo_(documentNo) {
+    var base = stripRevision_(documentNo);
+    if (!base) return 'R01';
+    var max = 0;
+    readRows_(FORM_TABLE).forEach(function (r) {
+      var doc = clean_(r.DocumentNo || '');
+      var data = {};
+      try { data = r.DataJson ? JSON.parse(r.DataJson) : {}; } catch (err) { data = {}; }
+      var source = clean_(data.SourceDocumentNo || data.RevisionOf || '');
+      if (stripRevision_(doc) !== base && stripRevision_(source) !== base) return;
+      var rev = normalizeRevision_(r.RevisionNo || r.Revision || (doc.match(/-R(\d{2})$/i) || [])[1] || 'R00');
+      var n = parseInt(rev.replace(/\D/g, ''), 10);
+      if (!isNaN(n) && n > max) max = n;
+    });
+    return 'R' + ('00' + (max + 1)).slice(-2);
+  }
+
+  function readRows_(tableName) {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss && ss.getSheetByName(tableName);
+    if (!sh || sh.getLastRow() < 2) return [];
+    var values = sh.getDataRange().getDisplayValues();
+    var headers = values[0].map(function (h) { return clean_(h); });
+    var rows = [];
+    for (var r = 1; r < values.length; r++) {
+      var o = {}, has = false;
+      for (var c = 0; c < headers.length; c++) {
+        if (!headers[c]) continue;
+        o[headers[c]] = values[r][c];
+        if (values[r][c] !== '') has = true;
+      }
+      if (has && String(o.IsDeleted || '').toUpperCase() !== 'TRUE') rows.push(o);
+    }
+    return rows;
   }
 
   function ensureColumns_(sheet, names) {
@@ -249,11 +370,14 @@ var AETERLINK_DRAFT_ISSUE_EDIT_API = (function () {
   function clean_(v) { return String(v == null ? '' : v).trim(); }
   function copy_(obj) { return JSON.parse(JSON.stringify(obj || {})); }
   function normalizeRevision_(v) { v = clean_(v).toUpperCase(); if (!v || v === '0') return 'R00'; var n = parseInt(v.replace(/\D/g, ''), 10); return isNaN(n) ? v : 'R' + ('00' + n).slice(-2); }
+  function stripRevision_(documentNo) { return clean_(documentNo).replace(/-R\d{2}$/i, ''); }
+  function extractIssueNo_(documentNo) { var m = stripRevision_(documentNo).match(/-(\d{3,4})$/); return m ? ('000' + parseInt(m[1], 10)).slice(-3) : ''; }
   function canonicalCode_(code) { code = clean_(code).toUpperCase(); if (code === 'PJ-WORK-COMPLETE-001' || code === 'PJ-WORK-COMPLETE') return 'PJ-WCR-001'; return code || 'PJ-WCR-001'; }
 
   return { save: save, getRecord: getRecord, softDelete: softDelete };
 })();
 
+function apiModularSaveFormRecord(payload) { return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload); }
 function apiModularSaveFormRecordV2(payload) { return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload); }
 function apiModularSaveFormRecordV3(payload) { return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload); }
 function apiGetFormRecordForEditV2(payload) { return AETERLINK_DRAFT_ISSUE_EDIT_API.getRecord(payload); }
