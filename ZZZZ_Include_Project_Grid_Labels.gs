@@ -15,6 +15,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Print_Pdf_Table_Parity_Final').getContent(); } catch (err) {}
   }
   if (fileName === 'Client_App') {
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Table_Event_Guard').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('UI_Japanese_Corporate').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('UI_Brand_Logo_Clean').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('UI_Official_Logo_Force').getContent(); } catch (err) {}
