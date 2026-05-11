@@ -1,0 +1,50 @@
+<!-- AETERLINK Documentation Module — UI_DataUrl_Image_Guard.html -->
+<!-- Prevents Apps Script iframe from repeatedly requesting rejected PNG data URLs. -->
+<script id="aeterlink-dataurl-image-guard-script">
+(function(){
+  if(window.__AETERLINK_DATAURL_IMAGE_GUARD_V1__) return;
+  window.__AETERLINK_DATAURL_IMAGE_GUARD_V1__ = true;
+
+  function isBlockedDataUrl(value){
+    value = String(value == null ? '' : value);
+    return /^data:image\/png;base64,/i.test(value) || /^data:image\/png;base6/i.test(value);
+  }
+
+  var transparentSvg = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>');
+
+  try{
+    var imgProto = window.HTMLImageElement && window.HTMLImageElement.prototype;
+    var desc = imgProto && Object.getOwnPropertyDescriptor(imgProto, 'src');
+    if(desc && desc.set && desc.get && !imgProto.__aeterlinkDataUrlGuardPatched){
+      Object.defineProperty(imgProto, 'src', {
+        configurable: true,
+        enumerable: desc.enumerable,
+        get: function(){ return desc.get.call(this); },
+        set: function(value){
+          if(isBlockedDataUrl(value)){
+            this.setAttribute('data-aeterlink-blocked-src', 'png-data-url');
+            return desc.set.call(this, transparentSvg);
+          }
+          return desc.set.call(this, value);
+        }
+      });
+      imgProto.__aeterlinkDataUrlGuardPatched = true;
+    }
+  }catch(err){}
+
+  // Cleanup any image already injected before the guard was loaded.
+  function cleanup(){
+    document.querySelectorAll('img').forEach(function(img){
+      var src = img.getAttribute('src') || img.src || '';
+      if(isBlockedDataUrl(src)){
+        img.setAttribute('data-aeterlink-blocked-src', 'png-data-url');
+        img.setAttribute('src', transparentSvg);
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(cleanup, 0); setTimeout(cleanup, 300); });
+  window.addEventListener('load', function(){ setTimeout(cleanup, 0); });
+  setTimeout(cleanup, 250);
+})();
+</script>
