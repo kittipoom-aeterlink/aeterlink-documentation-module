@@ -53,6 +53,19 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Apply repository patches
+        run: |
+          python scripts/patch_runtime_bugs.py
+          python scripts/patch_v22.py
+          python scripts/patch_v23.py
+          python scripts/patch_v25_index.py
+          python scripts/patch_v25_runtime_fix.py
+
       - name: Install clasp
         run: |
           npm install -g @google/clasp
