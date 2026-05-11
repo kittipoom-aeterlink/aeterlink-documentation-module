@@ -1,0 +1,62 @@
+<!-- AETERLINK Documentation Module — A0_Early_Browser_Guard.html -->
+<!-- Early browser guard for Apps Script iframe: blocks legacy PNG data URI logo intervals and prevents page freeze from old patches. -->
+<script id="a0-early-browser-guard-script">
+(function(){
+  if(window.__AETERLINK_EARLY_BROWSER_GUARD_V1__) return;
+  window.__AETERLINK_EARLY_BROWSER_GUARD_V1__ = true;
+
+  function txt(fn){ try { return String(fn || ''); } catch(e){ return ''; } }
+  function isBadDataImage(v){
+    v = String(v == null ? '' : v);
+    return /^data:image\/png;base64,/i.test(v) || /^data:image\/png;base6/i.test(v);
+  }
+
+  // Stop legacy UI_Brand_Logo_Clean interval that repeatedly injects invalid PNG data URLs.
+  var originalSetInterval = window.setInterval;
+  window.setInterval = function(callback, delay){
+    var s = txt(callback);
+    if(s.indexOf('cleanBrand') >= 0 || s.indexOf('stabilizedSet') >= 0 || s.indexOf('data:image/png;base64') >= 0 || s.indexOf('LOGO_B64') >= 0){
+      return 0;
+    }
+    return originalSetInterval.apply(window, arguments);
+  };
+
+  // Block direct image.src assignment to rejected PNG data URLs in Apps Script iframe.
+  try{
+    var proto = window.HTMLImageElement && window.HTMLImageElement.prototype;
+    var desc = proto && Object.getOwnPropertyDescriptor(proto, 'src');
+    if(desc && desc.get && desc.set && !proto.__aeterlinkEarlyImageGuard){
+      Object.defineProperty(proto, 'src', {
+        configurable: true,
+        enumerable: desc.enumerable,
+        get: function(){ return desc.get.call(this); },
+        set: function(value){
+          if(isBadDataImage(value)){
+            this.setAttribute('data-aeterlink-blocked-src', 'legacy-png-data-url');
+            this.removeAttribute('src');
+            return;
+          }
+          return desc.set.call(this, value);
+        }
+      });
+      proto.__aeterlinkEarlyImageGuard = true;
+    }
+  }catch(e){}
+
+  // Cleanup any legacy images that may have been inserted before this guard runs.
+  function cleanup(){
+    try{
+      document.querySelectorAll('img').forEach(function(img){
+        var src = img.getAttribute('src') || img.src || '';
+        if(isBadDataImage(src)){
+          img.setAttribute('data-aeterlink-blocked-src', 'legacy-png-data-url');
+          img.removeAttribute('src');
+        }
+      });
+    }catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(cleanup, 0); setTimeout(cleanup, 300); });
+  window.addEventListener('load', function(){ setTimeout(cleanup, 0); });
+  setTimeout(cleanup, 100);
+})();
+</script>
