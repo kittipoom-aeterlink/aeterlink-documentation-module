@@ -9,6 +9,7 @@
  *   2) EQC stable Add Row and paging
  *   3) editable A4 titles/section titles
  *   4) header bounds and A4-safe table overflow
+ * - A4_Runtime_Fast_Dedupe_Fix is a small cleanup layer for duplicate buttons and WCR Remarks width.
  * - Do not load A4_Add_Row_Freeze_Final_Guard or additional Add Row guards.
  */
 
@@ -45,6 +46,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Project_Context_Preserve').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Photo_Report_Last_Page').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Fast_Final').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Fast_Dedupe_Fix').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
@@ -56,7 +58,6 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Form_Record_Edit_Buttons_Force').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Form_Records_Loading_Stabilizer').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Document_List_All_Restore').getContent(); } catch (err) {}
-    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Fast_Final').getContent(); } catch (err) {}
   }
 
   return content;
