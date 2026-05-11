@@ -1,5 +1,28 @@
 <!-- AETERLINK Documentation Module — A4_Print_Pdf_Table_Parity_Final.html -->
 <style id="a4-print-pdf-table-parity-final-style">
+  #a4Preview .a4-page table,
+  #a4CheckOutput .a4-page table,
+  .a4-print-area .a4-page table{
+    border-collapse:collapse!important;
+    border-spacing:0!important;
+  }
+  #a4Preview .a4-page table th,
+  #a4CheckOutput .a4-page table th,
+  .a4-print-area .a4-page table th{
+    text-align:center!important;
+    vertical-align:middle!important;
+  }
+  #a4Preview .a4-project-grid th,
+  #a4CheckOutput .a4-project-grid th,
+  .a4-print-area .a4-project-grid th,
+  #a4Preview .a4-info-table th,
+  #a4CheckOutput .a4-info-table th,
+  .a4-print-area .a4-info-table th{
+    text-align:center!important;
+    vertical-align:middle!important;
+    padding-top:1.05mm!important;
+    padding-bottom:1.05mm!important;
+  }
   #a4Preview table.a4-scope-table,
   #a4CheckOutput table.a4-scope-table,
   .a4-print-area table.a4-scope-table{
@@ -24,6 +47,12 @@
     overflow-wrap:anywhere!important;
     word-break:break-word!important;
   }
+  #a4Preview table.a4-scope-table th,
+  #a4CheckOutput table.a4-scope-table th,
+  .a4-print-area table.a4-scope-table th{
+    text-align:center!important;
+    vertical-align:middle!important;
+  }
   #a4Preview table.a4-scope-table th:nth-child(1),#a4Preview table.a4-scope-table td:nth-child(1),
   #a4CheckOutput table.a4-scope-table th:nth-child(1),#a4CheckOutput table.a4-scope-table td:nth-child(1),
   .a4-print-area table.a4-scope-table th:nth-child(1),.a4-print-area table.a4-scope-table td:nth-child(1){width:16mm!important;min-width:16mm!important;max-width:16mm!important;}
@@ -41,16 +70,20 @@
   .a4-print-area table.a4-scope-table th:nth-child(5),.a4-print-area table.a4-scope-table td:nth-child(5){width:20mm!important;min-width:20mm!important;max-width:20mm!important;}
   #a4Preview table.a4-scope-table th:nth-child(6),#a4Preview table.a4-scope-table td:nth-child(6),
   #a4CheckOutput table.a4-scope-table th:nth-child(6),#a4CheckOutput table.a4-scope-table td:nth-child(6),
-  .a4-print-area table.a4-scope-table th:nth-child(6),.a4-print-area table.a4-scope-table td:nth-child(6){width:43mm!important;min-width:43mm!important;max-width:43mm!important;text-align:left!important;}
+  .a4-print-area table.a4-scope-table th:nth-child(6),.a4-print-area table.a4-scope-table td:nth-child(6){width:43mm!important;min-width:43mm!important;max-width:43mm!important;}
+  #a4Preview table.a4-scope-table td:nth-child(6),
+  #a4CheckOutput table.a4-scope-table td:nth-child(6),
+  .a4-print-area table.a4-scope-table td:nth-child(6){text-align:left!important;}
   @media print{
+    table th{text-align:center!important;vertical-align:middle!important;}
     table.a4-scope-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border:0.22mm solid #555!important;}
     table.a4-scope-table th,table.a4-scope-table td{border:0.22mm solid #555!important;box-shadow:none!important;background-clip:padding-box!important;}
   }
 </style>
 <script id="a4-print-pdf-table-parity-final-script">
 (function(){
-  if(window.__AETERLINK_A4_PRINT_PDF_TABLE_PARITY_FINAL__) return;
-  window.__AETERLINK_A4_PRINT_PDF_TABLE_PARITY_FINAL__=true;
+  if(window.__AETERLINK_A4_PRINT_PDF_TABLE_PARITY_FINAL_V2__) return;
+  window.__AETERLINK_A4_PRINT_PDF_TABLE_PARITY_FINAL_V2__=true;
   var WIDTHS=['16mm','74mm','13mm','13mm','20mm','43mm'];
   function normalizeStatus(v){
     v=String(v==null?'':v).trim();
@@ -68,18 +101,23 @@
     });
     (root||document).querySelectorAll('[contenteditable]').forEach(function(n){n.removeAttribute('contenteditable');n.removeAttribute('spellcheck');});
   }
+  function centerHeaders(root){
+    (root||document).querySelectorAll('.a4-page table th').forEach(function(th){th.style.textAlign='center';th.style.verticalAlign='middle';});
+  }
   function applyTableWidths(root){
+    centerHeaders(root||document);
     (root||document).querySelectorAll('table.a4-scope-table').forEach(function(t){
       t.style.width='100%';t.style.maxWidth='100%';t.style.tableLayout='fixed';t.style.borderCollapse='collapse';t.style.borderSpacing='0';t.style.border='0.22mm solid #555';
       var cg=t.querySelector('colgroup'); if(!cg){cg=document.createElement('colgroup');t.insertBefore(cg,t.firstChild);} cg.innerHTML='';
       WIDTHS.forEach(function(w){var c=document.createElement('col');c.style.width=w;cg.appendChild(c);});
       t.querySelectorAll('th,td').forEach(function(c){c.style.border='0.22mm solid #555';c.style.boxShadow='none';c.style.backgroundClip='padding-box';c.style.overflow='hidden';c.style.whiteSpace='normal';c.style.overflowWrap='anywhere';c.style.wordBreak='break-word';});
-      t.querySelectorAll('tr').forEach(function(tr){[].slice.call(tr.children).forEach(function(c,i){if(WIDTHS[i]){c.style.width=WIDTHS[i];c.style.minWidth=WIDTHS[i];c.style.maxWidth=WIDTHS[i];} if(i===5)c.style.textAlign='left';});});
+      t.querySelectorAll('th').forEach(function(c){c.style.textAlign='center';c.style.verticalAlign='middle';});
+      t.querySelectorAll('tr').forEach(function(tr){[].slice.call(tr.children).forEach(function(c,i){if(WIDTHS[i]){c.style.width=WIDTHS[i];c.style.minWidth=WIDTHS[i];c.style.maxWidth=WIDTHS[i];} if(i===5 && c.tagName!=='TH')c.style.textAlign='left';});});
     });
   }
   function normalize(root){applyTableWidths(root||document);}
   function patchProdNext(){
-    if(!window.AETERLINK_PROD_NEXT || window.AETERLINK_PROD_NEXT.__printParityFinalPatch) return;
+    if(!window.AETERLINK_PROD_NEXT || window.AETERLINK_PROD_NEXT.__printParityFinalPatchV2) return;
     var oldBuild=window.AETERLINK_PROD_NEXT.buildPrintReadyHtml;
     window.AETERLINK_PROD_NEXT.buildPrintReadyHtml=function(){
       var html=oldBuild?oldBuild.apply(this,arguments):'';
@@ -87,13 +125,14 @@
     };
     var oldCss=window.AETERLINK_PROD_NEXT.collectPrintCss;
     window.AETERLINK_PROD_NEXT.collectPrintCss=function(){
-      return (oldCss?oldCss.apply(this,arguments):'')+'\n'+document.getElementById('a4-print-pdf-table-parity-final-style').textContent+'\n.a4-row-delete-btn,.prod-row-delete,.a4-row-control-bar,.a4-preview-actions,.a4-no-print,.prod-inline-editor,.prod-photo-report-toolbar{display:none!important;visibility:hidden!important}table.a4-scope-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border:0.22mm solid #555!important}table.a4-scope-table th,table.a4-scope-table td{border:0.22mm solid #555!important;box-shadow:none!important;background-clip:padding-box!important}';
+      var styleNode=document.getElementById('a4-print-pdf-table-parity-final-style');
+      return (oldCss?oldCss.apply(this,arguments):'')+'\n'+(styleNode?styleNode.textContent:'')+'\n.a4-row-delete-btn,.prod-row-delete,.a4-row-control-bar,.a4-preview-actions,.a4-no-print,.prod-inline-editor,.prod-photo-report-toolbar{display:none!important;visibility:hidden!important}table th{text-align:center!important;vertical-align:middle!important}table.a4-scope-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border:0.22mm solid #555!important}table.a4-scope-table th,table.a4-scope-table td{border:0.22mm solid #555!important;box-shadow:none!important;background-clip:padding-box!important}';
     };
-    window.AETERLINK_PROD_NEXT.__printParityFinalPatch=true;
+    window.AETERLINK_PROD_NEXT.__printParityFinalPatchV2=true;
   }
   function boot(){patchProdNext();normalize(document.getElementById('a4Preview')||document);}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,300);setTimeout(boot,1200);setTimeout(boot,2600);});
   var timer=setInterval(boot,1200);setTimeout(function(){clearInterval(timer);boot();},20000);
-  window.AETERLINK_A4_PRINT_PDF_PARITY_FINAL={normalize:normalize,cleanPrintControls:cleanPrintControls,applyTableWidths:applyTableWidths};
+  window.AETERLINK_A4_PRINT_PDF_PARITY_FINAL={normalize:normalize,cleanPrintControls:cleanPrintControls,applyTableWidths:applyTableWidths,centerHeaders:centerHeaders};
 })();
 </script>
