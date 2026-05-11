@@ -9,6 +9,7 @@
  * - Loaded Draft/Edit delete buttons are repaired by A4_Delete_Row_Draft_Fix loaded after pagination.
  * - Full document type dropdown is restored by A4_Document_List_All_Restore.
  * - Equipment Checklist final columns and single-code cleanup are handled by A4_Equipment_Checklist_Final.
+ * - Equipment Checklist render path is locked by A4_Equipment_Checklist_Render_Lock to prevent generic renderer fallback.
  * - All A4 documents get WCR-style header/logo and Add Row bar by A4_All_Documents_Add_Row_Logo_Final.
  * - A4 header right boundary is fixed by A4_Header_Bounds_Final.
  * - Do not load A4_Add_Row_Freeze_Final_Guard or any additional Add Row guard.
@@ -50,6 +51,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Row_Pagination_Final').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Delete_Row_Draft_Fix').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Equipment_Checklist_Final').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Equipment_Checklist_Render_Lock').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_All_Documents_Add_Row_Logo_Final').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Header_Bounds_Final').getContent(); } catch (err) {}
   }
@@ -64,6 +66,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Form_Records_Loading_Stabilizer').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Document_List_All_Restore').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Equipment_Checklist_Final').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Equipment_Checklist_Render_Lock').getContent(); } catch (err) {}
   }
 
   return content;
