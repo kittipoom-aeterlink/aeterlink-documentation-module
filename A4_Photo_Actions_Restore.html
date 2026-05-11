@@ -1,0 +1,138 @@
+<!-- AETERLINK Documentation Module — A4_Photo_Actions_Restore.html -->
+<!-- Restore Photo Report image actions only: Add/Replace, Clear, Delete, + Add Photo. No table/layout changes. -->
+<style id="a4-photo-actions-restore-style">
+  #a4Preview .a4-photo-actions,#a4CheckOutput .a4-photo-actions{display:flex!important;gap:5px!important;align-items:center!important;flex-wrap:wrap!important;margin:1.4mm 0 0!important;}
+  #a4Preview .a4-photo-actions button,#a4CheckOutput .a4-photo-actions button{border:1px solid #adc3d2!important;background:#fff!important;border-radius:5px!important;padding:2px 7px!important;font-size:7pt!important;font-weight:800!important;color:#07385b!important;cursor:pointer!important;line-height:1.2!important;}
+  #a4Preview .a4-photo-actions button:hover,#a4CheckOutput .a4-photo-actions button:hover{background:#eaf3f8!important;}
+  @media print{.a4-photo-actions{display:none!important;visibility:hidden!important}.a4-photo-actions *{display:none!important;visibility:hidden!important}}
+</style>
+<script id="a4-photo-actions-restore-script">
+(function(){
+  if(window.__AETERLINK_A4_PHOTO_ACTIONS_RESTORE_V1__) return;
+  window.__AETERLINK_A4_PHOTO_ACTIONS_RESTORE_V1__ = true;
+
+  var scheduled = null;
+
+  function root(){return document.getElementById('a4Preview') || document.getElementById('a4CheckOutput') || document;}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  function photoPages(){return Array.prototype.slice.call(root().querySelectorAll('.a4-page')).filter(function(p){return p.querySelector('.a4-photo-grid') || /PHOTO\s+REPORT/i.test(String((p.querySelector('.a4-section-title')||{}).textContent||''));});}
+  function pageIndexPhotoBlock(block){var grid=block&&block.closest?block.closest('.a4-photo-grid'):null;return grid?Array.prototype.indexOf.call(grid.querySelectorAll('.a4-photo-block'),block)+1:1;}
+  function photoBlockHtml(idx){
+    if(window.AETERLINK_A4_RENDERER && typeof AETERLINK_A4_RENDERER.photoBlock === 'function'){
+      var tmp=document.createElement('div');
+      tmp.innerHTML=AETERLINK_A4_RENDERER.photoBlock({PhotoUrl:'',ItemNo:'',Description:'',Note:''}, Math.max(0,(idx||1)-1));
+      var block=tmp.firstElementChild;
+      if(block){ensureBlockActions(block);return block.outerHTML;}
+    }
+    return '<div class="a4-photo-block"><div class="a4-photo-box">Photo '+esc(idx||1)+'</div><div class="a4-photo-info"><div><div class="a4-photo-field-label">Item No.</div><div class="a4-photo-field-box a4-editable" contenteditable="true" spellcheck="false"></div></div><div><div class="a4-photo-field-label">Description</div><div class="a4-photo-text a4-editable" contenteditable="true" spellcheck="false"></div></div><div class="a4-photo-line"><div class="a4-photo-field-label">Note</div><div class="a4-photo-text a4-editable" contenteditable="true" spellcheck="false"></div></div>'+blockActionsHtml()+'</div></div>';
+  }
+  function blockActionsHtml(){
+    return '<div class="a4-preview-actions a4-photo-actions a4-no-print"><input type="file" accept="image/*" style="display:none"><button type="button" class="a4-photo-replace-btn">Add / Replace</button><button type="button" class="a4-photo-clear-btn">Clear</button><button type="button" class="a4-photo-delete-btn">Delete</button></div>';
+  }
+  function addActionsHtml(){
+    return '<div class="a4-preview-actions a4-photo-actions a4-photo-add-actions a4-no-print"><button type="button" class="a4-photo-add-btn">+ Add Photo</button></div>';
+  }
+  function ensureBlockActions(block){
+    if(!block) return;
+    var info=block.querySelector('.a4-photo-info');
+    if(!info) return;
+    info.querySelectorAll('.a4-preview-actions:not(.a4-photo-actions),.photo-actions:not(.a4-photo-actions)').forEach(function(n){n.remove();});
+    var actions=info.querySelector('.a4-photo-actions');
+    if(!actions){info.insertAdjacentHTML('beforeend', blockActionsHtml());return;}
+    actions.classList.add('a4-preview-actions','a4-photo-actions','a4-no-print');
+  }
+  function ensureGridActions(grid){
+    if(!grid || !grid.classList || !grid.classList.contains('a4-photo-grid')) return;
+    var next=grid.nextElementSibling;
+    if(next && next.classList && next.classList.contains('a4-photo-add-actions')) return;
+    grid.insertAdjacentHTML('afterend', addActionsHtml());
+  }
+  function normalizePhotoNumbers(page){
+    var blocks=Array.prototype.slice.call((page||root()).querySelectorAll('.a4-photo-block'));
+    blocks.forEach(function(block,i){
+      var box=block.querySelector('.a4-photo-box');
+      if(box && !box.querySelector('img') && /^\s*Photo\s*\d+\s*$/i.test(box.textContent||'')) box.textContent='Photo '+(i+1);
+    });
+  }
+  function normalize(){
+    photoPages().forEach(function(page){
+      page.querySelectorAll('.a4-photo-block').forEach(ensureBlockActions);
+      page.querySelectorAll('.a4-photo-grid').forEach(ensureGridActions);
+      normalizePhotoNumbers(page);
+    });
+  }
+  function updateFooters(){
+    if(window.AETERLINK_MOVE_PHOTO_REPORT_LAST){try{window.AETERLINK_MOVE_PHOTO_REPORT_LAST();return;}catch(e){}}
+    if(window.AETERLINK_A4_ADD_ROW_PAGINATION_GUARD && AETERLINK_A4_ADD_ROW_PAGINATION_GUARD.updateFooters){try{AETERLINK_A4_ADD_ROW_PAGINATION_GUARD.updateFooters();}catch(e){}}
+  }
+  function schedule(delay){clearTimeout(scheduled);scheduled=setTimeout(function(){normalize();updateFooters();},delay==null?120:delay);}
+  function replacePhoto(btn){
+    var block=btn.closest('.a4-photo-block'); if(!block) return;
+    var actions=btn.closest('.a4-photo-actions'); if(!actions) return;
+    var input=actions.querySelector('input[type="file"]'); if(!input){actions.insertAdjacentHTML('afterbegin','<input type="file" accept="image/*" style="display:none">');input=actions.querySelector('input[type="file"]');}
+    input.onchange=function(){
+      var file=input.files&&input.files[0]; if(!file) return;
+      if(!/^image\//.test(file.type)){alert('Please select an image file.');return;}
+      var reader=new FileReader();
+      reader.onload=function(e){var box=block.querySelector('.a4-photo-box'); if(box) box.innerHTML='<img src="'+esc(e.target.result)+'">'; schedule(80);};
+      reader.readAsDataURL(file);
+      input.value='';
+    };
+    input.click();
+  }
+  function clearPhoto(btn){
+    var block=btn.closest('.a4-photo-block'); if(!block) return;
+    var box=block.querySelector('.a4-photo-box'); if(box) box.textContent='Photo '+pageIndexPhotoBlock(block);
+    schedule(80);
+  }
+  function createPhotoPage(afterPage){
+    if(window.AETERLINK_A4_RENDERER && typeof AETERLINK_A4_RENDERER.createNextPhotoPage === 'function'){
+      var fakeBtn=afterPage.querySelector('.a4-photo-add-btn') || afterPage.querySelector('.a4-photo-actions button') || afterPage;
+      try{AETERLINK_A4_RENDERER.createNextPhotoPage(fakeBtn); schedule(140); return; }catch(e){}
+    }
+    var page=afterPage.cloneNode(true);
+    var content=page.querySelector('.a4-content');
+    if(content){content.innerHTML='<div class="a4-section-title a4-editable" contenteditable="true" spellcheck="false">PHOTO REPORT</div><div class="a4-photo-grid">'+photoBlockHtml(1)+'</div>'+addActionsHtml();}
+    afterPage.parentNode.insertBefore(page, afterPage.nextSibling);
+    schedule(140);
+  }
+  function addPhoto(btn){
+    var actions=btn.closest('.a4-photo-add-actions') || btn.closest('.a4-photo-actions');
+    var grid=actions && actions.previousElementSibling && actions.previousElementSibling.classList && actions.previousElementSibling.classList.contains('a4-photo-grid') ? actions.previousElementSibling : null;
+    var page=btn.closest('.a4-page');
+    if(!grid && page) grid=page.querySelector('.a4-photo-grid');
+    if(!grid || !page) return;
+    var count=grid.querySelectorAll('.a4-photo-block').length;
+    if(count<2){grid.insertAdjacentHTML('beforeend', photoBlockHtml(count+1)); schedule(120); return;}
+    createPhotoPage(page);
+  }
+  function deletePhoto(btn){
+    var block=btn.closest('.a4-photo-block'); if(!block) return;
+    var page=block.closest('.a4-page');
+    block.remove();
+    if(page && page.querySelector('.a4-photo-grid') && !page.querySelector('.a4-photo-block') && photoPages().length>1){page.remove();}
+    schedule(120);
+  }
+  function patchRenderer(){
+    if(!window.AETERLINK_A4_RENDERER || AETERLINK_A4_RENDERER.__photoActionsRestoreV1) return;
+    var r=AETERLINK_A4_RENDERER;
+    r.__photoActionsRestoreV1=true;
+    r.replacePhoto=function(btn){replacePhoto(btn);};
+    r.clearPhoto=function(btn){clearPhoto(btn);};
+    r.addPhotoBlock=function(btn){addPhoto(btn);};
+    r.deletePhotoBlock=function(btn){deletePhoto(btn);};
+  }
+  document.addEventListener('click',function(e){
+    var btn=e.target&&e.target.closest?e.target.closest('button'):null; if(!btn) return;
+    if(btn.classList.contains('a4-photo-replace-btn') || /add\s*\/\s*replace/i.test(btn.textContent||'')){e.preventDefault();e.stopPropagation();replacePhoto(btn);return;}
+    if(btn.classList.contains('a4-photo-clear-btn') || /^\s*clear\s*$/i.test(btn.textContent||'')){e.preventDefault();e.stopPropagation();clearPhoto(btn);return;}
+    if(btn.classList.contains('a4-photo-delete-btn') || /^\s*delete\s*$/i.test(btn.textContent||'')){e.preventDefault();e.stopPropagation();deletePhoto(btn);return;}
+    if(btn.classList.contains('a4-photo-add-btn') || /^\s*\+\s*add\s*photo\s*$/i.test(btn.textContent||'')){e.preventDefault();e.stopPropagation();addPhoto(btn);return;}
+  },true);
+  function boot(){patchRenderer();normalize();}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,700);}); else setTimeout(boot,0);
+  window.addEventListener('load',function(){setTimeout(boot,200);setTimeout(boot,900);});
+  setTimeout(boot,900);setTimeout(boot,2200);
+  window.AETERLINK_PHOTO_ACTIONS_RESTORE={normalize:normalize,addPhoto:addPhoto,deletePhoto:deletePhoto,replacePhoto:replacePhoto,clearPhoto:clearPhoto};
+})();
+</script>
