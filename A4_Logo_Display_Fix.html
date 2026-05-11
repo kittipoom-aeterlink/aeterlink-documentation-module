@@ -1,0 +1,78 @@
+<!-- AETERLINK Documentation Module — A4_Logo_Display_Fix.html -->
+<!-- Logo-only fix: replace broken img/data-uri logo with reliable inline SVG in A4 headers. -->
+<style id="a4-logo-display-fix-style">
+  .a4-logo-cell{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;}
+  .a4-logo-svg-final{width:41mm!important;max-width:41mm!important;height:auto!important;max-height:15mm!important;display:block!important;}
+  .a4-logo-img,.a4-official-logo-img{width:41mm!important;max-width:41mm!important;height:auto!important;max-height:15mm!important;object-fit:contain!important;display:block!important;}
+  @media print{.a4-logo-svg-final,.a4-logo-img,.a4-official-logo-img{width:41mm!important;max-width:41mm!important;height:auto!important;max-height:15mm!important;display:block!important;}}
+</style>
+<script id="a4-logo-display-fix-script">
+(function(){
+  if(window.__AETERLINK_A4_LOGO_DISPLAY_FIX_V1__) return;
+  window.__AETERLINK_A4_LOGO_DISPLAY_FIX_V1__ = true;
+
+  function officialLogoSvg(){
+    return '<svg class="a4-logo-svg-final" viewBox="0 0 880 205" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="AETERLINK Logo">'
+      + '<g fill="#0782c6">'
+      + '<path d="M62 202c-29 0-53-23-59-50-7-34 14-56 45-70 25-11 43-28 56-52 8-15 14-28 26-30 16-2 25 9 25 24 0 22-14 39-33 50-29 17-44 35-51 65-4 18-9 40-29 57-4 3-10 6-20 6z"/>'
+      + '<circle cx="99" cy="161" r="28"/>'
+      + '<path d="M242 175h-47l79-148h29l79 148h-48l-12-25h-68l-12 25zm28-60h36l-18-39-18 39z"/>'
+      + '<path d="M408 175V43h108v32h-67v18h61v31h-61v19h70v32H408z"/>'
+      + '<path d="M584 175V76h-45V43h132v33h-45v99h-42z"/>'
+      + '<path d="M699 175V43h108v32h-67v18h61v31h-61v19h70v32H699z" transform="translate(-1 0)"/>'
+      + '</g>'
+      + '<g fill="#0782c6" transform="translate(500 0)">'
+      + '<path d="M178 175V43h68c33 0 55 17 55 46 0 18-9 31-25 39l31 47h-49l-25-40h-13v40h-42zm42-72h23c11 0 17-5 17-14s-6-14-17-14h-23v28z"/>'
+      + '<path d="M335 175V43h42v99h63v33H335z"/>'
+      + '<path d="M472 175V43h42v132h-42z"/>'
+      + '<path d="M552 175V43h38l66 69V43h41v132h-36l-68-71v71h-41z"/>'
+      + '<path d="M733 175V43h42v52l45-52h53l-57 62 61 70h-55l-47-56v56h-42z"/>'
+      + '</g>'
+      + '</svg>';
+  }
+
+  function applyLogo(root){
+    root = root || document;
+    root.querySelectorAll('.a4-logo-cell').forEach(function(cell){
+      cell.innerHTML = officialLogoSvg();
+    });
+  }
+
+  function patchRenderer(){
+    if(window.AETERLINK_A4_RENDERER){
+      window.AETERLINK_A4_RENDERER.logoSvg = officialLogoSvg;
+      window.AETERLINK_A4_RENDERER.__aeterlinkLogoDisplayFixed = true;
+    }
+  }
+
+  function patchPrint(){
+    if(window.AETERLINK_PRINT_LOGO_EQC_FINAL && typeof window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo === 'function' && !window.AETERLINK_PRINT_LOGO_EQC_FINAL.__logoDisplayFix){
+      var old = window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo;
+      window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo = function(){
+        var ret;
+        try{ ret = old.apply(this, arguments); }catch(e){}
+        patchRenderer();
+        applyLogo(document);
+        return ret;
+      };
+      window.AETERLINK_PRINT_LOGO_EQC_FINAL.__logoDisplayFix = true;
+    }
+  }
+
+  function boot(){
+    patchRenderer();
+    patchPrint();
+    applyLogo(document);
+  }
+
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,700);setTimeout(boot,1800);});
+  window.addEventListener('load',function(){setTimeout(boot,200);setTimeout(boot,1200);});
+  document.addEventListener('click',function(e){
+    if(e.target && e.target.closest && e.target.closest('#prodDocType,#fTemplate,.a4-clean-add-row,.a4-clean-delete-row')) setTimeout(boot,250);
+  },true);
+  setTimeout(boot,600);
+  setTimeout(boot,2200);
+
+  window.AETERLINK_A4_LOGO_DISPLAY_FIX = {apply:boot, svg:officialLogoSvg};
+})();
+</script>
