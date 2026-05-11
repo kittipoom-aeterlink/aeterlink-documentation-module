@@ -1,0 +1,53 @@
+<!-- AETERLINK Documentation Module — A4_EQC_Lotus_Project_Final.html -->
+<!-- Force Equipment Checklist sample/context to Lotus LTL only. -->
+<script id="a4-eqc-lotus-project-final-script">
+(function(){
+  if(window.__AETERLINK_EQC_LOTUS_PROJECT_FINAL_V1__) return;
+  window.__AETERLINK_EQC_LOTUS_PROJECT_FINAL_V1__ = true;
+
+  var PROJECT = {
+    ProjectCode:'LOTUS-LTL',
+    ProjectName:'Central Monitoring and Control System Integration',
+    ProjectLocation:'Lotus’s Klong Luang',
+    Client:'CP-Axtra',
+    MainContractor:'Mitsubishi Electric Kang Yong Watana',
+    DocumentNo:'',
+    RevisionNo:'R00',
+    Status:'Draft',
+    WorkType:'Equipment Installation / Inspection / Verification',
+    ReferenceDocuments:'PJ-EQC-001'
+  };
+  function byId(id){return document.getElementById(id);}
+  function isEqc(){var c=(byId('fTemplate')&&byId('fTemplate').value)||(byId('prodDocType')&&byId('prodDocType').value)||'';return /EQC|EQCH|EQUIP/i.test(c);}
+  function rows(){return window.AETERLINK_EQC_DATA_LAYOUT_FINAL&&AETERLINK_EQC_DATA_LAYOUT_FINAL.rows?AETERLINK_EQC_DATA_LAYOUT_FINAL.rows():[];}
+  function data(){var d={};Object.keys(PROJECT).forEach(function(k){d[k]=PROJECT[k];});d.ChecklistRows=rows();d.Remarks='';d.PreparedBy='';d.ApprovalStatus='Draft';return d;}
+  function patchTemplate(){
+    var tpl=window.AETERLINK_TEMPLATES&&AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST;if(!tpl)return false;
+    tpl.sampleData=data;
+    return true;
+  }
+  function applyFields(){
+    if(!isEqc())return;
+    [['fProjectCode',PROJECT.ProjectCode],['fProjectName',PROJECT.ProjectName],['fClient',PROJECT.Client],['fMainContractor',PROJECT.MainContractor],['fDocumentNo',''],['fRevisionNo',PROJECT.RevisionNo],['fStatus',PROJECT.Status],['prodProjectCode',PROJECT.ProjectCode],['prodProjectName',PROJECT.ProjectName],['prodClient',PROJECT.Client],['prodMainContractor',PROJECT.MainContractor],['prodRevisionNo',PROJECT.RevisionNo],['prodStatus',PROJECT.Status]].forEach(function(x){var e=byId(x[0]);if(e)e.value=x[1];});
+    var f=byId('fRows');if(f){var r=rows();if(r.length)f.value=JSON.stringify(r,null,2);}
+  }
+  function patchLoadPreview(){
+    if(typeof window.loadSampleForTemplate==='function'&&!window.loadSampleForTemplate.__eqcLotusFinal){
+      var old=window.loadSampleForTemplate;
+      window.loadSampleForTemplate=function(){patchTemplate();var ret=old.apply(this,arguments);applyFields();if(isEqc()&&window.previewCurrentForm)setTimeout(window.previewCurrentForm,80);return ret;};
+      window.loadSampleForTemplate.__eqcLotusFinal=true;
+    }
+    if(typeof window.collectFormData==='function'&&!window.collectFormData.__eqcLotusFinal){
+      var oldC=window.collectFormData;
+      window.collectFormData=function(){var d=oldC.apply(this,arguments);if(isEqc()){Object.keys(PROJECT).forEach(function(k){d[k]=PROJECT[k];});d.ChecklistRows=rows().length?rows():d.ChecklistRows;}return d;};
+      window.collectFormData.__eqcLotusFinal=true;
+    }
+  }
+  function boot(){patchTemplate();patchLoadPreview();applyFields();}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,1000);setTimeout(boot,2300);});
+  window.addEventListener('load',function(){setTimeout(boot,300);});
+  document.addEventListener('change',function(e){if(e.target&&e.target.matches&&e.target.matches('#prodDocType,#fTemplate'))setTimeout(boot,120);},true);
+  setTimeout(boot,900);setTimeout(boot,2200);
+  window.AETERLINK_EQC_LOTUS_PROJECT_FINAL={project:PROJECT,apply:boot,data:data};
+})();
+</script>
