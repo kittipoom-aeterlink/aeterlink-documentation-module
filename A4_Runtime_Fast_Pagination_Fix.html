@@ -1,0 +1,126 @@
+<!-- AETERLINK Documentation Module — A4_Runtime_Fast_Pagination_Fix.html -->
+<!-- Restores automatic page creation after Add Row without reloading old heavy pagination modules. -->
+<script id="a4-runtime-fast-pagination-fix-script">
+(function(){
+  if(window.__AETERLINK_A4_RUNTIME_FAST_PAGINATION_FIX_V1__) return;
+  window.__AETERLINK_A4_RUNTIME_FAST_PAGINATION_FIX_V1__=true;
+
+  var inPaginate=false;
+  var timer=null;
+  var PAGE_LIMIT=880;
+  var WCR_COLUMNS=[
+    {key:'Item',label:'Item',width:'18mm'},
+    {key:'WorkDescription',label:'Work Description',width:'73mm'},
+    {key:'Qty',label:'Qty.',width:'14mm'},
+    {key:'Unit',label:'Unit',width:'14mm'},
+    {key:'Status',label:'Status',width:'24mm'},
+    {key:'Remarks',label:'Remarks',width:'41mm'}
+  ];
+  var EQ_COLUMNS=[
+    {key:'No',label:'No.',width:'4%'},
+    {key:'ItemDescription',label:'Item description',width:'15%'},
+    {key:'Brand',label:'brand',width:'8%'},
+    {key:'Model',label:'Model',width:'15%'},
+    {key:'InstalledQuantity',label:'Installed Quantity',width:'7%'},
+    {key:'Localisation',label:'Localisation',width:'9%'},
+    {key:'Floor',label:'Floor',width:'5%'},
+    {key:'InstallationPosition',label:'Installation Position\n(matches as-built drawings?)',width:'11%'},
+    {key:'InstallationCondition',label:'Installation Condition\n(no risk of falling or detachment?)',width:'11%'},
+    {key:'ConfirmationPower',label:'Confirmation of power-on\n(operate after power-on?)',width:'11%'},
+    {key:'Remarks',label:'Remarks',width:'4%'}
+  ];
+  function byId(id){return document.getElementById(id);}
+  function root(){return byId('a4Preview')||byId('a4CheckOutput')||document;}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  function code(){return String((byId('fTemplate')&&byId('fTemplate').value)||(byId('prodDocType')&&byId('prodDocType').value)||'');}
+  function isEq(){return /EQC|EQCH|EQUIP/i.test(code());}
+  function readCell(td){if(!td)return '';var clone=td.cloneNode(true);clone.querySelectorAll('button,.a4-no-print').forEach(function(n){n.remove();});return String(clone.textContent||'').replace(/^[\s×xX*•-]+/,'').trim();}
+  function collectData(){var d={};if(typeof window.collectFormData==='function'){try{d=window.collectFormData()||{};}catch(e){d={};}}d.ProjectCode=d.ProjectCode||(byId('fProjectCode')&&byId('fProjectCode').value)||'';d.ProjectName=d.ProjectName||(byId('fProjectName')&&byId('fProjectName').value)||'';d.Client=d.Client||(byId('fClient')&&byId('fClient').value)||'';d.MainContractor=d.MainContractor||(byId('fMainContractor')&&byId('fMainContractor').value)||'';d.DocumentNo=d.DocumentNo||(byId('fDocumentNo')&&byId('fDocumentNo').value)||'';d.RevisionNo=d.RevisionNo||(byId('fRevisionNo')&&byId('fRevisionNo').value)||'R00';d.Status=d.Status||(byId('fStatus')&&byId('fStatus').value)||'Draft';return d;}
+  function mapEqRow(c,i){return {No:readCell(c[0])||String(i+1),ItemDescription:readCell(c[1]),Brand:readCell(c[2]),Model:readCell(c[3]),InstalledQuantity:readCell(c[4]),Localisation:readCell(c[5]),Floor:readCell(c[6]),InstallationPosition:readCell(c[7]),InstallationCondition:readCell(c[8]),ConfirmationPower:readCell(c[9]),Remarks:readCell(c[10])};}
+  function mapWcrRow(c,i){return {Item:readCell(c[0])||'',WorkDescription:readCell(c[1]),Qty:readCell(c[2]),Unit:readCell(c[3]),Status:readCell(c[4])||'Pending',Remarks:readCell(c[5])};}
+  function collectTableRows(table){var out=[];if(!table||!table.tBodies||!table.tBodies[0])return out;Array.prototype.slice.call(table.tBodies[0].rows).forEach(function(tr,i){var c=tr.cells;if(table.classList.contains('a4-equipment-checklist-table')&&c.length>=11)out.push(mapEqRow(c,i));else if(c.length===6)out.push(mapWcrRow(c,i));});return out;}
+  function getAllRows(){var rows=[];root().querySelectorAll('table.a4-scope-table').forEach(function(t){if(t.closest('.a4-info-table')||t.classList.contains('a4-info-table')||t.classList.contains('a4-project-grid'))return;rows=rows.concat(collectTableRows(t));});return rows;}
+  function tableHtml(columns,rows,cls){if(window.AETERLINK_A4_RENDERER&&window.AETERLINK_A4_RENDERER.table)return window.AETERLINK_A4_RENDERER.table(columns,rows,cls).replace(/<div class="a4-row-control-bar[\s\S]*?<\/div>/g,'');return '';}
+  function pageHtml(title,subtitle,data,content){return window.AETERLINK_A4_RENDERER.page({title:title,subtitle:subtitle,documentNo:data.DocumentNo||'',revisionNo:data.RevisionNo||'R00',status:data.Status||'Draft',data:data,content:content});}
+  function docInfoEq(data){return window.AETERLINK_A4_RENDERER.documentInfo(data,[['Document Purpose','Capture the required information, references, responsibilities, status and records for this document type.'],['Document Type / Code','PJ-EQC-001 — Equipment Checklist'],['Work Type / Phase','Controlled Project Document'],['Reference Documents','PJ-EQC-001'],['Prepared By',data.PreparedBy||''],['Approval Status',data.Status||'Draft']]);}
+  function docInfoWcr(data){return window.AETERLINK_A4_RENDERER.documentInfo(data,[['Contract No.',data.ContractNo||'-'],['Purchase Order No.',data.PurchaseOrderNo||'-'],['Work Type',data.WorkType||'Equipment Purchasing / Installation / Implementation / BMS'],['Completion Date',data.CompletionDate||'30 April 2026'],['Reference Documents',data.ReferenceDocuments||'Equipment Checklist / Work Completion Evidence'],['Remarks / Additional Notes',data.Remarks||'Work completion data and photo evidence imported from the uploaded Work Completion Report workbook.']]);}
+  function addControls(html,eq){var cls=eq?'a4-eqc-fast-add-row-btn':'a4-fast-add-row-btn';return html+'<div class="a4-row-control-bar a4-no-print"><button type="button" class="'+cls+'">+ Add Row</button></div>';}
+  function renderByChunks(rows,eq){
+    if(!window.AETERLINK_A4_RENDERER)return false;
+    var data=collectData();
+    var columns=eq?EQ_COLUMNS:WCR_COLUMNS;
+    var title=eq?'EQUIPMENT CHECKLIST':'WORK COMPLETION\nREPORT';
+    var subtitle=eq?'Installation / Inspection / Verification':'Handover / Closeout - Construction';
+    var first=eq?24:16;
+    var next=eq?28:22;
+    var chunks=[];
+    var i=0;
+    chunks.push(rows.slice(0,first));
+    i=first;
+    while(i<rows.length){chunks.push(rows.slice(i,i+next));i+=next;}
+    if(!chunks.length)chunks=[[]];
+    var html='<div class="a4-root a4-print-area" id="a4PrintArea">';
+    chunks.forEach(function(ch,idx){
+      var content='';
+      if(idx===0){
+        content+=(eq?docInfoEq(data):docInfoWcr(data));
+        content+=window.AETERLINK_A4_RENDERER.section(eq?'EQUIPMENT CHECKLIST':'SCOPE OF WORK — COMPLETION STATUS');
+      }else{
+        content+=window.AETERLINK_A4_RENDERER.section(eq?'EQUIPMENT CHECKLIST — CONTINUED':'SCOPE OF WORK — CONTINUED');
+      }
+      content+=addControls(tableHtml(columns,ch,'a4-scope-table '+(eq?'a4-equipment-checklist-table':'a4-work-completion-table')),eq);
+      html+=pageHtml(title,subtitle,data,content);
+    });
+    html+='</div>';
+    var target=byId('a4Preview');
+    if(target)target.innerHTML=html;
+    afterRender();
+    return false;
+  }
+  function shouldRepaginate(){var tables=root().querySelectorAll('table.a4-scope-table');if(!tables.length)return false;return true;}
+  function repaginate(){
+    if(inPaginate||!shouldRepaginate())return false;
+    inPaginate=true;
+    try{
+      var rows=getAllRows();
+      if(!rows.length)return false;
+      if(isEq())return renderByChunks(rows,true);
+      var firstTable=root().querySelector('table.a4-scope-table:not(.a4-equipment-checklist-table)');
+      if(firstTable&&firstTable.rows&&firstTable.rows[0]&&firstTable.rows[0].cells.length===6)return renderByChunks(rows,false);
+      afterRender();
+      return false;
+    }finally{inPaginate=false;}
+  }
+  function addRow(){
+    if(isEq()){
+      var rows=getAllRows();
+      rows.push({No:String(rows.length+1),ItemDescription:'',Brand:'',Model:'',InstalledQuantity:'',Localisation:'',Floor:'',InstallationPosition:'',InstallationCondition:'',ConfirmationPower:'',Remarks:''});
+      return renderByChunks(rows,true);
+    }
+    var rows=getAllRows();
+    rows.push({Item:'',WorkDescription:'',Qty:'',Unit:'',Status:'Pending',Remarks:''});
+    return renderByChunks(rows,false);
+  }
+  function delRow(btn){
+    var tr=btn.closest('tr');
+    var rows=getAllRows();
+    var all=Array.prototype.slice.call(root().querySelectorAll('table.a4-scope-table tbody tr'));
+    var ix=all.indexOf(tr);
+    if(ix>=0)rows.splice(ix,1);
+    if(isEq()){rows=rows.map(function(r,i){r.No=String(i+1);return r;});return renderByChunks(rows,true);}
+    return renderByChunks(rows,false);
+  }
+  function afterRender(){
+    if(window.AETERLINK_A4_RUNTIME_FAST_DEDUPE_FIX&&window.AETERLINK_A4_RUNTIME_FAST_DEDUPE_FIX.run)try{window.AETERLINK_A4_RUNTIME_FAST_DEDUPE_FIX.run();}catch(e){}
+    root().querySelectorAll('.a4-title,.a4-subtitle,.a4-section-title').forEach(function(n){n.setAttribute('contenteditable','true');n.setAttribute('spellcheck','false');});
+    updateFooters();
+  }
+  function updateFooters(){var pages=Array.prototype.slice.call(root().querySelectorAll('.a4-page'));var doc=(byId('fDocumentNo')&&byId('fDocumentNo').value)||'Not issued';pages.forEach(function(p,i){var f=p.querySelector('.a4-footer');if(f)f.innerHTML='<span class="a4-footer-center">Document No.: '+esc(doc)+' &nbsp;&nbsp;|&nbsp;&nbsp; Page No.: '+(i+1)+' / '+pages.length+'</span>';});}
+  function schedule(){clearTimeout(timer);timer=setTimeout(repaginate,80);}
+  document.addEventListener('click',function(e){var add=e.target&&e.target.closest?e.target.closest('.a4-fast-add-row-btn,.a4-eqc-fast-add-row-btn,.a4-paged-add-row-btn'):null;if(add){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return addRow();}var del=e.target&&e.target.closest?e.target.closest('.a4-fast-delete-row-btn,.a4-eqc-delete-row-btn,.a4-row-paged-delete,.a4-draft-delete-row-btn'):null;if(del){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return delRow(del);}},true);
+  document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('table.a4-scope-table'))schedule();},true);
+  window.AETERLINK_REPAGINATE_A4=repaginate;
+  window.AETERLINK_A4_RUNTIME_FAST_PAGINATION_FIX={run:repaginate,addRow:addRow,deleteRow:delRow,renderByChunks:renderByChunks};
+  setTimeout(afterRender,400);
+})();
+</script>
