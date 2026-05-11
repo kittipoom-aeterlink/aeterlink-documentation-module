@@ -1,0 +1,206 @@
+<!-- AETERLINK Documentation Module — A4_Project_Context_Preserve.html -->
+<!-- Keeps selected project details when changing document type/template in the production A4 workflow. -->
+<script id="a4-project-context-preserve-script">
+(function(){
+  if(window.__AETERLINK_PROJECT_CONTEXT_PRESERVE_V1__) return;
+  window.__AETERLINK_PROJECT_CONTEXT_PRESERVE_V1__ = true;
+
+  var state = { lastProjectContext: null, bootTimer: null, bootTries: 0, previewTimer: null };
+  var SAMPLE_PROJECT_NAMES = /^(Modular A4 Layout Check|Modular Test|Sample Project|TEST-PJ)$/i;
+  var SAMPLE_CLIENTS = /^(Sample Client|Client)$/i;
+  var SAMPLE_MAIN = /^(AETERLINK)$/i;
+
+  function byId(id){ return document.getElementById(id); }
+  function val(id){ var el = byId(id); return el ? String(el.value == null ? '' : el.value).trim() : ''; }
+  function setVal(id, v){ var el = byId(id); if(el && v != null) el.value = String(v || ''); }
+  function text(id){ var el = byId(id); return el ? String(el.textContent || '').trim() : ''; }
+  function norm(v){ return String(v == null ? '' : v).trim(); }
+  function cleanProjectCode(v){ return norm(v).split('—')[0].split(' - ')[0].trim(); }
+  function first(){
+    for(var i=0;i<arguments.length;i++){
+      var v = norm(arguments[i]);
+      if(v) return v;
+    }
+    return '';
+  }
+  function isSampleProjectName(v){ return !v || SAMPLE_PROJECT_NAMES.test(norm(v)); }
+  function isSampleClient(v){ return !v || SAMPLE_CLIENTS.test(norm(v)); }
+  function isSampleMain(v){ return !v || SAMPLE_MAIN.test(norm(v)); }
+
+  function projectRows(){
+    var rows = [];
+    if(window.AETERLINK_PROJECT_DETAIL_CACHE){
+      Object.keys(window.AETERLINK_PROJECT_DETAIL_CACHE).forEach(function(k){ rows.push(window.AETERLINK_PROJECT_DETAIL_CACHE[k]); });
+    }
+    if(window.APP_STATE && APP_STATE.tables && APP_STATE.tables.PROJECTS) rows = rows.concat(APP_STATE.tables.PROJECTS || []);
+    if(window.AETERLINK_DOC_DASHBOARD && AETERLINK_DOC_DASHBOARD.state && AETERLINK_DOC_DASHBOARD.state.projects) rows = rows.concat(AETERLINK_DOC_DASHBOARD.state.projects || []);
+    return rows;
+  }
+  function projectByCode(code){
+    code = cleanProjectCode(code);
+    if(!code) return null;
+    if(window.AETERLINK_PROJECT_DETAIL_CACHE && window.AETERLINK_PROJECT_DETAIL_CACHE[code]) return window.AETERLINK_PROJECT_DETAIL_CACHE[code];
+    var rows = projectRows();
+    for(var i=0;i<rows.length;i++){
+      if(cleanProjectCode(rows[i].ProjectCode || rows[i].Project || rows[i].ProjectId || rows[i].ProjectID) === code) return rows[i];
+    }
+    return null;
+  }
+  function projectContextFromRow(row, fallbackCode){
+    row = row || {};
+    return {
+      ProjectCode: cleanProjectCode(row.ProjectCode || row.Project || row.ProjectId || row.ProjectID || fallbackCode || ''),
+      ProjectName: first(row.ProjectName, row.ProjectTitle, row.Name),
+      ProjectLocation: first(row.ProjectLocation, row.SiteLocation, row.Location, row.ProjectSite, row.ProjectNameSite),
+      SiteLocation: first(row.SiteLocation, row.ProjectLocation, row.Location, row.ProjectSite),
+      Client: first(row.Client, row.Customer, row.Owner),
+      MainContractor: first(row.MainContractor, row.Main_Contractor, row.Contractor, row.MainContractorName),
+      ProjectManager: first(row.ProjectManager, row.PM),
+      CurrentPhase: first(row.CurrentPhase, row.Phase)
+    };
+  }
+  function currentProjectContext(){
+    var code = cleanProjectCode(first(val('prodProjectCode'), val('fProjectCode')));
+    var row = projectByCode(code);
+    var fromRow = projectContextFromRow(row, code);
+    var prodName = val('prodProjectName'), hiddenName = val('fProjectName');
+    var prodClient = val('prodClient'), hiddenClient = val('fClient');
+    var prodMain = val('prodMainContractor'), hiddenMain = val('fMainContractor');
+    var ctx = {
+      ProjectCode: first(code, fromRow.ProjectCode),
+      ProjectName: first(!isSampleProjectName(prodName) ? prodName : '', !isSampleProjectName(hiddenName) ? hiddenName : '', fromRow.ProjectName, prodName, hiddenName),
+      ProjectLocation: first(fromRow.ProjectLocation, val('prodProjectLocation'), val('fProjectLocation'), val('prodSiteLocation'), val('fSiteLocation')),
+      SiteLocation: first(fromRow.SiteLocation, val('prodSiteLocation'), val('fSiteLocation'), val('prodProjectLocation'), val('fProjectLocation')),
+      Client: first(!isSampleClient(prodClient) ? prodClient : '', !isSampleClient(hiddenClient) ? hiddenClient : '', fromRow.Client, prodClient, hiddenClient),
+      MainContractor: first(!isSampleMain(prodMain) ? prodMain : '', !isSampleMain(hiddenMain) ? hiddenMain : '', fromRow.MainContractor, prodMain, hiddenMain),
+      ProjectManager: fromRow.ProjectManager || '',
+      CurrentPhase: fromRow.CurrentPhase || ''
+    };
+    if(ctx.ProjectCode || ctx.ProjectName || ctx.Client || ctx.MainContractor) state.lastProjectContext = ctx;
+    return ctx;
+  }
+  function mergeContext(base, extra){
+    base = base || {};
+    extra = extra || {};
+    Object.keys(extra).forEach(function(k){ if(norm(extra[k])) base[k] = extra[k]; });
+    if(base.ProjectLocation && !base.SiteLocation) base.SiteLocation = base.ProjectLocation;
+    if(base.SiteLocation && !base.ProjectLocation) base.ProjectLocation = base.SiteLocation;
+    return base;
+  }
+  function restoreProjectContext(ctx){
+    ctx = ctx || state.lastProjectContext || currentProjectContext();
+    if(!ctx) return;
+    if(ctx.ProjectCode){ setVal('prodProjectCode', ctx.ProjectCode); setVal('fProjectCode', ctx.ProjectCode); }
+    if(ctx.ProjectName){ setVal('prodProjectName', ctx.ProjectName); setVal('fProjectName', ctx.ProjectName); }
+    if(ctx.Client){ setVal('prodClient', ctx.Client); setVal('fClient', ctx.Client); }
+    if(ctx.MainContractor){ setVal('prodMainContractor', ctx.MainContractor); setVal('fMainContractor', ctx.MainContractor); }
+    if(ctx.ProjectLocation){ setVal('prodProjectLocation', ctx.ProjectLocation); setVal('fProjectLocation', ctx.ProjectLocation); }
+    if(ctx.SiteLocation){ setVal('prodSiteLocation', ctx.SiteLocation); setVal('fSiteLocation', ctx.SiteLocation); }
+    state.lastProjectContext = ctx;
+  }
+  function updateIssueBoxes(){
+    var box = byId('prodDocNoBox'); if(box) box.textContent = val('fDocumentNo') || 'Not issued — suffix XXX';
+    var rev = byId('prodRevBox'); if(rev) rev.textContent = val('fRevisionNo') || val('prodRevisionNo') || 'R00';
+    var pill = byId('prodStatusPill'); if(pill) pill.textContent = val('fStatus') || val('prodStatus') || 'Draft / Not Issued';
+  }
+  function schedulePreview(delay){
+    clearTimeout(state.previewTimer);
+    state.previewTimer = setTimeout(function(){
+      if(typeof window.previewCurrentForm === 'function') window.previewCurrentForm();
+    }, delay == null ? 120 : delay);
+  }
+  function applyProjectFromCurrentCode(){
+    var before = currentProjectContext();
+    var row = projectByCode(before.ProjectCode);
+    if(row){
+      var ctx = mergeContext(before, projectContextFromRow(row, before.ProjectCode));
+      restoreProjectContext(ctx);
+    }else{
+      restoreProjectContext(before);
+    }
+    updateIssueBoxes();
+  }
+
+  function patchCollectFormData(){
+    if(!window.collectFormData || window.collectFormData.__projectContextPreserveV1) return;
+    var old = window.collectFormData;
+    window.collectFormData = function(){
+      applyProjectFromCurrentCode();
+      var data = old.apply(this, arguments) || {};
+      return mergeContext(data, state.lastProjectContext || currentProjectContext());
+    };
+    window.collectFormData.__projectContextPreserveV1 = true;
+  }
+  function patchLoadSampleForTemplate(){
+    if(!window.loadSampleForTemplate || window.loadSampleForTemplate.__projectContextPreserveV1) return;
+    var old = window.loadSampleForTemplate;
+    window.loadSampleForTemplate = function(){
+      var ctx = currentProjectContext();
+      var originalPreview = window.previewCurrentForm;
+      var ret;
+      if(typeof originalPreview === 'function') window.previewCurrentForm = function(){ return null; };
+      try {
+        ret = old.apply(this, arguments);
+      } finally {
+        if(typeof originalPreview === 'function') window.previewCurrentForm = originalPreview;
+      }
+      restoreProjectContext(ctx);
+      updateIssueBoxes();
+      schedulePreview(60);
+      return ret;
+    };
+    window.loadSampleForTemplate.__projectContextPreserveV1 = true;
+  }
+  function patchSetTemplate(){
+    if(!window.setTemplate || window.setTemplate.__projectContextPreserveV1) return;
+    var old = window.setTemplate;
+    window.setTemplate = function(){
+      state.lastProjectContext = currentProjectContext();
+      return old.apply(this, arguments);
+    };
+    window.setTemplate.__projectContextPreserveV1 = true;
+  }
+  function installProjectListeners(){
+    if(window.__AETERLINK_PROJECT_CONTEXT_LISTENERS_V1__) return;
+    window.__AETERLINK_PROJECT_CONTEXT_LISTENERS_V1__ = true;
+    document.addEventListener('change', function(ev){
+      var t = ev.target;
+      if(!t || !t.id) return;
+      if(t.id === 'prodDocType' || t.id === 'fTemplate') state.lastProjectContext = currentProjectContext();
+      if(t.id === 'prodProjectCode' || t.id === 'fProjectCode') { applyProjectFromCurrentCode(); schedulePreview(140); }
+    }, true);
+    document.addEventListener('input', function(ev){
+      var t = ev.target;
+      if(!t || !t.id) return;
+      if(t.id === 'prodProjectCode' || t.id === 'fProjectCode' || t.id === 'prodProjectName' || t.id === 'fProjectName' || t.id === 'prodClient' || t.id === 'fClient' || t.id === 'prodMainContractor' || t.id === 'fMainContractor') {
+        state.lastProjectContext = currentProjectContext();
+      }
+    }, true);
+  }
+  function boot(){
+    patchCollectFormData();
+    patchLoadSampleForTemplate();
+    patchSetTemplate();
+    installProjectListeners();
+    applyProjectFromCurrentCode();
+  }
+  function scheduleBoot(delay){
+    clearTimeout(state.bootTimer);
+    state.bootTimer = setTimeout(function(){
+      boot();
+      state.bootTries++;
+      if(state.bootTries < 12 && (!window.collectFormData || !window.loadSampleForTemplate || !byId('prodDocType'))) scheduleBoot(500);
+    }, delay == null ? 0 : delay);
+  }
+  document.addEventListener('DOMContentLoaded', function(){ scheduleBoot(0); });
+  window.addEventListener('load', function(){ scheduleBoot(0); });
+  scheduleBoot(300);
+
+  window.AETERLINK_PROJECT_CONTEXT = {
+    current: currentProjectContext,
+    restore: restoreProjectContext,
+    apply: applyProjectFromCurrentCode,
+    state: state
+  };
+})();
+</script>
