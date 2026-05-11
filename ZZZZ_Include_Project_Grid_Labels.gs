@@ -23,8 +23,9 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Draft_Issue_Edit_UI').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Form_Record_Edit_Buttons_Force').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Form_Records_Loading_Stabilizer').getContent(); } catch (err) {}
-    // Must be loaded last because A4_Overrides_Final / Pagination / Production_Next override status rendering.
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Row_Status_Final_Cleanup').getContent(); } catch (err) {}
+    // Final table edit hotfix: loaded after normal A4 patches and before DOMContentLoaded.
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Table_Edit_Hotfix').getContent(); } catch (err) {}
   }
   return content;
 }
