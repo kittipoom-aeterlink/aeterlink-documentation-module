@@ -7,6 +7,7 @@
  * - Legacy A4_Overrides_Final is intercepted because it overrides addRow() and calls recursive pagination.
  * - A4 row editing/pagination is handled by A4_Row_Pagination_Final.
  * - Loaded Draft/Edit delete buttons are repaired by A4_Delete_Row_Draft_Fix loaded after pagination.
+ * - Full document type dropdown is restored by A4_Document_List_All_Restore.
  * - Do not load A4_Add_Row_Freeze_Final_Guard or any additional Add Row guard.
  */
 
@@ -55,6 +56,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Draft_Issue_Edit_UI').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Form_Record_Edit_Buttons_Force').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Form_Records_Loading_Stabilizer').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Document_List_All_Restore').getContent(); } catch (err) {}
   }
 
   return content;
