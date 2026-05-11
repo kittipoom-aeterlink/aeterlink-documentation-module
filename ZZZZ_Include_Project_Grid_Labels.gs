@@ -13,6 +13,8 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Photo_Report_Last_Page').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Row_Controls_Restore').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Print_Pdf_Table_Parity_Final').getContent(); } catch (err) {}
+    // Final guard after A4_Overrides_Final has patched renderer methods.
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Disable_Recursive_Pagination').getContent(); } catch (err) {}
   }
   if (fileName === 'Client_App') {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Table_Event_Guard').getContent(); } catch (err) {}
