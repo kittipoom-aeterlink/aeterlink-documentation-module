@@ -1,72 +1,50 @@
 <!-- AETERLINK Documentation Module — A4_Logo_Display_Fix.html -->
-<!-- Logo-only permanent fix: use the official supplied logo image already embedded in A4_Print_Logo_EQC_Final, render it as CSS background to avoid broken img icons. -->
+<!-- Logo-only permanent fix: render the supplied AETERLINK artwork as inline vector. No external file, no img tag, no base64 dependency. -->
 <style id="a4-logo-display-fix-style">
   .a4-logo-cell{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;}
   .a4-logo-cell img{display:none!important;visibility:hidden!important;}
-  .a4-logo-official-final{width:41mm!important;max-width:41mm!important;height:5.05mm!important;max-height:5.05mm!important;display:block!important;background-repeat:no-repeat!important;background-position:center center!important;background-size:contain!important;}
-  .a4-logo-svg-fallback{width:41mm!important;max-width:41mm!important;height:auto!important;max-height:15mm!important;display:block!important;}
-  @media print{.a4-logo-cell img{display:none!important;visibility:hidden!important}.a4-logo-official-final{width:41mm!important;max-width:41mm!important;height:5.05mm!important;max-height:5.05mm!important;display:block!important;background-repeat:no-repeat!important;background-position:center center!important;background-size:contain!important;}}
+  .a4-logo-vector-final{width:41mm!important;max-width:41mm!important;height:auto!important;max-height:5.3mm!important;display:block!important;}
+  @media print{.a4-logo-cell img{display:none!important;visibility:hidden!important}.a4-logo-vector-final{width:41mm!important;max-width:41mm!important;height:auto!important;max-height:5.3mm!important;display:block!important;}}
 </style>
 <script id="a4-logo-display-fix-script">
 (function(){
-  if(window.__AETERLINK_A4_LOGO_DISPLAY_FIX_V3__) return;
-  window.__AETERLINK_A4_LOGO_DISPLAY_FIX_V3__ = true;
-
-  function extractOfficialLogoData(){
-    var s = document.getElementById('a4-print-logo-eqc-final-script');
-    var text = s ? String(s.textContent || '') : '';
-    var m = text.match(/var\s+LOGO_SRC\s*=\s*'([^']+)'/);
-    if(m && /^data:image\//.test(m[1])) return m[1];
-    return '';
-  }
-
-  function fallbackSvg(){
-    return '<svg class="a4-logo-svg-fallback" viewBox="0 0 1200 165" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="AETERLINK Logo"><g fill="#0782c6"><path d="M25 135c52-32 78-68 88-134h42c-3 42-26 66-70 86-21 10-34 25-45 54-9 20-34 18-15-6z"/><circle cx="190" cy="123" r="38"/><text x="285" y="122" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="112" letter-spacing="18">AETERLINK</text></g></svg>';
-  }
+  if(window.__AETERLINK_A4_LOGO_DISPLAY_FIX_V4__) return;
+  window.__AETERLINK_A4_LOGO_DISPLAY_FIX_V4__ = true;
 
   function officialLogoHtml(){
-    var src = extractOfficialLogoData();
-    if(src) return '<span class="a4-logo-official-final" role="img" aria-label="AETERLINK Logo" style="background-image:url(' + src + ');"></span>';
-    return fallbackSvg();
+    return '<svg class="a4-logo-vector-final" viewBox="0 0 2048 253" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="AETERLINK Logo">'
+      + '<path fill="#007cc6" fill-rule="evenodd" d="M222 162L212 165L203 170L192 181L185 197L185 217L192 233L200 242L207 247L220 252L240 252L256 245L267 234L274 220L275 199L270 185L266 179L255 169L242 163ZM1893 54L1890 58L1891 229L1894 232L1921 232L1925 229L1926 146L2005 231L2046 232L2047 228L1965 138L1968 132L2028 57L2028 54L1991 54L1926 135L1925 56L1923 54ZM1674 54L1672 56L1673 229L1703 230L1705 228L1705 132L1707 130L1814 225L1821 230L1824 229L1824 56L1822 54L1794 54L1791 56L1791 154L1789 155L1677 54ZM1571 54L1568 58L1568 228L1572 232L1599 232L1603 229L1603 57L1601 54ZM1395 54L1394 230L1397 232L1512 231L1514 229L1514 207L1510 204L1428 203L1428 57L1425 54ZM1030 55L1030 230L1033 232L1144 231L1146 229L1146 207L1142 204L1064 203L1065 154L1139 154L1141 151L1141 130L1138 127L1065 127L1064 82L1141 81L1144 78L1144 56L1142 54ZM818 54L816 56L816 78L819 81L877 81L879 83L879 229L883 232L912 231L913 83L915 81L973 81L976 79L976 55ZM650 54L648 56L648 230L651 232L760 232L764 230L764 207L760 204L682 203L682 156L684 154L757 154L759 151L759 130L756 127L683 127L682 82L759 81L762 79L762 56L760 54ZM1210 50L1207 53L1207 233L1211 235L1234 235L1237 233L1238 167L1240 165L1258 165L1262 168L1308 234L1342 235L1342 232L1293 162L1294 159L1300 157L1311 150L1323 138L1330 125L1332 117L1332 98L1330 89L1323 75L1309 61L1289 52L1277 50ZM1238 82L1240 80L1280 80L1289 83L1300 93L1304 103L1304 112L1300 122L1291 131L1282 135L1239 135ZM501 42L472 98L408 229L410 231L444 230L448 225L462 190L466 187L541 187L545 190L561 227L564 230L599 231L599 225L521 73L508 45L505 42ZM502 107L505 110L506 114L531 158L530 161L475 160L499 110ZM165 4L153 0L137 0L125 4L110 17L106 24L103 34L102 56L98 77L90 99L79 119L70 131L50 151L33 163L15 173L5 185L0 199L0 213L3 223L7 230L19 242L33 248L52 248L63 244L76 233L82 223L85 214L86 189L91 166L98 148L105 135L117 118L132 102L158 83L173 75L182 64L187 52L187 33L184 24L179 16Z"/>'
+      + '</svg>';
   }
 
   function isLogoCell(node){return !!(node && node.classList && node.classList.contains('a4-logo-cell'));}
-
   function applyLogo(root){
     root = root || document;
     var cells = [];
     if(isLogoCell(root)) cells.push(root);
     if(root.querySelectorAll) root.querySelectorAll('.a4-logo-cell').forEach(function(cell){cells.push(cell);});
     cells.forEach(function(cell){
-      var html = officialLogoHtml();
-      if(cell.getAttribute('data-aeterlink-logo-fixed') === 'official-v3' && cell.innerHTML === html) return;
-      cell.innerHTML = html;
-      cell.setAttribute('data-aeterlink-logo-fixed','official-v3');
+      if(cell.getAttribute('data-aeterlink-logo-fixed') === 'official-vector-v4' && cell.querySelector('.a4-logo-vector-final')) return;
+      cell.innerHTML = officialLogoHtml();
+      cell.setAttribute('data-aeterlink-logo-fixed','official-vector-v4');
     });
   }
 
   function patchRenderer(){
     if(window.AETERLINK_A4_RENDERER){
       window.AETERLINK_A4_RENDERER.logoSvg = officialLogoHtml;
-      window.AETERLINK_A4_RENDERER.__aeterlinkLogoDisplayFixed = 'official-v3';
+      window.AETERLINK_A4_RENDERER.__aeterlinkLogoDisplayFixed = 'official-vector-v4';
     }
   }
 
   function patchPrintObject(){
-    if(window.AETERLINK_PRINT_LOGO_EQC_FINAL && typeof window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo === 'function' && !window.AETERLINK_PRINT_LOGO_EQC_FINAL.__logoDisplayFixV3){
-      window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo = function(){
-        patchRenderer();
-        applyLogo(document);
-      };
-      window.AETERLINK_PRINT_LOGO_EQC_FINAL.__logoDisplayFixV3 = true;
+    if(window.AETERLINK_PRINT_LOGO_EQC_FINAL && typeof window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo === 'function' && !window.AETERLINK_PRINT_LOGO_EQC_FINAL.__logoDisplayFixV4){
+      window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo = function(){patchRenderer();applyLogo(document);};
+      window.AETERLINK_PRINT_LOGO_EQC_FINAL.__logoDisplayFixV4 = true;
     }
   }
 
-  function boot(){
-    patchRenderer();
-    patchPrintObject();
-    applyLogo(document);
-  }
+  function boot(){patchRenderer();patchPrintObject();applyLogo(document);}
 
   var obs = null;
   function observe(){
@@ -75,9 +53,7 @@
       var need = false;
       muts.forEach(function(m){
         if(isLogoCell(m.target)) need = true;
-        Array.prototype.slice.call(m.addedNodes || []).forEach(function(n){
-          if(isLogoCell(n) || (n.querySelector && n.querySelector('.a4-logo-cell'))) need = true;
-        });
+        Array.prototype.slice.call(m.addedNodes || []).forEach(function(n){if(isLogoCell(n) || (n.querySelector && n.querySelector('.a4-logo-cell'))) need = true;});
       });
       if(need) setTimeout(boot,0);
     });
@@ -86,9 +62,7 @@
 
   document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){boot();observe();},0);setTimeout(boot,700);setTimeout(boot,1800);});
   window.addEventListener('load',function(){setTimeout(function(){boot();observe();},200);setTimeout(boot,1200);});
-  document.addEventListener('click',function(e){
-    if(e.target && e.target.closest && e.target.closest('#prodDocType,#fTemplate,.a4-clean-add-row,.a4-clean-delete-row,.mod-btn,.a4-print-btn')) setTimeout(boot,250);
-  },true);
+  document.addEventListener('click',function(e){if(e.target && e.target.closest && e.target.closest('#prodDocType,#fTemplate,.a4-clean-add-row,.a4-clean-delete-row,.mod-btn,.a4-print-btn')) setTimeout(boot,250);},true);
   setTimeout(function(){boot();observe();},600);
   setTimeout(boot,2200);
   setInterval(boot,1200);
