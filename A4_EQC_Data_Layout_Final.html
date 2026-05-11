@@ -1,28 +1,36 @@
 <!-- AETERLINK Documentation Module — A4_EQC_Data_Layout_Final.html -->
-<!-- Final EQC patch: full 35-row equipment list, no Remarks column, readable column widths. -->
+<!-- Final EQC patch: full 35-row equipment list, no Remarks column, readable column widths, status dropdowns. -->
 <style id="a4-eqc-data-layout-final-style">
   #a4Preview table.a4-equipment-checklist-table col:nth-child(1),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(1){width:4%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(2),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(2){width:18%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(2),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(2){width:17%!important;}
   #a4Preview table.a4-equipment-checklist-table col:nth-child(3),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(3){width:7%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(4),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(4){width:17%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(4),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(4){width:16%!important;}
   #a4Preview table.a4-equipment-checklist-table col:nth-child(5),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(5){width:7%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(6),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(6){width:10%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(7),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(7){width:5%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(8),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(8){width:13%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(9),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(9){width:13%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(10),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(10){width:6%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(6),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(6){width:9.5%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(7),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(7){width:4.5%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(8),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(8){width:11.66%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(9),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(9){width:11.67%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(10),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(10){width:11.67%!important;}
   #a4Preview table.a4-equipment-checklist-table col:nth-child(11),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(11),
   #a4Preview table.a4-equipment-checklist-table th:nth-child(11),#a4Preview table.a4-equipment-checklist-table td:nth-child(11),
   #a4CheckOutput table.a4-equipment-checklist-table th:nth-child(11),#a4CheckOutput table.a4-equipment-checklist-table td:nth-child(11){display:none!important;visibility:hidden!important;width:0!important;max-width:0!important;padding:0!important;border:0!important;}
-  #a4Preview table.a4-equipment-checklist-table th,#a4CheckOutput table.a4-equipment-checklist-table th{font-size:5.15pt!important;line-height:1.06!important;}
+  #a4Preview table.a4-equipment-checklist-table th,#a4CheckOutput table.a4-equipment-checklist-table th{font-size:5.05pt!important;line-height:1.08!important;}
+  #a4Preview table.a4-equipment-checklist-table th:nth-child(8),#a4Preview table.a4-equipment-checklist-table th:nth-child(9),#a4Preview table.a4-equipment-checklist-table th:nth-child(10),
+  #a4CheckOutput table.a4-equipment-checklist-table th:nth-child(8),#a4CheckOutput table.a4-equipment-checklist-table th:nth-child(9),#a4CheckOutput table.a4-equipment-checklist-table th:nth-child(10){white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;hyphens:none!important;text-align:center!important;vertical-align:middle!important;}
+  #a4Preview table.a4-equipment-checklist-table .a4-eqc-header-note,#a4CheckOutput table.a4-equipment-checklist-table .a4-eqc-header-note{font-size:4.65pt!important;line-height:1.05!important;font-weight:900!important;display:inline!important;}
   #a4Preview table.a4-equipment-checklist-table td,#a4CheckOutput table.a4-equipment-checklist-table td{font-size:5.55pt!important;line-height:1.08!important;}
   #a4Preview table.a4-equipment-checklist-table td:nth-child(2),#a4Preview table.a4-equipment-checklist-table td:nth-child(4),#a4Preview table.a4-equipment-checklist-table td:nth-child(6),
   #a4CheckOutput table.a4-equipment-checklist-table td:nth-child(2),#a4CheckOutput table.a4-equipment-checklist-table td:nth-child(4),#a4CheckOutput table.a4-equipment-checklist-table td:nth-child(6){text-align:left!important;}
+  #a4Preview table.a4-equipment-checklist-table td:nth-child(8),#a4Preview table.a4-equipment-checklist-table td:nth-child(9),#a4Preview table.a4-equipment-checklist-table td:nth-child(10),
+  #a4CheckOutput table.a4-equipment-checklist-table td:nth-child(8),#a4CheckOutput table.a4-equipment-checklist-table td:nth-child(9),#a4CheckOutput table.a4-equipment-checklist-table td:nth-child(10){text-align:center!important;padding:.35mm .25mm!important;}
+  #a4Preview .a4-eqc-status-select,#a4CheckOutput .a4-eqc-status-select{width:100%!important;min-width:0!important;border:0!important;outline:0!important;background:transparent!important;color:#06223e!important;font:inherit!important;font-size:5.55pt!important;line-height:1!important;font-weight:900!important;text-align:center!important;text-align-last:center!important;padding:0 1.8mm 0 0!important;margin:0!important;appearance:auto!important;cursor:pointer!important;}
+  #a4Preview .a4-eqc-status-select:focus,#a4CheckOutput .a4-eqc-status-select:focus{background:#fffbe8!important;box-shadow:inset 0 0 0 1px #d7a540!important;}
+  @media print{#a4Preview .a4-eqc-status-select,#a4CheckOutput .a4-eqc-status-select,.a4-eqc-status-select{appearance:none!important;-webkit-appearance:none!important;padding:0!important;background:transparent!important;border:0!important;color:#06223e!important;}}
 </style>
 <script id="a4-eqc-data-layout-final-script">
 (function(){
-  if(window.__AETERLINK_EQC_DATA_LAYOUT_FINAL_V1__) return;
-  window.__AETERLINK_EQC_DATA_LAYOUT_FINAL_V1__ = true;
+  if(window.__AETERLINK_EQC_DATA_LAYOUT_FINAL_V2__) return;
+  window.__AETERLINK_EQC_DATA_LAYOUT_FINAL_V2__ = true;
 
   var EQC_ROWS = [
     ['1','Energy Meter','Acrel','ADL400','10','MDB Room','+1','OK','OK','OK'],
@@ -62,8 +70,20 @@
     ['35','Temperature sensor','Aeterlink','AirPlug Sense-T','36','Sales Area','+1','OK','OK','OK']
   ];
   var KEYS = ['No','ItemDescription','Brand','Model','InstalledQuantity','Localisation','Floor','InstallationPosition','InstallationCondition','ConfirmationPower'];
-  var HEADERS = ['No.','Item description','brand','Product name','Installed Quantity','Localisation','Floor','Installation Position<br>(matches as-built drawings?)','Installation Condition<br>(no risk of falling or detachment?)','Confirmation of power-on<br>(operate after power-on?)'];
-  var WIDTHS = ['4%','18%','7%','17%','7%','10%','5%','13%','13%','6%','0%'];
+  var HEADERS = [
+    'No.',
+    'Item description',
+    'brand',
+    'Product name',
+    'Installed<br>Quantity',
+    'Localisation',
+    'Floor',
+    'Installation<br>Position<br><span class="a4-eqc-header-note">(matches as-built<br>drawings?)</span>',
+    'Installation<br>Condition<br><span class="a4-eqc-header-note">(no risk of falling<br>or detachment?)</span>',
+    'Confirmation<br>of power-on<br><span class="a4-eqc-header-note">(operate after<br>power-on?)</span>'
+  ];
+  var WIDTHS = ['4%','17%','7%','16%','7%','9.5%','4.5%','11.66%','11.67%','11.67%','0%'];
+  var STATUS_OPTIONS = ['', 'OK', 'NG', 'N/A'];
 
   function byId(id){return document.getElementById(id);}
   function isEqcSelected(){var c=(byId('fTemplate')&&byId('fTemplate').value)||(byId('prodDocType')&&byId('prodDocType').value)||'';return /EQC|EQCH|EQUIP/i.test(c);}
@@ -71,9 +91,9 @@
   function patchTemplate(){
     window.AETERLINK_TEMPLATES = window.AETERLINK_TEMPLATES || {};
     var tpl = window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST;
-    if(!tpl || tpl.__eqcDataLayoutFinalPatched) return false;
-    tpl.__eqcDataLayoutFinalPatched = true;
-    tpl.columns = KEYS.map(function(k,i){return {key:k,label:HEADERS[i].replace(/<br>/g,' '),width:WIDTHS[i]};});
+    if(!tpl || tpl.__eqcDataLayoutFinalPatchedV2) return false;
+    tpl.__eqcDataLayoutFinalPatchedV2 = true;
+    tpl.columns = KEYS.map(function(k,i){return {key:k,label:HEADERS[i].replace(/<br>/g,' ').replace(/<[^>]+>/g,''),width:WIDTHS[i]};});
     tpl.sampleData = function(){return {ProjectCode:'TEST-PJ',ProjectName:'Modular A4 Layout Check',Client:'Sample Client',MainContractor:'AETERLINK',DocumentNo:'',RevisionNo:'R00',Status:'Draft',ContractNo:'-',PurchaseOrderNo:'-',WorkType:'Equipment Installation / Inspection / Verification',CompletionDate:'',ReferenceDocuments:'PJ-EQC-001',Remarks:'',ChecklistRows:rows()};};
     return true;
   }
@@ -87,6 +107,66 @@
       f.value = JSON.stringify(rows(),null,2);
     }
   }
+  function cleanText(td){
+    if(!td) return '';
+    var sel = td.querySelector && td.querySelector('select.a4-eqc-status-select');
+    if(sel) return sel.value || '';
+    var clone = td.cloneNode(true);
+    clone.querySelectorAll('button,.a4-no-print').forEach(function(n){n.remove();});
+    return String(clone.textContent||'').replace(/^[\s×✕✖xX*•-]+/,'').trim();
+  }
+  function statusSelectHtml(value){
+    value = String(value||'').trim();
+    if(value === 'NA') value = 'N/A';
+    var html = '<select class="a4-eqc-status-select" aria-label="EQC status">';
+    STATUS_OPTIONS.forEach(function(o){html += '<option value="'+o+'" '+(o===value?'selected':'')+'>'+o+'</option>';});
+    return html + '</select>';
+  }
+  function normalizeStatusDropdowns(table){
+    if(!table || !table.tBodies || !table.tBodies[0]) return;
+    Array.prototype.slice.call(table.tBodies[0].rows).forEach(function(tr){
+      [7,8,9].forEach(function(idx){
+        var td = tr.cells[idx];
+        if(!td) return;
+        var value = cleanText(td);
+        td.removeAttribute('contenteditable');
+        td.removeAttribute('spellcheck');
+        td.setAttribute('data-eqc-status-value', value);
+        var sel = td.querySelector('select.a4-eqc-status-select');
+        if(!sel){
+          td.innerHTML = statusSelectHtml(value);
+        }else if(sel.value !== value){
+          sel.value = value;
+        }
+      });
+    });
+  }
+  function syncRowsFromTables(){
+    if(!isEqcSelected()) return;
+    var out=[];
+    rootTables().forEach(function(table){
+      if(!table.tBodies || !table.tBodies[0]) return;
+      Array.prototype.slice.call(table.tBodies[0].rows).forEach(function(tr){
+        var c=tr.cells;
+        if(c.length < 10) return;
+        out.push({
+          No: cleanText(c[0]),
+          ItemDescription: cleanText(c[1]),
+          Brand: cleanText(c[2]),
+          Model: cleanText(c[3]),
+          InstalledQuantity: cleanText(c[4]),
+          Localisation: cleanText(c[5]),
+          Floor: cleanText(c[6]),
+          InstallationPosition: cleanText(c[7]),
+          InstallationCondition: cleanText(c[8]),
+          ConfirmationPower: cleanText(c[9]),
+          Remarks:''
+        });
+      });
+    });
+    var f = byId('fRows');
+    if(f && out.length) try{f.value = JSON.stringify(out,null,2);}catch(e){}
+  }
   function normalizeTable(table){
     if(!table) return;
     var cols = table.querySelectorAll('colgroup col');
@@ -94,28 +174,31 @@
     var ths = table.querySelectorAll('thead th');
     HEADERS.forEach(function(h,i){if(ths[i])ths[i].innerHTML=h;});
     table.querySelectorAll('thead th:nth-child(11),tbody td:nth-child(11)').forEach(function(cell){cell.style.display='none';cell.style.visibility='hidden';cell.style.width='0';cell.style.maxWidth='0';cell.style.padding='0';cell.style.border='0';});
+    normalizeStatusDropdowns(table);
   }
   function normalizeAll(){
     rootTables().forEach(normalizeTable);
+    syncRowsFromTables();
     if(window.AETERLINK_A4_ADD_ROW_PAGINATION_GUARD && AETERLINK_A4_ADD_ROW_PAGINATION_GUARD.schedule) AETERLINK_A4_ADD_ROW_PAGINATION_GUARD.schedule(260);
   }
   function rootTables(){return Array.prototype.slice.call(document.querySelectorAll('#a4Preview table.a4-equipment-checklist-table,#a4CheckOutput table.a4-equipment-checklist-table'));}
   function patchPreview(){
-    if(typeof window.loadSampleForTemplate==='function' && !window.loadSampleForTemplate.__eqcDataLayoutFinal){
+    if(typeof window.loadSampleForTemplate==='function' && !window.loadSampleForTemplate.__eqcDataLayoutFinalV2){
       var oldLoad=window.loadSampleForTemplate;
       window.loadSampleForTemplate=function(){patchTemplate();var ret=oldLoad.apply(this,arguments);forceSampleRowsIfNeeded();setTimeout(normalizeAll,260);return ret;};
-      window.loadSampleForTemplate.__eqcDataLayoutFinal=true;
+      window.loadSampleForTemplate.__eqcDataLayoutFinalV2=true;
     }
-    if(typeof window.previewCurrentForm==='function' && !window.previewCurrentForm.__eqcDataLayoutFinal){
+    if(typeof window.previewCurrentForm==='function' && !window.previewCurrentForm.__eqcDataLayoutFinalV2){
       var oldPreview=window.previewCurrentForm;
       window.previewCurrentForm=function(){patchTemplate();forceSampleRowsIfNeeded();var ret=oldPreview.apply(this,arguments);setTimeout(normalizeAll,320);return ret;};
-      window.previewCurrentForm.__eqcDataLayoutFinal=true;
+      window.previewCurrentForm.__eqcDataLayoutFinalV2=true;
     }
   }
   function boot(){patchTemplate();patchPreview();forceSampleRowsIfNeeded();setTimeout(normalizeAll,500);}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,1200);});
   window.addEventListener('load',function(){setTimeout(boot,300);});
   document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('.a4-clean-add-row,.a4-clean-delete-row'))setTimeout(normalizeAll,480);},true);
+  document.addEventListener('change',function(e){if(e.target&&e.target.matches&&e.target.matches('.a4-eqc-status-select')){var td=e.target.closest('td');if(td)td.setAttribute('data-eqc-status-value',e.target.value||'');syncRowsFromTables();}},true);
   setTimeout(boot,900);setTimeout(boot,2200);
   window.AETERLINK_EQC_DATA_LAYOUT_FINAL={rows:rows,apply:boot,normalize:normalizeAll};
 })();
