@@ -3,19 +3,20 @@
  * AETERLINK Documentation Module — Api.gs
  * Public server API facade for the WebApp.
  *
- * Notes:
- * - Apps Script exposes global functions from every .gs file.
- * - This module adds safe global helper APIs without replacing Code.gs.
- * - Existing global API functions in Code.gs remain active.
+ * Architecture notes:
+ * - This file does NOT declare global doGet() or global include().
+ * - WebApp entrypoint is owned by ZZZ_WebAppRouter.gs.
+ * - HTML include() is owned by ZZZZ_Include_Project_Grid_Labels.gs.
+ * - This avoids Apps Script global function collision.
  * ============================================================
  */
 
 var AETERLINK_BUILD = {
-  APP_VERSION: 'AETERLINK_DOCS_MODULAR_2026_05_08_R06',
-  BUILD_TIMESTAMP: '2026-05-08T00:00:00Z',
+  APP_VERSION: 'AETERLINK_DOCS_MODULAR_2026_05_08_R07_ARCH_FIX',
+  BUILD_TIMESTAMP: '2026-05-11T00:00:00Z',
   SOURCE_BRANCH: 'main',
   DEPLOYMENT_MODE: 'GitHub Actions + clasp existing deployment',
-  STRUCTURE_VERSION: 'ROOT_LEVEL_MODULAR_APPS_SCRIPT'
+  STRUCTURE_VERSION: 'ROOT_LEVEL_MODULAR_APPS_SCRIPT_SAFE_ROUTER'
 };
 
 var AETERLINK_ROUTER = {
@@ -25,18 +26,18 @@ var AETERLINK_ROUTER = {
   SMOKE_VIEW: 'smoke'
 };
 
-(function() {
+(function(global) {
   try {
-    if (typeof DMS === 'undefined' || !DMS) {
-      DMS = { name: 'AETERLINK Documentation Control', version: AETERLINK_BUILD.APP_VERSION };
-    } else {
+    if (typeof DMS !== 'undefined' && DMS) {
       DMS.name = DMS.name || 'AETERLINK Documentation Control';
       DMS.version = AETERLINK_BUILD.APP_VERSION;
+      return;
     }
-  } catch (err) {
-    DMS = { name: 'AETERLINK Documentation Control', version: AETERLINK_BUILD.APP_VERSION };
-  }
-})();
+  } catch (err) {}
+  try {
+    global.DMS = global.DMS || { name: 'AETERLINK Documentation Control', version: AETERLINK_BUILD.APP_VERSION };
+  } catch (err) {}
+})(this);
 
 var AETERLINK_API = (function() {
   function init() { return modularInit(); }
@@ -48,8 +49,8 @@ var AETERLINK_API = (function() {
       connected: true,
       build: buildInfo(),
       routing: routingInfo(),
-      appName: typeof DMS !== 'undefined' && DMS.name ? DMS.name : 'AETERLINK Documentation Control',
-      version: typeof DMS !== 'undefined' && DMS.version ? DMS.version : AETERLINK_BUILD.APP_VERSION,
+      appName: safeDmsName_(),
+      version: safeDmsVersion_(),
       serverTime: new Date().toISOString(),
       modules: typeof MODULES !== 'undefined' ? MODULES : {},
       schema: typeof SCHEMA !== 'undefined' ? SCHEMA : {},
@@ -61,11 +62,27 @@ var AETERLINK_API = (function() {
 
   function health() {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    return { ok: true, connected: true, build: buildInfo(), routing: routingInfo(), spreadsheetId: ss ? ss.getId() : '', spreadsheetName: ss ? ss.getName() : '', serverTime: new Date().toISOString(), user: activeUser() };
+    return {
+      ok: true,
+      connected: true,
+      build: buildInfo(),
+      routing: routingInfo(),
+      spreadsheetId: ss ? ss.getId() : '',
+      spreadsheetName: ss ? ss.getName() : '',
+      serverTime: new Date().toISOString(),
+      user: activeUser()
+    };
   }
 
   function buildInfo() {
-    return { appVersion: AETERLINK_BUILD.APP_VERSION, buildTimestamp: AETERLINK_BUILD.BUILD_TIMESTAMP, sourceBranch: AETERLINK_BUILD.SOURCE_BRANCH, deploymentMode: AETERLINK_BUILD.DEPLOYMENT_MODE, structureVersion: AETERLINK_BUILD.STRUCTURE_VERSION, serverTime: new Date().toISOString() };
+    return {
+      appVersion: AETERLINK_BUILD.APP_VERSION,
+      buildTimestamp: AETERLINK_BUILD.BUILD_TIMESTAMP,
+      sourceBranch: AETERLINK_BUILD.SOURCE_BRANCH,
+      deploymentMode: AETERLINK_BUILD.DEPLOYMENT_MODE,
+      structureVersion: AETERLINK_BUILD.STRUCTURE_VERSION,
+      serverTime: new Date().toISOString()
+    };
   }
 
   function lifecycleConfig() {
@@ -83,7 +100,13 @@ var AETERLINK_API = (function() {
   }
 
   function getCounts() {
-    return { projects: tableRows('PROJECTS').count, templates: tableRows('FORM_TEMPLATES').count, formRecords: tableRows('FORM_RECORDS').count, documentRegister: tableRows('DOCUMENT_REGISTER').count, clientSubmittals: tableRows('CLIENT_SUBMITTALS').count };
+    return {
+      projects: tableRows('PROJECTS').count,
+      templates: tableRows('FORM_TEMPLATES').count,
+      formRecords: tableRows('FORM_RECORDS').count,
+      documentRegister: tableRows('DOCUMENT_REGISTER').count,
+      clientSubmittals: tableRows('CLIENT_SUBMITTALS').count
+    };
   }
 
   function tableRows(tableName, options) {
@@ -126,8 +149,11 @@ var AETERLINK_API = (function() {
   function saveFormRecord(payload) {
     payload = payload || {};
     var lock = LockService.getScriptLock();
-    lock.waitLock(30000);
+    var locked = false;
     try {
+      locked = lock.tryLock(30000);
+      if (!locked) return { ok: false, message: 'ระบบกำลังบันทึกข้อมูลอื่นอยู่ กรุณาลองใหม่อีกครั้ง', code: 'LOCK_TIMEOUT', build: buildInfo() };
+
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var sh = ss.getSheetByName('FORM_RECORDS');
       if (!sh) throw new Error('Sheet not found: FORM_RECORDS');
@@ -193,8 +219,12 @@ var AETERLINK_API = (function() {
       else { sh.appendRow(rowValues); targetRow = sh.getLastRow(); }
 
       return { ok: true, action: existingId ? 'updated' : 'created', tableName: 'FORM_RECORDS', row: targetRow, record: record, build: buildInfo() };
+    } catch (err) {
+      return { ok: false, message: err && err.message ? err.message : String(err), code: 'SAVE_FORM_RECORD_ERROR', build: buildInfo() };
     } finally {
-      lock.releaseLock();
+      if (locked) {
+        try { lock.releaseLock(); } catch (releaseErr) {}
+      }
     }
   }
 
@@ -226,10 +256,7 @@ var AETERLINK_API = (function() {
 
   function canonicalTemplateCode_(templateCode) {
     var code = String(templateCode || '').trim().toUpperCase();
-    var aliases = {
-      'PJ-WORK-COMPLETE-001': 'PJ-WCR-001',
-      'PJ-WORK-COMPLETE': 'PJ-WCR-001'
-    };
+    var aliases = { 'PJ-WORK-COMPLETE-001': 'PJ-WCR-001', 'PJ-WORK-COMPLETE': 'PJ-WCR-001' };
     return aliases[code] || code || 'PJ-WCR-001';
   }
 
@@ -258,11 +285,6 @@ var AETERLINK_API = (function() {
     var words = cleaned.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').split(/\s+/).filter(function(w) { return w && !stop[w] && !/^\d+$/.test(w); });
     var letters = words.map(function(w) { return w.charAt(0); }).join('');
     if (letters.length >= 3) return letters.substring(0, 3);
-    var compact = words.join('').replace(/[^A-Z0-9]/g, '');
-    for (var i = 0; letters.length < 3 && i < compact.length; i++) {
-      if (letters.indexOf(compact.charAt(i)) < 0 || letters.length < 2) letters += compact.charAt(i);
-    }
-    if (letters.length >= 3) return letters.substring(0, 3);
     var m = fallback.match(/^PJ-([A-Z0-9]{3})-/);
     if (m) return m[1];
     var body = fallback.replace(/^PJ-/, '').replace(/-\d{3,4}$/, '').replace(/[^A-Z0-9]/g, '');
@@ -272,8 +294,7 @@ var AETERLINK_API = (function() {
   function documentCodePrefix_(templateCode) {
     var canonical = canonicalTemplateCode_(templateCode);
     var name = templateNameForCode_(canonical) || templateNameForCode_(templateCode);
-    var acronym = acronym3_(name, canonical);
-    return 'PJ-' + acronym;
+    return 'PJ-' + acronym3_(name, canonical);
   }
 
   function normalizeRevisionNo_(revisionNo) {
@@ -284,28 +305,10 @@ var AETERLINK_API = (function() {
     return 'R' + ('00' + n).slice(-2);
   }
 
-  function stripRevisionSuffix_(documentNo) {
-    return String(documentNo || '').trim().replace(/-R\d{2}$/i, '');
-  }
-
-  function padIssueSeq_(seq) {
-    var n = parseInt(seq, 10);
-    if (isNaN(n) || n < 1) n = 1;
-    return ('000' + n).slice(-3);
-  }
-
-  function extractIssueNo_(documentNo) {
-    var m = stripRevisionSuffix_(documentNo).match(/-(\d{3,4})$/);
-    if (!m) return '';
-    return padIssueSeq_(m[1]);
-  }
-
-  function applyRevisionSuffix_(baseDocumentNo, revisionNo) {
-    var base = stripRevisionSuffix_(baseDocumentNo);
-    var rev = normalizeRevisionNo_(revisionNo);
-    if (rev && rev !== 'R00' && rev !== '0') return base + '-' + rev;
-    return base;
-  }
+  function stripRevisionSuffix_(documentNo) { return String(documentNo || '').trim().replace(/-R\d{2}$/i, ''); }
+  function padIssueSeq_(seq) { var n = parseInt(seq, 10); if (isNaN(n) || n < 1) n = 1; return ('000' + n).slice(-3); }
+  function extractIssueNo_(documentNo) { var m = stripRevisionSuffix_(documentNo).match(/-(\d{3,4})$/); if (!m) return ''; return padIssueSeq_(m[1]); }
+  function applyRevisionSuffix_(baseDocumentNo, revisionNo) { var base = stripRevisionSuffix_(baseDocumentNo); var rev = normalizeRevisionNo_(revisionNo); return rev && rev !== 'R00' && rev !== '0' ? base + '-' + rev : base; }
 
   function normalizeDocumentNo_(projectCode, templateCode, documentNo, revisionNo) {
     var project = String(projectCode || 'TEST-PJ').trim();
@@ -333,8 +336,7 @@ var AETERLINK_API = (function() {
       var n = parseInt(issue || '0', 10);
       if (!isNaN(n) && n > max) max = n;
     });
-    if (max > 0) return max + 1;
-    return sameTemplateCount + 1;
+    return max > 0 ? max + 1 : sameTemplateCount + 1;
   }
 
   function createDocumentNo_(projectCode, templateCode, revisionNo) {
@@ -344,8 +346,15 @@ var AETERLINK_API = (function() {
     return applyRevisionSuffix_(base, revisionNo);
   }
 
-  function include(fileName) { fileName = String(fileName || '').trim(); if (!fileName) throw new Error('Missing include file name'); return HtmlService.createHtmlOutputFromFile(fileName).getContent(); }
-  function htmlOutput(fileName, title) { return HtmlService.createTemplateFromFile(fileName).evaluate().setTitle(title || 'AETERLINK Documentation Control').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); }
+  function includeFile(fileName) {
+    fileName = String(fileName || '').trim();
+    if (!fileName) throw new Error('Missing include file name');
+    return HtmlService.createHtmlOutputFromFile(fileName).getContent();
+  }
+
+  function htmlOutput(fileName, title) {
+    return HtmlService.createTemplateFromFile(fileName).evaluate().setTitle(title || 'AETERLINK Documentation Control').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
 
   function routeWebApp(e) {
     var params = (e && e.parameter) ? e.parameter : {};
@@ -356,17 +365,35 @@ var AETERLINK_API = (function() {
     return htmlOutput('Index', 'AETERLINK Documentation Control');
   }
 
-  function normalizeView(value) { value = String(value || '').trim().toLowerCase(); if (value === 'modular' || value === '1' || value === 'true' || value === 'full') return AETERLINK_ROUTER.MODULAR_VIEW; if (value === 'smoke' || value === 'test') return AETERLINK_ROUTER.SMOKE_VIEW; if (value === 'legacy' || value === '0' || value === 'false') return AETERLINK_ROUTER.LEGACY_VIEW; return ''; }
-  function getDefaultView() { var stored = ''; try { stored = PropertiesService.getScriptProperties().getProperty(AETERLINK_ROUTER.DEFAULT_VIEW_PROPERTY_KEY) || ''; } catch (err) { stored = ''; } return normalizeView(stored) || AETERLINK_ROUTER.LEGACY_VIEW; }
-  function setDefaultView(view) { var normalized = normalizeView(view); if (!normalized) throw new Error('Invalid default WebApp view: ' + view); PropertiesService.getScriptProperties().setProperty(AETERLINK_ROUTER.DEFAULT_VIEW_PROPERTY_KEY, normalized); return routingInfo(); }
+  function normalizeView(value) {
+    value = String(value || '').trim().toLowerCase();
+    if (value === 'modular' || value === '1' || value === 'true' || value === 'full') return AETERLINK_ROUTER.MODULAR_VIEW;
+    if (value === 'smoke' || value === 'test') return AETERLINK_ROUTER.SMOKE_VIEW;
+    if (value === 'legacy' || value === '0' || value === 'false') return AETERLINK_ROUTER.LEGACY_VIEW;
+    return '';
+  }
+
+  function getDefaultView() {
+    var stored = '';
+    try { stored = PropertiesService.getScriptProperties().getProperty(AETERLINK_ROUTER.DEFAULT_VIEW_PROPERTY_KEY) || ''; } catch (err) { stored = ''; }
+    return normalizeView(stored) || AETERLINK_ROUTER.LEGACY_VIEW;
+  }
+
+  function setDefaultView(view) {
+    var normalized = normalizeView(view);
+    if (!normalized) throw new Error('Invalid default WebApp view: ' + view);
+    PropertiesService.getScriptProperties().setProperty(AETERLINK_ROUTER.DEFAULT_VIEW_PROPERTY_KEY, normalized);
+    return routingInfo();
+  }
+
   function routingInfo() { return { defaultView: getDefaultView(), propertyKey: AETERLINK_ROUTER.DEFAULT_VIEW_PROPERTY_KEY, availableViews: [AETERLINK_ROUTER.LEGACY_VIEW, AETERLINK_ROUTER.MODULAR_VIEW, AETERLINK_ROUTER.SMOKE_VIEW], testUrls: { legacy: '?view=legacy', modular: '?view=modular', smoke: '?view=smoke' } }; }
   function activeUser() { var email = ''; try { email = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail() || ''; } catch (err) { email = ''; } return { email: email, displayName: email ? email.split('@')[0] : 'User' }; }
+  function safeDmsName_() { try { return typeof DMS !== 'undefined' && DMS.name ? DMS.name : 'AETERLINK Documentation Control'; } catch (err) { return 'AETERLINK Documentation Control'; } }
+  function safeDmsVersion_() { try { return typeof DMS !== 'undefined' && DMS.version ? DMS.version : AETERLINK_BUILD.APP_VERSION; } catch (err) { return AETERLINK_BUILD.APP_VERSION; } }
 
-  return { init: init, modularInit: modularInit, health: health, buildInfo: buildInfo, lifecycleConfig: lifecycleConfig, getCounts: getCounts, tableRows: tableRows, saveFormRecord: saveFormRecord, include: include, htmlOutput: htmlOutput, routeWebApp: routeWebApp, normalizeView: normalizeView, getDefaultView: getDefaultView, setDefaultView: setDefaultView, routingInfo: routingInfo, activeUser: activeUser };
+  return { init: init, modularInit: modularInit, health: health, buildInfo: buildInfo, lifecycleConfig: lifecycleConfig, getCounts: getCounts, tableRows: tableRows, saveFormRecord: saveFormRecord, includeFile: includeFile, htmlOutput: htmlOutput, routeWebApp: routeWebApp, normalizeView: normalizeView, getDefaultView: getDefaultView, setDefaultView: setDefaultView, routingInfo: routingInfo, activeUser: activeUser };
 })();
 
-function doGet(e) { return AETERLINK_API.routeWebApp(e); }
-function include(fileName) { return AETERLINK_API.include(fileName); }
 function apiBuildInfo() { return AETERLINK_API.buildInfo(); }
 function apiModularHealth() { return AETERLINK_API.health(); }
 function apiModularInit() { return AETERLINK_API.modularInit(); }
