@@ -1,0 +1,31 @@
+<!-- AETERLINK Documentation Module — A4_Table_Event_Guard.html -->
+<!-- Early guard: prevents later production scripts from normalizing A4 table cells while the user is editing. -->
+<script id="a4-table-event-guard-script">
+(function(){
+  if(window.__AETERLINK_A4_TABLE_EVENT_GUARD_V1__) return;
+  window.__AETERLINK_A4_TABLE_EVENT_GUARD_V1__ = true;
+
+  function isA4ScopeTableEvent(ev){
+    return !!(ev && ev.target && ev.target.closest && ev.target.closest('#a4Preview table.a4-scope-table'));
+  }
+  function shouldGuard(type, listener){
+    if(type !== 'input' && type !== 'change') return false;
+    var src = '';
+    try { src = String(listener || ''); } catch(err) { src = ''; }
+    return src.indexOf('setTimeout(normalize') >= 0 || src.indexOf('editable()') >= 0 || src.indexOf('AETERLINK_PROD_NEXT') >= 0;
+  }
+
+  var originalAdd = EventTarget.prototype.addEventListener;
+  EventTarget.prototype.addEventListener = function(type, listener, options){
+    if((this === document || this === window) && typeof listener === 'function' && shouldGuard(type, listener)){
+      var wrapped = function(ev){
+        if(isA4ScopeTableEvent(ev)) return;
+        return listener.call(this, ev);
+      };
+      try { wrapped.__aeterlink_original_listener = listener; } catch(err) {}
+      return originalAdd.call(this, type, wrapped, options);
+    }
+    return originalAdd.call(this, type, listener, options);
+  };
+})();
+</script>
