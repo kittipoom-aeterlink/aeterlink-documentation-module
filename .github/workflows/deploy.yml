@@ -38,13 +38,15 @@ jobs:
           test -f Index.html
           test -f Api.gs
           test -f DataAccess.gs
-          test -f DocumentNumbering.gs
           test -f PdfService.gs
           test -f Styles.html
           test -f Client_App.html
           test -f A4_Layout.html
           test -f Templates_WCR.html
           test -f Templates_Checklist.html
+          test -f ZZ_DocumentNumberingV3.gs
+          test -f ZZZZZ_DraftIssueEditApi.gs
+          test -f ZZZZZ_V19ApiWrappers.gs
           echo "Apps Script files found:"
           find . -maxdepth 1 \( -name '*.gs' -o -name '*.html' -o -name 'appsscript.json' \) -print | sort
 
