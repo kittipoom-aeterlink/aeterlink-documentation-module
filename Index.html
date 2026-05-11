@@ -266,6 +266,8 @@ var currentData = {};
 var dirty = false;
 var serverConnected = false;
 var lastServerError = '';
+var _previewInFlight = false;
+var _previewNeedsRefresh = false;
 var connectAttempts = 0;
 
 var DOC_LIFECYCLE_STAGES = [
@@ -1013,16 +1015,23 @@ function setDirty(v) {
 }
 
 async function loadPreview() {
+  if (_previewInFlight) { _previewNeedsRefresh = true; return; }
+  _previewInFlight = true;
+  _previewNeedsRefresh = false;
   var previewEl = document.getElementById('a4preview');
-  if (!previewEl) return;
+  if (!previewEl) { _previewInFlight = false; return; }
   if (!currentTemplate) {
     previewEl.innerHTML = '<div style="background:white;padding:20px;text-align:center;color:#888;font-size:13px">Select a template to see the A4 preview</div>';
+    _previewInFlight = false;
     return;
   }
   if (!serverConnected) {
     previewEl.innerHTML = '<div style="background:white;padding:20px;text-align:center;color:#888;font-size:13px">Server not connected — cannot render A4. Click Reconnect in the sidebar.</div>';
+    _previewInFlight = false;
     return;
   }
+  previewEl.style.opacity = '0.5';
+  previewEl.style.pointerEvents = 'none';
   try {
     var projectCode = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
     var html = await server('apiPreviewHtml', [currentTemplate.TemplateCode, projectCode, JSON.stringify(currentData || {}), { editable: true, record: currentRecord || {} }]);
@@ -1032,6 +1041,11 @@ async function loadPreview() {
     v24A4LayoutGuard(true);
   } catch (e) {
     previewEl.innerHTML = '<div style="background:white;padding:20px;color:#bd5757;font-size:12px"><b>Preview error</b><br>' + esc((e && e.message) || e) + '</div>';
+  } finally {
+    previewEl.style.opacity = '';
+    previewEl.style.pointerEvents = '';
+    _previewInFlight = false;
+    if (_previewNeedsRefresh) { _previewNeedsRefresh = false; loadPreview(); }
   }
 }
 
@@ -1404,7 +1418,7 @@ function printA4() {
 window.addEventListener('afterprint', function(){ document.body.classList.remove('printing-a4'); });
 
 /* ─── A4 row helpers (called from rendered HTML) ─────────── */
-function a4AddRow(arrName, idx) {
+async function a4AddRow(arrName, idx) {
   var data = collectA4();
   var arr = parseArr(data[arrName]);
   var sample = arr[idx] || arr[0] || {};
@@ -1413,19 +1427,19 @@ function a4AddRow(arrName, idx) {
   arr.splice(idx + 1, 0, empty);
   data[arrName] = JSON.stringify(arr);
   currentData = data;
-  loadPreview();
+  await loadPreview();
 }
 
-function a4DeleteRow(arrName, idx) {
+async function a4DeleteRow(arrName, idx) {
   var data = collectA4();
   var arr = parseArr(data[arrName]);
   if (arr.length > 1) arr.splice(idx, 1);
   data[arrName] = JSON.stringify(arr);
   currentData = data;
-  loadPreview();
+  await loadPreview();
 }
 
-function a4MoveRow(arrName, idx, delta) {
+async function a4MoveRow(arrName, idx, delta) {
   var data = collectA4();
   var arr = parseArr(data[arrName]);
   var ni = idx + delta;
@@ -1434,7 +1448,7 @@ function a4MoveRow(arrName, idx, delta) {
   arr.splice(ni, 0, item);
   data[arrName] = JSON.stringify(arr);
   currentData = data;
-  loadPreview();
+  await loadPreview();
 }
 
 function a4PickPhoto(idx) {
