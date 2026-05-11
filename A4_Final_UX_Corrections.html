@@ -1,0 +1,74 @@
+<!-- AETERLINK Documentation Module — A4_Final_UX_Corrections.html -->
+<!-- Final UX correction layer: delete button outside row, A4-safe overflow, Add Row on all document tables, editable titles, EQC chunked pages. -->
+<style id="a4-final-ux-corrections-style">
+  #a4Preview .a4-page,#a4CheckOutput .a4-page,.a4-print-area .a4-page{overflow:hidden!important;}
+  #a4Preview .a4-content,#a4CheckOutput .a4-content,.a4-print-area .a4-content{box-sizing:border-box!important;max-width:100%!important;}
+  #a4Preview .a4-content table.a4-scope-table,#a4CheckOutput .a4-content table.a4-scope-table{margin-left:5mm!important;width:calc(100% - 5mm)!important;max-width:calc(100% - 5mm)!important;table-layout:fixed!important;border-collapse:collapse!important;overflow:visible!important;}
+  #a4Preview .a4-content table.a4-scope-table th,#a4Preview .a4-content table.a4-scope-table td,#a4CheckOutput .a4-content table.a4-scope-table th,#a4CheckOutput .a4-content table.a4-scope-table td{box-sizing:border-box!important;max-width:100%!important;overflow:hidden!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;}
+  #a4Preview .a4-row-delete-cell,#a4CheckOutput .a4-row-delete-cell{position:relative!important;padding-left:.7mm!important;overflow:visible!important;}
+  #a4Preview .a4-row-paged-delete,#a4Preview .a4-draft-delete-row-btn,#a4Preview .a4-row-clean-delete,#a4Preview .a4-row-delete-btn,#a4CheckOutput .a4-row-paged-delete,#a4CheckOutput .a4-draft-delete-row-btn,#a4CheckOutput .a4-row-clean-delete,#a4CheckOutput .a4-row-delete-btn{position:absolute!important;left:-4.35mm!important;top:50%!important;transform:translateY(-50%)!important;width:3.4mm!important;height:3.4mm!important;min-width:3.4mm!important;line-height:2.8mm!important;padding:0!important;border:1px solid #d15b5b!important;background:#fff!important;color:#a91d1d!important;border-radius:50%!important;font-size:8px!important;font-weight:900!important;cursor:pointer!important;text-align:center!important;z-index:220!important;pointer-events:auto!important;display:block!important;visibility:visible!important;}
+  #a4Preview .a4-row-item-value,#a4CheckOutput .a4-row-item-value{display:block!important;width:100%!important;text-align:center!important;margin:0!important;padding:0!important;}
+  #a4Preview .a4-row-control-bar,#a4CheckOutput .a4-row-control-bar{margin-left:5mm!important;width:calc(100% - 5mm)!important;max-width:calc(100% - 5mm)!important;}
+  #a4Preview .a4-title,#a4Preview .a4-subtitle,#a4Preview .a4-section-title,#a4CheckOutput .a4-title,#a4CheckOutput .a4-subtitle,#a4CheckOutput .a4-section-title{cursor:text!important;outline:none!important;}
+  #a4Preview .a4-title[contenteditable="true"]:focus,#a4Preview .a4-subtitle[contenteditable="true"]:focus,#a4Preview .a4-section-title[contenteditable="true"]:focus,#a4CheckOutput .a4-title[contenteditable="true"]:focus,#a4CheckOutput .a4-subtitle[contenteditable="true"]:focus,#a4CheckOutput .a4-section-title[contenteditable="true"]:focus{box-shadow:inset 0 0 0 1px #d7a540!important;background:#fffbe8!important;}
+  #a4Preview table.a4-equipment-checklist-table,#a4CheckOutput table.a4-equipment-checklist-table,.a4-print-area table.a4-equipment-checklist-table{width:calc(100% - 5mm)!important;max-width:calc(100% - 5mm)!important;table-layout:fixed!important;border-collapse:collapse!important;}
+  #a4Preview table.a4-equipment-checklist-table th,#a4Preview table.a4-equipment-checklist-table td,#a4CheckOutput table.a4-equipment-checklist-table th,#a4CheckOutput table.a4-equipment-checklist-table td,.a4-print-area table.a4-equipment-checklist-table th,.a4-print-area table.a4-equipment-checklist-table td{padding:.75mm .45mm!important;font-size:5.35pt!important;line-height:1.08!important;overflow:hidden!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;vertical-align:middle!important;}
+  #a4Preview table.a4-equipment-checklist-table th,#a4CheckOutput table.a4-equipment-checklist-table th,.a4-print-area table.a4-equipment-checklist-table th{font-size:5.15pt!important;line-height:1.05!important;text-align:center!important;font-weight:900!important;}
+  @media print{
+    .a4-content table.a4-scope-table,.a4-print-area table.a4-scope-table,.a4-content table.a4-equipment-checklist-table,.a4-print-area table.a4-equipment-checklist-table{margin-left:0!important;width:100%!important;max-width:100%!important;}
+    .a4-row-control-bar{display:none!important;visibility:hidden!important;margin-left:0!important;width:100%!important;}
+    .a4-row-paged-delete,.a4-draft-delete-row-btn,.a4-row-clean-delete,.a4-row-delete-btn{display:none!important;visibility:hidden!important;}
+    .a4-row-delete-cell{padding-left:.7mm!important;}
+  }
+</style>
+<script id="a4-final-ux-corrections-script">
+(function(){
+  if(window.__AETERLINK_A4_FINAL_UX_CORRECTIONS_V1__) return;
+  window.__AETERLINK_A4_FINAL_UX_CORRECTIONS_V1__=true;
+  var observer=null,timer=null;
+  var EQ_CODE='PJ-EQC-001';
+  var EQ_WIDTHS=['4%','15%','8%','15%','7%','9%','5%','11%','11%','11%','4%'];
+  function byId(id){return document.getElementById(id);}
+  function root(){return byId('a4Preview')||byId('a4CheckOutput')||document;}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  function isDocTable(t){return t&&t.tBodies&&t.tBodies.length&&!t.classList.contains('a4-info-table')&&!t.classList.contains('a4-project-grid')&&!t.closest('.a4-photo-block')&&!t.closest('.a4-photo-grid')&&!t.closest('.mod-table-wrap')&&t.closest('.a4-page')&&t.closest('.a4-content');}
+  function makeEditableTitles(base){base=base||root();base.querySelectorAll('.a4-title,.a4-subtitle,.a4-section-title').forEach(function(n){n.setAttribute('contenteditable','true');n.setAttribute('spellcheck','false');n.classList.add('a4-title-editable');});}
+  function ensureAllAddRowBars(base){base=base||root();Array.prototype.slice.call(base.querySelectorAll('.a4-page .a4-content table')).filter(isDocTable).forEach(function(t){t.classList.add('a4-scope-table');var next=t.nextElementSibling;if(next&&next.classList&&next.classList.contains('a4-row-control-bar'))return;var bar=document.createElement('div');bar.className='a4-row-control-bar a4-no-print';bar.innerHTML='<button type="button" class="a4-paged-add-row-btn">+ Add Row</button>';t.parentNode.insertBefore(bar,t.nextSibling);});}
+  function ensureDeleteButtons(base){base=base||root();Array.prototype.slice.call(base.querySelectorAll('.a4-page .a4-content table.a4-scope-table')).filter(isDocTable).forEach(function(t){Array.prototype.slice.call(t.tBodies[0].rows).forEach(function(tr){var td=tr.cells&&tr.cells[0];if(!td)return;td.classList.add('a4-row-delete-cell');td.style.position='relative';td.style.overflow='visible';if(td.querySelector('.a4-row-paged-delete,.a4-draft-delete-row-btn,.a4-row-clean-delete,.a4-row-delete-btn'))return;var txt=(td.textContent||'').replace(/^[\s×xX*•-]+/,'').trim();td.innerHTML='<button type="button" class="a4-row-paged-delete a4-no-print" title="Delete this row" aria-label="Delete this row" contenteditable="false">×</button><span class="a4-row-item-value" contenteditable="true" spellcheck="false">'+esc(txt)+'</span>';});});}
+  function applyEqWidths(base){base=base||root();Array.prototype.slice.call(base.querySelectorAll('table.a4-equipment-checklist-table')).forEach(function(t){t.style.width='calc(100% - 5mm)';t.style.maxWidth='calc(100% - 5mm)';t.style.tableLayout='fixed';t.style.borderCollapse='collapse';var cg=t.querySelector('colgroup');if(!cg){cg=document.createElement('colgroup');t.insertBefore(cg,t.firstChild);}cg.innerHTML='';EQ_WIDTHS.forEach(function(w){var c=document.createElement('col');c.style.width=w;cg.appendChild(c);});Array.prototype.slice.call(t.querySelectorAll('tr')).forEach(function(tr){Array.prototype.slice.call(tr.children).forEach(function(cell,i){if(EQ_WIDTHS[i]){cell.style.width=EQ_WIDTHS[i];cell.style.minWidth=EQ_WIDTHS[i];cell.style.maxWidth=EQ_WIDTHS[i];}cell.style.boxSizing='border-box';});});});}
+  function cleanPrintButtons(base){base=base||root();base.querySelectorAll('.a4-row-paged-delete,.a4-draft-delete-row-btn,.a4-row-clean-delete,.a4-row-delete-btn').forEach(function(b){b.classList.add('a4-no-print');});}
+  function currentCode(){return String((byId('fTemplate')&&byId('fTemplate').value)||(byId('prodDocType')&&byId('prodDocType').value)||'');}
+  function isEq(){return /EQC|EQCH|EQUIP/i.test(currentCode());}
+  function getEqRows(){
+    if(window.AETERLINK_EQUIPMENT_CHECKLIST_RENDER_LOCK&&typeof window.AETERLINK_EQUIPMENT_CHECKLIST_RENDER_LOCK.defaultRows==='function')return window.AETERLINK_EQUIPMENT_CHECKLIST_RENDER_LOCK.defaultRows();
+    try{var f=byId('fRows');var arr=f&&f.value?JSON.parse(f.value):[];if(Array.isArray(arr)&&arr.length)return arr;}catch(e){}
+    return [];
+  }
+  function collectData(){var d={};if(typeof window.collectFormData==='function'){try{d=window.collectFormData()||{};}catch(e){d={};}}d.ProjectCode=d.ProjectCode||(byId('fProjectCode')&&byId('fProjectCode').value)||'';d.ProjectName=d.ProjectName||(byId('fProjectName')&&byId('fProjectName').value)||'';d.Client=d.Client||(byId('fClient')&&byId('fClient').value)||'';d.MainContractor=d.MainContractor||(byId('fMainContractor')&&byId('fMainContractor').value)||'';d.DocumentNo=d.DocumentNo||(byId('fDocumentNo')&&byId('fDocumentNo').value)||'';d.RevisionNo=d.RevisionNo||(byId('fRevisionNo')&&byId('fRevisionNo').value)||'R00';d.Status=d.Status||(byId('fStatus')&&byId('fStatus').value)||'Draft';d.ReferenceDocuments=EQ_CODE;d.WorkType='Controlled Project Document';return d;}
+  function renderEqChunked(){
+    var lock=window.AETERLINK_EQUIPMENT_CHECKLIST_RENDER_LOCK;if(!lock||!Array.isArray(lock.columns)||!window.AETERLINK_A4_RENDERER)return false;
+    var rows=getEqRows();if(!rows.length)return false;
+    var f=byId('fRows');if(f)f.value=JSON.stringify(rows,null,2);
+    var data=collectData();
+    var chunks=[],first=22,next=28,idx=0;chunks.push(rows.slice(0,first));idx=first;while(idx<rows.length){chunks.push(rows.slice(idx,idx+next));idx+=next;}
+    function table(rs){return AETERLINK_A4_RENDERER.table(lock.columns,rs,'a4-scope-table a4-equipment-checklist-table');}
+    var html='<div class="a4-root a4-print-area" id="a4PrintArea">';
+    chunks.forEach(function(chunk,i){var content='';if(i===0){content=AETERLINK_A4_RENDERER.documentInfo(data,[['Document Purpose','Capture the required information, references, responsibilities, status and records for this document type.'],['Document Type / Code',EQ_CODE+' — Equipment Checklist'],['Work Type / Phase','Controlled Project Document'],['Reference Documents',EQ_CODE],['Prepared By',data.PreparedBy||''],['Approval Status',data.Status||'Draft']])+AETERLINK_A4_RENDERER.section('EQUIPMENT CHECKLIST')+table(chunk);}else{content=AETERLINK_A4_RENDERER.section('EQUIPMENT CHECKLIST — CONTINUED')+table(chunk);}html+=AETERLINK_A4_RENDERER.page({title:'EQUIPMENT CHECKLIST',subtitle:'Installation / Inspection / Verification',documentNo:data.DocumentNo||'',revisionNo:data.RevisionNo||'R00',status:data.Status||'Draft',data:data,content:content});});
+    html+='</div>';var target=byId('a4Preview');if(target){target.innerHTML=html;setTimeout(run,40);setTimeout(run,180);return true;}return false;
+  }
+  function patchEqPreview(){
+    if(typeof window.previewCurrentForm==='function'&&!window.previewCurrentForm.__a4FinalUxPatch){var old=window.previewCurrentForm;window.previewCurrentForm=function(){if(isEq()&&renderEqChunked())return false;var ret=old.apply(this,arguments);setTimeout(run,80);return ret;};window.previewCurrentForm.__a4FinalUxPatch=true;}
+    if(typeof window.prodRefreshA4==='function'&&!window.prodRefreshA4.__a4FinalUxPatch){var oldR=window.prodRefreshA4;window.prodRefreshA4=function(){if(isEq()&&renderEqChunked())return false;var ret=oldR.apply(this,arguments);setTimeout(run,80);return ret;};window.prodRefreshA4.__a4FinalUxPatch=true;}
+  }
+  function updateFooters(base){base=base||root();var pages=Array.prototype.slice.call(base.querySelectorAll('.a4-page'));if(!pages.length)return;var doc=(byId('fDocumentNo')&&byId('fDocumentNo').value)||'Not issued';pages.forEach(function(p,i){var ft=p.querySelector('.a4-footer');if(ft)ft.innerHTML='<span class="a4-footer-center">Document No.: '+esc(doc||'Not issued')+' &nbsp;&nbsp;|&nbsp;&nbsp; Page No.: '+(i+1)+' / '+pages.length+'</span>';});}
+  function run(){var base=root();makeEditableTitles(base);ensureAllAddRowBars(base);ensureDeleteButtons(base);cleanPrintButtons(base);applyEqWidths(base);updateFooters(base);}
+  function schedule(){clearTimeout(timer);timer=setTimeout(run,80);}
+  function boot(){patchEqPreview();run();var target=byId('a4Preview')||byId('a4CheckOutput');if(target&&!observer&&window.MutationObserver){observer=new MutationObserver(function(muts){for(var i=0;i<muts.length;i++){if(muts[i].addedNodes&&muts[i].addedNodes.length){schedule();break;}}});observer.observe(target,{childList:true,subtree:true});}}
+  document.addEventListener('change',function(e){if(e.target&&e.target.matches&&e.target.matches('#prodDocType,#fTemplate'))setTimeout(function(){if(isEq())renderEqChunked();else run();},120);},true);
+  document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#a4Preview .a4-title,#a4Preview .a4-subtitle,#a4Preview .a4-section-title'))updateFooters(root());},true);
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,300);setTimeout(boot,1200);setTimeout(boot,3000);});
+  window.addEventListener('load',function(){setTimeout(boot,300);setTimeout(boot,1200);});
+  setTimeout(boot,600);setTimeout(boot,1800);
+  window.AETERLINK_A4_FINAL_UX_CORRECTIONS={run:run,renderEqChunked:renderEqChunked,makeEditableTitles:makeEditableTitles,ensureAllAddRowBars:ensureAllAddRowBars,applyEqWidths:applyEqWidths};
+})();
+</script>
