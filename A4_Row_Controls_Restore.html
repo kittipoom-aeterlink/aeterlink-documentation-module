@@ -1,84 +1,117 @@
 <!-- AETERLINK Documentation Module — A4_Row_Controls_Restore.html -->
-<!-- Stable direct DOM table editor: Add Row / Delete Row / Edit Cell without preview re-render. -->
+<!-- Single source of truth for A4 table editing: Add Row / Delete Row / Edit Cell / fRows sync. No preview refresh, server call, pagination, MutationObserver, or interval. -->
 <style id="a4-row-controls-restore-style">
-  #a4Preview .a4-row-control-bar,#a4CheckOutput .a4-row-control-bar,.a4-print-area .a4-row-control-bar{display:flex!important;visibility:visible!important;gap:6px!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:wrap!important;margin:2.2mm 0 0 0!important;min-height:18px!important;position:relative!important;z-index:60!important;pointer-events:auto!important;}
-  .a4-row-control-bar button{border:1px solid #adc3d2!important;background:#fff!important;color:#07385b!important;border-radius:6px!important;padding:3px 8px!important;font-size:7pt!important;font-weight:900!important;cursor:pointer!important;line-height:1.2!important;box-shadow:0 1px 3px rgba(7,56,91,.08)!important;pointer-events:auto!important;}
-  .a4-row-control-bar button:hover{background:#eaf3f8!important;}
-  #a4Preview table.a4-scope-table,#a4CheckOutput table.a4-scope-table,.a4-print-area table.a4-scope-table{pointer-events:auto!important;}
-  #a4Preview table.a4-scope-table td,#a4CheckOutput table.a4-scope-table td,.a4-print-area table.a4-scope-table td{pointer-events:auto!important;}
-  #a4Preview table.a4-scope-table td[contenteditable="true"],#a4CheckOutput table.a4-scope-table td[contenteditable="true"],.a4-print-area table.a4-scope-table td[contenteditable="true"]{cursor:text!important;user-select:text!important;-webkit-user-select:text!important;outline:none!important;}
-  #a4Preview table.a4-scope-table td[contenteditable="true"]:focus,#a4CheckOutput table.a4-scope-table td[contenteditable="true"]:focus{background:#fffbe8!important;box-shadow:inset 0 0 0 1px #d7a540!important;}
-  #a4Preview .a4-row-delete-cell,#a4CheckOutput .a4-row-delete-cell,.a4-print-area .a4-row-delete-cell{position:relative!important;padding-left:5mm!important;text-align:center!important;vertical-align:middle!important;}
-  #a4Preview table.a4-scope-table th:nth-child(1),#a4Preview table.a4-scope-table td:nth-child(1),#a4CheckOutput table.a4-scope-table th:nth-child(1),#a4CheckOutput table.a4-scope-table td:nth-child(1),.a4-print-area table.a4-scope-table th:nth-child(1),.a4-print-area table.a4-scope-table td:nth-child(1){text-align:center!important;vertical-align:middle!important;}
-  #a4Preview .a4-row-item-value,#a4CheckOutput .a4-row-item-value,.a4-print-area .a4-row-item-value{display:block!important;width:100%!important;text-align:center!important;margin:0 auto!important;min-height:10px!important;outline:none!important;cursor:text!important;user-select:text!important;-webkit-user-select:text!important;pointer-events:auto!important;}
-  #a4Preview .a4-row-item-value:focus,#a4CheckOutput .a4-row-item-value:focus{background:#fffbe8!important;box-shadow:inset 0 0 0 1px #d7a540!important;}
-  #a4Preview table.a4-scope-table td:nth-child(5),#a4CheckOutput table.a4-scope-table td:nth-child(5),.a4-print-area table.a4-scope-table td:nth-child(5){text-align:center!important;vertical-align:middle!important;}
-  #a4Preview .a4-status-select,#a4CheckOutput .a4-status-select,.a4-print-area .a4-status-select{width:100%!important;border:0!important;background:transparent!important;font:inherit!important;font-weight:900!important;color:#09243f!important;text-align:center!important;appearance:auto!important;padding:0!important;min-height:5mm!important;pointer-events:auto!important;}
-  #a4Preview .a4-row-delete-btn,#a4CheckOutput .a4-row-delete-btn,.a4-print-area .a4-row-delete-btn{display:block!important;visibility:visible!important;position:absolute!important;left:1mm!important;top:50%!important;transform:translateY(-50%)!important;width:3.4mm!important;height:3.4mm!important;min-width:3.4mm!important;line-height:2.8mm!important;padding:0!important;border:1px solid #d15b5b!important;background:#fff!important;color:#a91d1d!important;border-radius:50%!important;font-size:8px!important;font-weight:900!important;cursor:pointer!important;text-align:center!important;z-index:65!important;pointer-events:auto!important;}
-  .a4-row-delete-btn:hover{background:#fff1f1!important;border-color:#a91d1d!important;}
-  #a4Preview .a4-status-print{display:none!important;visibility:hidden!important;}
-  @media print{.a4-row-control-bar,.a4-row-delete-btn,.a4-preview-actions{display:none!important;visibility:hidden!important;}.a4-row-delete-cell{padding-left:1mm!important;}.a4-row-item-value{display:inline!important;}.a4-status-select{display:none!important;visibility:hidden!important;}.a4-status-print{display:inline!important;visibility:visible!important;}}
+  #a4Preview .a4-row-control-bar,#a4CheckOutput .a4-row-control-bar{display:flex!important;visibility:visible!important;gap:6px!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:wrap!important;margin:2.2mm 0 0 0!important;min-height:18px!important;position:relative!important;z-index:60!important;pointer-events:auto!important;}
+  #a4Preview .a4-row-control-bar button,#a4CheckOutput .a4-row-control-bar button{border:1px solid #adc3d2!important;background:#fff!important;color:#07385b!important;border-radius:6px!important;padding:3px 8px!important;font-size:7pt!important;font-weight:900!important;cursor:pointer!important;line-height:1.2!important;box-shadow:0 1px 3px rgba(7,56,91,.08)!important;pointer-events:auto!important;}
+  #a4Preview .a4-row-control-bar button:hover,#a4CheckOutput .a4-row-control-bar button:hover{background:#eaf3f8!important;}
+  #a4Preview table.a4-scope-table,#a4CheckOutput table.a4-scope-table{pointer-events:auto!important;}
+  #a4Preview table.a4-scope-table td,#a4CheckOutput table.a4-scope-table td{pointer-events:auto!important;}
+  #a4Preview table.a4-scope-table td[contenteditable="true"],#a4CheckOutput table.a4-scope-table td[contenteditable="true"],#a4Preview .a4-row-item-value,#a4CheckOutput .a4-row-item-value{cursor:text!important;user-select:text!important;-webkit-user-select:text!important;outline:none!important;}
+  #a4Preview table.a4-scope-table td[contenteditable="true"]:focus,#a4CheckOutput table.a4-scope-table td[contenteditable="true"]:focus,#a4Preview .a4-row-item-value:focus,#a4CheckOutput .a4-row-item-value:focus{background:#fffbe8!important;box-shadow:inset 0 0 0 1px #d7a540!important;}
+  #a4Preview .a4-row-delete-cell,#a4CheckOutput .a4-row-delete-cell{position:relative!important;padding-left:5mm!important;text-align:center!important;vertical-align:middle!important;}
+  #a4Preview .a4-row-delete-btn,#a4CheckOutput .a4-row-delete-btn{display:block!important;visibility:visible!important;position:absolute!important;left:1mm!important;top:50%!important;transform:translateY(-50%)!important;width:3.4mm!important;height:3.4mm!important;min-width:3.4mm!important;line-height:2.8mm!important;padding:0!important;border:1px solid #d15b5b!important;background:#fff!important;color:#a91d1d!important;border-radius:50%!important;font-size:8px!important;font-weight:900!important;cursor:pointer!important;text-align:center!important;z-index:65!important;pointer-events:auto!important;}
+  #a4Preview .a4-row-delete-btn:hover,#a4CheckOutput .a4-row-delete-btn:hover{background:#fff1f1!important;border-color:#a91d1d!important;}
+  #a4Preview .a4-row-item-value,#a4CheckOutput .a4-row-item-value{display:block!important;width:100%!important;text-align:center!important;margin:0 auto!important;min-height:10px!important;pointer-events:auto!important;}
+  #a4Preview .a4-status-select,#a4CheckOutput .a4-status-select{width:100%!important;border:0!important;background:transparent!important;font:inherit!important;font-weight:900!important;color:#09243f!important;text-align:center!important;appearance:auto!important;padding:0!important;min-height:5mm!important;pointer-events:auto!important;}
+  #a4Preview .a4-status-print,#a4CheckOutput .a4-status-print{display:none!important;visibility:hidden!important;}
+  @media print{.a4-row-control-bar,.a4-row-delete-btn,.a4-preview-actions{display:none!important;visibility:hidden!important;}.a4-row-delete-cell{padding-left:1mm!important;}.a4-status-select{display:none!important;visibility:hidden!important;}.a4-status-print{display:inline!important;visibility:visible!important;}.a4-editable[contenteditable="true"],.a4-row-item-value[contenteditable="true"]{outline:none!important;background:transparent!important;}}
 </style>
 <script id="a4-row-controls-restore-script">
 (function(){
-  if(window.__AETERLINK_A4_ROW_CONTROLS_DIRECT_V11__) return;
-  window.__AETERLINK_A4_ROW_CONTROLS_DIRECT_V11__ = true;
+  if(window.__AETERLINK_A4_ROW_CONTROLS_SINGLE_SOURCE_V12__) return;
+  window.__AETERLINK_A4_ROW_CONTROLS_SINGLE_SOURCE_V12__ = true;
 
-  var bootCount = 0;
-  var bootTimer = null;
   var syncTimer = null;
   var normalizing = false;
+  var previewPatched = false;
 
   function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
-  function root(){return document.getElementById('a4Preview') || document.getElementById('a4CheckOutput') || document.querySelector('.a4-print-area') || document;}
+  function scopeRoot(){return document.getElementById('a4Preview') || document.getElementById('a4CheckOutput') || document;}
+  function previewRoots(){return [].slice.call(document.querySelectorAll('#a4Preview,#a4CheckOutput')).filter(Boolean);}
   function isDataTable(table){
     if(!table || !table.tBodies || !table.tBodies.length) return false;
-    if(table.classList.contains('a4-info-table')) return false;
-    if(table.classList.contains('a4-project-grid')) return false;
-    if(table.closest('.a4-photo-block') || table.closest('.a4-photo-grid')) return false;
-    if(table.closest('.mod-table-wrap')) return false;
-    if(!table.closest('.a4-page')) return false;
-    return true;
+    if(table.classList.contains('a4-info-table') || table.classList.contains('a4-project-grid')) return false;
+    if(table.closest('.a4-photo-block') || table.closest('.a4-photo-grid') || table.closest('.mod-table-wrap')) return false;
+    return !!table.closest('.a4-page');
   }
-  function dataTables(base){return [].slice.call((base||root()).querySelectorAll('.a4-page .a4-content table')).filter(isDataTable);}
-  function scopeTables(base){
-    var all = dataTables(base||root());
-    var scoped = all.filter(function(t){return t.classList.contains('a4-scope-table') || t.closest('.a4-scope-continued-page') || /scope\s+of\s+work/i.test(String((t.closest('.a4-content')||{}).textContent||''));});
-    return scoped.length ? scoped : all;
+  function tables(base){
+    base = base || scopeRoot();
+    return [].slice.call(base.querySelectorAll('.a4-page .a4-content table.a4-scope-table,.a4-page .a4-content table')).filter(isDataTable);
   }
-  function headerLabels(table){
+  function headers(table){
     var row = table && table.tHead && table.tHead.rows && table.tHead.rows[0];
     return row ? [].slice.call(row.cells).map(function(th){return String(th.textContent||'').trim();}) : [];
   }
   function keyFromHeader(label,index){
-    var s=String(label||'').trim();
-    if(/^item$/i.test(s))return'Item';
-    if(/work\s*description/i.test(s)||/^description$/i.test(s))return'WorkDescription';
-    if(/^qty\.?$/i.test(s))return'Qty';
-    if(/^unit$/i.test(s))return'Unit';
-    if(/^status$/i.test(s))return'Status';
-    if(/^remarks?$/i.test(s))return'Remarks';
-    if(/^no\.?$/i.test(s))return'No';
-    return s ? s.replace(/[^A-Za-z0-9]+/g,'') : 'Col'+index;
+    var s = String(label||'').trim();
+    if(/^item$/i.test(s)) return 'Item';
+    if(/^no\.?$/i.test(s)) return 'No';
+    if(/equipment\s*tag/i.test(s)) return 'EquipmentTag';
+    if(/work\s*description/i.test(s) || /^description$/i.test(s)) return 'WorkDescription';
+    if(/^description$/i.test(s)) return 'Description';
+    if(/^location$/i.test(s)) return 'Location';
+    if(/check\s*item/i.test(s)) return 'CheckItem';
+    if(/^qty\.?$/i.test(s)) return 'Qty';
+    if(/^unit$/i.test(s)) return 'Unit';
+    if(/^status$/i.test(s)) return 'Status';
+    if(/^remarks?$/i.test(s)) return /remark$/i.test(s) ? 'Remark' : 'Remarks';
+    return s ? s.replace(/[^A-Za-z0-9]+/g,'') : 'Col' + index;
   }
-  function isStatusColumn(label,index){return /status/i.test(String(label||'')) || index === 4;}
-  function stripItem(v){v=String(v==null?'':v).trim();while('×✕✖xX*•-'.indexOf(v.charAt(0))>=0)v=v.substring(1).trim();return v;}
+  function isStatusColumn(label,index){return /status/i.test(String(label||'')) || index === 4 || index === 5;}
+  function stripRowMarker(v){return String(v==null?'':v).replace(/^[\s×✕✖xX*•\-]+/,'').trim();}
   function cleanStatus(v){
-    v=String(v==null?'':v).trim();
-    var names=['Done','Pending','Not Started','In Progress','Issue','N/A','Open','Closed','Issued','Draft','Approved','Submitted','-'];
-    var c=v.replace(/\s+/g,'').toLowerCase();
-    for(var i=0;i<names.length;i++){var n=names[i],nc=n.replace(/\s+/g,'').toLowerCase();if(c===nc||c===nc+nc||c.indexOf(nc+nc)===0)return n;}
+    v = String(v==null?'':v).trim();
+    var names = ['Done','Pending','Not Started','In Progress','Issue','N/A','Open','Closed','Issued','Draft','Approved','Submitted','-'];
+    var compact = v.replace(/\s+/g,'').toLowerCase();
+    for(var i=0;i<names.length;i++){
+      var n = names[i], nc = n.replace(/\s+/g,'').toLowerCase();
+      if(compact === nc || compact === nc + nc || compact.indexOf(nc + nc) === 0) return n;
+    }
     return v;
   }
   function statusHtml(value){
-    var opts=['','-','Not Started','In Progress','Pending','Done','Issue','N/A','Open','Closed','Approved','Submitted'];
-    var v=cleanStatus(value==null?'Pending':value) || 'Pending';
-    var html='<select class="a4-status-select" contenteditable="false">';
-    opts.forEach(function(o){html+='<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+(o?esc(o):'-')+'</option>';});
-    return html+'</select><span class="a4-status-print">'+esc(v)+'</span>';
+    var opts = ['','-','Not Started','In Progress','Pending','Done','Issue','N/A','Open','Closed','Approved','Submitted'];
+    var v = cleanStatus(value==null?'Pending':value) || 'Pending';
+    var html = '<select class="a4-status-select" contenteditable="false">';
+    opts.forEach(function(o){html += '<option value="' + esc(o) + '"' + (o===v?' selected':'') + '>' + (o?esc(o):'-') + '</option>';});
+    return html + '</select><span class="a4-status-print">' + esc(v) + '</span>';
   }
-  function removeLegacy(base){
-    base=base||root();
+  function cellText(td,index){
+    var sel = td.querySelector('select.a4-status-select,select');
+    if(sel) return cleanStatus(sel.value || '');
+    var span = td.querySelector('.a4-row-item-value');
+    if(span) return index === 0 ? stripRowMarker(span.textContent) : String(span.textContent||'').trim();
+    var clone = td.cloneNode(true);
+    clone.querySelectorAll('button,.a4-no-print,.a4-status-print,select,input,textarea').forEach(function(n){n.remove();});
+    var v = String(clone.textContent||'').trim();
+    return index === 0 ? stripRowMarker(v) : cleanStatus(v);
+  }
+  function prepareCell(td,index,labels){
+    td.classList.add('a4-editable');
+    if(index === 0){
+      var item = stripRowMarker(cellText(td,0));
+      td.classList.add('a4-row-delete-cell');
+      td.contentEditable = 'false';
+      td.innerHTML = '<button type="button" class="a4-row-delete-btn a4-no-print" title="Delete this row" aria-label="Delete this row" contenteditable="false">×</button><span class="a4-row-item-value" contenteditable="true" spellcheck="false">' + esc(item) + '</span>';
+      return;
+    }
+    if(isStatusColumn(labels[index],index)){
+      td.contentEditable = 'false';
+      td.innerHTML = statusHtml(cellText(td,index) || 'Pending');
+      return;
+    }
+    if(td.querySelector('img,input,textarea')){td.contentEditable='false';return;}
+    td.contentEditable = 'true';
+    td.spellcheck = false;
+  }
+  function prepareTable(table){
+    if(!isDataTable(table)) return;
+    table.classList.add('a4-scope-table');
+    var labels = headers(table);
+    [].slice.call(table.tBodies[0].rows).forEach(function(row){[].slice.call(row.cells).forEach(function(td,i){prepareCell(td,i,labels);});});
+  }
+  function removeLegacyControls(base){
+    base = base || scopeRoot();
     base.querySelectorAll('.row-actions,.prod-inline-editor,.prod-row-delete:not(.a4-row-delete-btn)').forEach(function(n){n.remove();});
     base.querySelectorAll('.a4-preview-actions').forEach(function(bar){
       if(bar.closest('.a4-photo-block')) return;
@@ -86,156 +119,128 @@
       bar.remove();
     });
   }
-  function plainCellText(td,index){
-    var sel=td.querySelector('select.a4-status-select,select');
-    if(sel) return cleanStatus(sel.value||'');
-    var span=td.querySelector('.a4-row-item-value');
-    if(span) return index===0 ? stripItem(span.textContent||'') : String(span.textContent||'').trim();
-    var clone=td.cloneNode(true);
-    clone.querySelectorAll('button,.a4-no-print,.a4-status-print,select,input,textarea').forEach(function(n){n.remove();});
-    var v=String(clone.textContent||'').trim();
-    return index===0 ? stripItem(v) : cleanStatus(v);
-  }
-  function prepareItemCell(td){
-    var value=stripItem(plainCellText(td,0));
-    td.classList.add('a4-row-delete-cell','a4-editable');
-    td.contentEditable='false';
-    td.innerHTML='<button type="button" class="a4-row-delete-btn a4-no-print" title="Delete this row" aria-label="Delete this row" contenteditable="false">×</button><span class="a4-row-item-value" contenteditable="true" spellcheck="false">'+esc(value)+'</span>';
-  }
-  function prepareCell(td,index,labels){
-    td.classList.add('a4-editable');
-    if(index===0){prepareItemCell(td);return;}
-    if(isStatusColumn(labels[index],index)){
-      var st=plainCellText(td,index)||'Pending';
-      td.contentEditable='false';
-      td.innerHTML=statusHtml(st);
-      return;
-    }
-    if(td.querySelector('img,input,textarea')){td.contentEditable='false';return;}
-    // Keep text directly in TD so normal click-to-edit works reliably.
-    if(td.querySelector('.a4-row-item-value')) td.textContent = plainCellText(td,index);
-    td.contentEditable='true';
-    td.spellcheck=false;
-  }
-  function prepareRow(row,labels){[].slice.call(row.cells).forEach(function(td,index){prepareCell(td,index,labels||[]);});}
-  function prepareTable(table){
-    if(!isDataTable(table)) return;
-    table.classList.add('a4-scope-table');
-    var labels=headerLabels(table);
-    [].slice.call(table.tBodies[0].rows).forEach(function(row){prepareRow(row,labels);});
-  }
-  function currentTable(from){
-    var bar = from && from.closest ? from.closest('.a4-row-control-bar') : null;
-    if(bar && bar.previousElementSibling && isDataTable(bar.previousElementSibling)) return bar.previousElementSibling;
-    var focused = document.activeElement && document.activeElement.closest ? document.activeElement.closest('table.a4-scope-table') : null;
-    if(focused && isDataTable(focused)) return focused;
-    var tables=scopeTables(root());
-    return tables.length ? tables[tables.length-1] : null;
-  }
-  function ensureBar(){
-    var base=root();
+  function ensureBars(base){
+    base = base || scopeRoot();
     base.querySelectorAll('.a4-row-control-bar').forEach(function(n){n.remove();});
-    var table=currentTable();
-    if(!table || !table.parentNode) return;
-    var bar=document.createElement('div');
-    bar.className='a4-row-control-bar a4-no-print';
-    bar.innerHTML='<button type="button" class="a4-add-row-btn">+ Add Row</button>';
-    table.parentNode.insertBefore(bar,table.nextSibling);
-  }
-  function normalize(){
-    if(normalizing) return;
-    normalizing=true;
-    try{removeLegacy(root());scopeTables(root()).forEach(prepareTable);ensureBar();syncRows();}
-    finally{normalizing=false;}
-  }
-  function syncRows(){
-    var fRows=document.getElementById('fRows');
-    if(!fRows) return;
-    var tables=scopeTables(root());
-    if(!tables.length) return;
-    var labels=headerLabels(tables[0]);
-    var rows=[];
-    tables.forEach(function(table){
-      [].slice.call(table.tBodies[0].rows).forEach(function(tr){
-        var obj={};
-        [].slice.call(tr.cells).forEach(function(td,i){obj[keyFromHeader(labels[i],i)] = plainCellText(td,i);});
-        rows.push(obj);
-      });
+    tables(base).forEach(function(table){
+      var bar = document.createElement('div');
+      bar.className = 'a4-row-control-bar a4-no-print';
+      bar.innerHTML = '<button type="button" class="a4-add-row-btn">+ Add Row</button>';
+      table.parentNode.insertBefore(bar, table.nextSibling);
     });
-    try{fRows.value=JSON.stringify(rows,null,2);}catch(e){}
   }
-  function syncSoon(){clearTimeout(syncTimer);syncTimer=setTimeout(syncRows,100);}
+  function normalize(base){
+    if(normalizing) return;
+    normalizing = true;
+    try{
+      base = base || scopeRoot();
+      removeLegacyControls(base);
+      tables(base).forEach(prepareTable);
+      ensureBars(base);
+      syncRows();
+    } finally { normalizing = false; }
+  }
+  function tableFromButton(btn){
+    var bar = btn && btn.closest ? btn.closest('.a4-row-control-bar') : null;
+    if(bar && bar.previousElementSibling && isDataTable(bar.previousElementSibling)) return bar.previousElementSibling;
+    var current = document.activeElement && document.activeElement.closest ? document.activeElement.closest('table.a4-scope-table') : null;
+    if(current && isDataTable(current)) return current;
+    var list = tables(scopeRoot());
+    return list.length ? list[list.length-1] : null;
+  }
   function addRow(btn){
-    var table=currentTable(btn);
+    var table = tableFromButton(btn);
     if(!table || !table.tBodies || !table.tBodies[0]) return false;
-    var labels=headerLabels(table);
-    var cols=labels.length || (table.rows[0] ? table.rows[0].cells.length : 6) || 6;
-    var tr=table.tBodies[0].insertRow(-1);
+    var labels = headers(table);
+    var cols = labels.length || (table.rows[0] ? table.rows[0].cells.length : 6) || 6;
+    var tr = table.tBodies[0].insertRow(-1);
     for(var i=0;i<cols;i++){
-      var td=tr.insertCell(-1);
-      if(i===0){td.textContent='';}
-      else if(isStatusColumn(labels[i],i)){td.innerHTML=statusHtml('Pending');td.contentEditable='false';}
-      else{td.textContent='';td.contentEditable='true';td.spellcheck=false;}
+      var td = tr.insertCell(-1);
+      td.textContent = isStatusColumn(labels[i],i) ? 'Pending' : '';
+      prepareCell(td,i,labels);
     }
-    prepareRow(tr,labels);
-    ensureBar();
+    ensureBars(table.closest('#a4Preview,#a4CheckOutput') || scopeRoot());
     syncRows();
-    var firstEditable=tr.cells[1] || tr.cells[0];
-    if(firstEditable && firstEditable.contentEditable==='true') setTimeout(function(){firstEditable.focus();},0);
+    var focusCell = tr.cells[1] || (tr.cells[0] && tr.cells[0].querySelector('.a4-row-item-value')) || tr.cells[0];
+    if(focusCell && focusCell.focus) setTimeout(function(){focusCell.focus();},0);
     return false;
   }
   function deleteRow(btn){
-    var tr=btn && btn.closest ? btn.closest('tr') : null;
-    if(!tr) return false;
-    tr.remove();
-    ensureBar();
+    var tr = btn && btn.closest ? btn.closest('tr') : null;
+    if(tr) tr.remove();
+    ensureBars(scopeRoot());
     syncRows();
     return false;
   }
-  function deleteLastRow(){
-    var table=currentTable();
+  function deleteLastRow(btn){
+    var table = tableFromButton(btn);
     if(table && table.tBodies[0] && table.tBodies[0].rows.length) table.tBodies[0].deleteRow(table.tBodies[0].rows.length-1);
-    ensureBar();syncRows();return false;
+    ensureBars(scopeRoot());
+    syncRows();
+    return false;
   }
+  function syncRows(){
+    var fRows = document.getElementById('fRows');
+    if(!fRows) return;
+    var list = tables(document.getElementById('a4Preview') || scopeRoot());
+    if(!list.length) return;
+    var rows = [];
+    list.forEach(function(table){
+      var labels = headers(table);
+      [].slice.call(table.tBodies[0].rows).forEach(function(tr){
+        var obj = {};
+        [].slice.call(tr.cells).forEach(function(td,i){obj[keyFromHeader(labels[i],i)] = cellText(td,i);});
+        rows.push(obj);
+      });
+    });
+    try{fRows.value = JSON.stringify(rows,null,2);}catch(e){}
+  }
+  function syncSoon(){clearTimeout(syncTimer);syncTimer=setTimeout(syncRows,80);}
+  function rendererStatusCell(value){return statusHtml(value);}
   function patchRenderer(){
-    var renderer=window.AETERLINK_A4_RENDERER;
-    if(!renderer) return;
-    renderer.addRow=function(btn){return addRow(btn);};
-    renderer.deleteRow=function(btn){return deleteRow(btn);};
-    renderer.deleteLastRow=function(){return deleteLastRow();};
+    var rr = window.AETERLINK_A4_RENDERER;
+    if(!rr) return;
+    rr.addRow = function(btn){return addRow(btn);};
+    rr.deleteRow = function(btn){return deleteRow(btn);};
+    rr.deleteLastRow = function(btn){return deleteLastRow(btn);};
+    rr.table = function(columns,rows,className){
+      columns = (columns || []).filter(function(c){return c.key !== 'Action';});
+      rows = rows || [];
+      var html = '<table class="' + esc(className || 'a4-scope-table') + '"><thead><tr>' + columns.map(function(col){return '<th style="width:' + esc(col.width || 'auto') + ';">' + esc(col.label || col.key || '') + '</th>';}).join('') + '</tr></thead><tbody>';
+      html += rows.map(function(row){return '<tr>' + columns.map(function(col){var val = row && row[col.key] != null ? row[col.key] : ''; if(/status/i.test(col.key || col.label || '')) return '<td>' + rendererStatusCell(val || 'Pending') + '</td>'; return '<td class="a4-editable" contenteditable="true" spellcheck="false">' + esc(val) + '</td>';}).join('') + '</tr>';}).join('');
+      html += '</tbody></table><div class="a4-row-control-bar a4-no-print"><button type="button" class="a4-add-row-btn">+ Add Row</button></div>';
+      return html;
+    };
   }
   function patchPreview(){
-    if(typeof window.previewCurrentForm==='function' && !window.previewCurrentForm.__a4RowControlsDirectV11){
-      var old=window.previewCurrentForm;
-      window.previewCurrentForm=function(){var ret=old.apply(this,arguments);setTimeout(normalize,160);return ret;};
-      window.previewCurrentForm.__a4RowControlsDirectV11=true;
-    }
+    if(previewPatched || typeof window.previewCurrentForm !== 'function' || window.previewCurrentForm.__a4RowControlsSingleSourceV12) return;
+    var old = window.previewCurrentForm;
+    window.previewCurrentForm = function(){
+      var ret = old.apply(this, arguments);
+      setTimeout(function(){patchRenderer(); normalize(document.getElementById('a4Preview') || scopeRoot());}, 80);
+      return ret;
+    };
+    window.previewCurrentForm.__a4RowControlsSingleSourceV12 = true;
+    previewPatched = true;
   }
   document.addEventListener('click',function(ev){
-    var add=ev.target && ev.target.closest ? ev.target.closest('.a4-add-row-btn') : null;
-    if(add){ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();addRow(add);return;}
-    var del=ev.target && ev.target.closest ? ev.target.closest('.a4-row-delete-btn') : null;
-    if(del){ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();deleteRow(del);return;}
-    var td=ev.target && ev.target.closest ? ev.target.closest('#a4Preview table.a4-scope-table td') : null;
-    if(td && !td.querySelector('select')){
-      if(td.cellIndex===0){var sp=td.querySelector('.a4-row-item-value');if(sp){sp.contentEditable='true';}}
-      else{td.contentEditable='true';td.spellcheck=false;}
+    var add = ev.target && ev.target.closest ? ev.target.closest('.a4-add-row-btn') : null;
+    if(add){ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();addRow(add);return false;}
+    var del = ev.target && ev.target.closest ? ev.target.closest('.a4-row-delete-btn') : null;
+    if(del){ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();deleteRow(del);return false;}
+  },true);
+  document.addEventListener('input',function(ev){if(ev.target && ev.target.closest && ev.target.closest('#a4Preview table.a4-scope-table,#a4CheckOutput table.a4-scope-table')) syncSoon();},true);
+  document.addEventListener('change',function(ev){
+    if(ev.target && ev.target.closest && ev.target.closest('#a4Preview table.a4-scope-table,#a4CheckOutput table.a4-scope-table')){
+      if(ev.target.classList && ev.target.classList.contains('a4-status-select')){var sp=ev.target.parentNode&&ev.target.parentNode.querySelector('.a4-status-print'); if(sp)sp.textContent=ev.target.value||'';}
+      syncSoon();
     }
   },true);
-  document.addEventListener('input',function(ev){if(ev.target&&ev.target.closest&&ev.target.closest('#a4Preview table.a4-scope-table'))syncSoon();},false);
-  document.addEventListener('change',function(ev){
-    if(ev.target&&ev.target.closest&&ev.target.closest('#a4Preview table.a4-scope-table')){
-      if(ev.target.classList&&ev.target.classList.contains('a4-status-select')){
-        var sp=ev.target.parentNode&&ev.target.parentNode.querySelector('.a4-status-print');if(sp)sp.textContent=ev.target.value||'';
-      }
-      syncRows();
-    }
-  },false);
-  document.addEventListener('blur',function(ev){if(ev.target&&ev.target.closest&&ev.target.closest('#a4Preview table.a4-scope-table'))syncRows();},true);
-  function boot(){patchRenderer();patchPreview();normalize();bootCount++;if(bootCount<5){clearTimeout(bootTimer);bootTimer=setTimeout(boot,650);}}
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);});
-  window.addEventListener('load',function(){setTimeout(boot,0);});
-  setTimeout(boot,250);
-  window.AETERLINK_A4_ROW_CONTROLS={run:normalize,addRow:addRow,deleteRow:deleteRow,deleteLastRow:deleteLastRow,syncRows:syncRows,removeLegacyActions:removeLegacy,ensureSingleControlBar:ensureBar};
+  document.addEventListener('blur',function(ev){if(ev.target && ev.target.closest && ev.target.closest('#a4Preview table.a4-scope-table,#a4CheckOutput table.a4-scope-table')) syncRows();},true);
+  function boot(){patchRenderer();patchPreview();previewRoots().forEach(function(r){normalize(r);});}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,120);setTimeout(boot,600);});
+  window.addEventListener('load',function(){setTimeout(boot,0);setTimeout(boot,600);});
+  setTimeout(boot,0);setTimeout(boot,300);
+  window.AETERLINK_A4_ROW_CONTROLS = {run:normalize,addRow:addRow,deleteRow:deleteRow,deleteLastRow:deleteLastRow,syncRows:syncRows,removeLegacyActions:removeLegacyControls,ensureSingleControlBar:ensureBars};
 })();
 </script>
