@@ -1,0 +1,68 @@
+<!-- AETERLINK Documentation Module — A4_All_Documents_Add_Row_Logo_Final.html -->
+<!-- Final UI normalizer: add Add Row bar to every A4 document table and force WCR-style official AETERLINK header/logo. Does not change Add/Delete/Pagination logic. -->
+<style id="a4-all-documents-add-row-logo-final-style">
+  #a4Preview .a4-header,#a4CheckOutput .a4-header,.a4-print-area .a4-header{display:grid!important;grid-template-columns:48mm 100mm 41mm!important;align-items:stretch!important;border:1.2px solid #333!important;min-height:29mm!important;margin-bottom:5mm!important;background:#fff!important;box-sizing:border-box!important;}
+  #a4Preview .a4-logo-cell,#a4Preview .a4-title-cell,#a4Preview .a4-meta-cell,#a4CheckOutput .a4-logo-cell,#a4CheckOutput .a4-title-cell,#a4CheckOutput .a4-meta-cell,.a4-print-area .a4-logo-cell,.a4-print-area .a4-title-cell,.a4-print-area .a4-meta-cell{display:flex!important;align-items:center!important;justify-content:center!important;padding:2mm!important;border-right:1.2px solid #333!important;min-width:0!important;overflow:hidden!important;background:#fff!important;box-sizing:border-box!important;}
+  #a4Preview .a4-meta-cell,#a4CheckOutput .a4-meta-cell,.a4-print-area .a4-meta-cell{border-right:0!important;justify-content:flex-start!important;align-items:flex-start!important;padding-top:6mm!important;}
+  #a4Preview .a4-logo-cell svg.official-aeterlink-a4-logo,#a4CheckOutput .a4-logo-cell svg.official-aeterlink-a4-logo,.a4-print-area .a4-logo-cell svg.official-aeterlink-a4-logo{display:block!important;width:42mm!important;max-width:42mm!important;height:auto!important;max-height:14mm!important;object-fit:contain!important;}
+  #a4Preview .a4-title,#a4CheckOutput .a4-title,.a4-print-area .a4-title{font-size:17pt!important;font-weight:900!important;text-align:center!important;color:#06345d!important;letter-spacing:1.8px!important;line-height:1.05!important;text-transform:uppercase!important;}
+  #a4Preview .a4-subtitle,#a4CheckOutput .a4-subtitle,.a4-print-area .a4-subtitle{font-size:6.1pt!important;color:#2e5d7d!important;text-align:center!important;margin-top:1.2mm!important;font-weight:700!important;letter-spacing:.25px!important;}
+  #a4Preview .a4-meta,#a4CheckOutput .a4-meta,.a4-print-area .a4-meta{font-size:7.2pt!important;color:#111!important;line-height:1.2!important;font-weight:900!important;width:100%!important;}
+  #a4Preview .a4-meta-row,#a4CheckOutput .a4-meta-row,.a4-print-area .a4-meta-row{display:grid!important;grid-template-columns:17mm minmax(0,1fr)!important;column-gap:1mm!important;align-items:start!important;margin-bottom:.8mm!important;}
+  #a4Preview .a4-meta-row b,#a4CheckOutput .a4-meta-row b,.a4-print-area .a4-meta-row b{font-weight:900!important;white-space:nowrap!important;}
+  #a4Preview .a4-meta-row span,#a4CheckOutput .a4-meta-row span,.a4-print-area .a4-meta-row span{display:block!important;min-width:0!important;max-width:100%!important;font-weight:900!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;}
+  #a4Preview .a4-row-control-bar,#a4CheckOutput .a4-row-control-bar{display:flex!important;visibility:visible!important;gap:6px!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:wrap!important;margin:2.2mm 0 0!important;min-height:18px!important;position:relative!important;z-index:180!important;pointer-events:auto!important;}
+  #a4Preview .a4-row-control-bar button,#a4CheckOutput .a4-row-control-bar button{border:1px solid #adc3d2!important;background:#fff!important;color:#07385b!important;border-radius:6px!important;padding:3px 8px!important;font-size:7pt!important;font-weight:900!important;cursor:pointer!important;line-height:1.2!important;box-shadow:0 1px 3px rgba(7,56,91,.08)!important;pointer-events:auto!important;}
+  @media print{.a4-row-control-bar,.a4-paged-add-row-btn{display:none!important;visibility:hidden!important}.a4-logo-cell svg.official-aeterlink-a4-logo{width:42mm!important;max-width:42mm!important;height:auto!important;max-height:14mm!important}}
+</style>
+<script id="a4-all-documents-add-row-logo-final-script">
+(function(){
+  if(window.__AETERLINK_A4_ALL_DOCS_ADD_ROW_LOGO_FINAL_V1__) return;
+  window.__AETERLINK_A4_ALL_DOCS_ADD_ROW_LOGO_FINAL_V1__=true;
+  var timer=null, observer=null;
+  var LOGO='<svg class="official-aeterlink-a4-logo a4-logo-img" viewBox="0 0 2048 253" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" aria-label="AETERLINK Logo"><path fill="#007dc6" fill-rule="evenodd" d="M165 4L153 0L137 0L125 4L119 8L110 17L106 24L103 34L102 56L98 77L90 99L79 119L70 131L50 151L33 163L15 173L5 185L0 199L0 213L3 223L7 230L19 242L33 248L52 248L63 244L69 240L76 233L82 223L85 214L86 189L91 166L98 148L100 146L105 135L117 118L132 102L158 83L173 75L182 64L187 52L187 45L188 44L187 33L184 24L179 16L171 8ZM222 162L212 165L203 170L192 181L185 197L185 204L184 205L185 217L188 226L192 233L200 242L207 247L220 252L240 252L249 249L256 245L267 234L274 220L275 199L270 185L266 179L255 169L242 163ZM501 42L499 44L493 58L491 60L489 66L487 68L485 74L483 76L482 80L472 98L472 100L455 133L455 135L453 137L408 229L410 231L442 231L444 230L448 225L449 220L451 218L452 213L456 206L462 190L466 187L541 187L545 190L561 227L566 231L599 231L600 230L599 225L596 221L564 156L562 154L562 152L558 146L557 142L555 140L554 136L551 132L550 128L547 124L546 120L544 118L523 75L521 73L521 71L517 65L517 63L513 57L508 45L505 42ZM502 107L505 110L506 114L531 158L530 161L476 161L475 160L475 158L478 154L478 152L485 140L485 138L499 110ZM650 54L648 56L648 230L651 232L760 232L764 230L764 207L760 204L683 204L682 203L682 156L684 154L757 154L759 151L759 130L756 127L683 127L682 126L682 82L683 81L759 81L762 79L762 56L760 54ZM818 54L816 56L816 78L819 81L877 81L879 83L879 229L883 232L910 232L913 230L913 83L915 81L973 81L976 79L976 55L974 54ZM1030 55L1029 57L1029 228L1030 230L1033 232L1142 232L1146 229L1146 207L1142 204L1065 204L1064 203L1064 155L1065 154L1139 154L1141 151L1141 130L1138 127L1065 127L1064 126L1064 82L1065 81L1141 81L1144 78L1144 56L1142 54L1032 54ZM1210 50L1207 53L1207 233L1211 235L1234 235L1237 233L1238 231L1238 167L1240 165L1258 165L1262 168L1308 234L1311 235L1342 235L1342 232L1293 162L1294 159L1300 157L1311 150L1323 138L1330 125L1332 117L1332 98L1330 89L1323 75L1309 61L1300 56L1289 52L1284 52L1277 50ZM1238 82L1240 80L1280 80L1289 83L1300 93L1304 103L1304 112L1300 122L1291 131L1282 135L1239 135L1238 134ZM1395 54L1394 55L1394 230L1397 232L1510 232L1514 229L1514 207L1510 204L1429 204L1428 203L1428 57L1425 54ZM1571 54L1569 55L1568 58L1568 228L1572 232L1599 232L1603 229L1603 57L1601 54ZM1674 54L1672 56L1672 227L1673 229L1675 230L1703 230L1705 228L1705 132L1707 130L1804 215L1814 225L1821 230L1824 229L1824 56L1822 54L1794 54L1791 56L1791 154L1789 155L1694 70L1692 67L1677 54ZM1893 54L1890 58L1890 227L1894 232L1921 232L1925 229L1925 147L1926 146L2005 231L2007 232L2046 232L2047 228L1965 138L1965 136L2025 61L2028 57L2028 54L1991 54L1926 135L1925 134L1925 56L1923 54Z"></path></svg>';
+  function root(){return document.getElementById('a4Preview')||document.getElementById('a4CheckOutput')||document;}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  function currentDocNo(){var e=document.getElementById('fDocumentNo');return e&&e.value?e.value:'Not issued';}
+  function currentRev(){var e=document.getElementById('fRevisionNo');return e&&e.value?e.value:'R00';}
+  function currentDate(){return new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+  function metaValue(header,label){var rows=header.querySelectorAll('.a4-meta-row');for(var i=0;i<rows.length;i++){var b=rows[i].querySelector('b');if(b&&String(b.textContent||'').toLowerCase().indexOf(label)>=0){var s=rows[i].querySelector('span,.a4-editable');return s?String(s.textContent||'').trim():'';}}return '';}
+  function normalizeHeader(base){
+    base=base||root();
+    base.querySelectorAll('.a4-page .a4-header').forEach(function(h){
+      var logo=h.querySelector('.a4-logo-cell');if(!logo){logo=document.createElement('div');logo.className='a4-logo-cell';h.insertBefore(logo,h.firstChild);}logo.innerHTML=LOGO;
+      var title=h.querySelector('.a4-title-cell');if(!title){title=document.createElement('div');title.className='a4-title-cell';h.insertBefore(title,logo.nextSibling);} 
+      var meta=h.querySelector('.a4-meta-cell');if(!meta){meta=document.createElement('div');meta.className='a4-meta-cell';h.appendChild(meta);} 
+      var doc=metaValue(h,'doc')||currentDocNo();var rev=metaValue(h,'rev')||currentRev();var dt=metaValue(h,'date')||currentDate();
+      meta.innerHTML='<div class="a4-meta"><div class="a4-meta-row"><b>Doc No.:</b><span class="a4-editable" contenteditable="true" spellcheck="false">'+esc(doc||'Not issued')+'</span></div><div class="a4-meta-row"><b>Rev.:</b><span class="a4-editable" contenteditable="true" spellcheck="false">'+esc(rev||'R00')+'</span></div><div class="a4-meta-row"><b>Date:</b><span class="a4-editable" contenteditable="true" spellcheck="false">'+esc(dt||currentDate())+'</span></div></div>';
+    });
+  }
+  function isDocTable(t){return t&&t.tBodies&&t.tBodies.length&&!t.classList.contains('a4-info-table')&&!t.classList.contains('a4-project-grid')&&!t.closest('.a4-photo-block')&&!t.closest('.a4-photo-grid')&&!t.closest('.mod-table-wrap')&&t.closest('.a4-page')&&t.closest('.a4-content');}
+  function ensureAddRowBars(base){
+    base=base||root();
+    [].slice.call(base.querySelectorAll('.a4-page .a4-content table')).filter(isDocTable).forEach(function(t){
+      t.classList.add('a4-scope-table');
+      var next=t.nextElementSibling;
+      if(next&&next.classList&&next.classList.contains('a4-row-control-bar'))return;
+      if(next&&next.classList&&next.classList.contains('a4-preview-actions'))next.remove();
+      var bar=document.createElement('div');bar.className='a4-row-control-bar a4-no-print';
+      bar.innerHTML='<button type="button" class="a4-paged-add-row-btn">+ Add Row</button>';
+      t.parentNode.insertBefore(bar,t.nextSibling);
+    });
+  }
+  function patchLogoRenderer(){
+    var r=window.AETERLINK_A4_RENDERER;if(!r)return;
+    r.logoSvg=function(){return LOGO;};
+  }
+  function run(){patchLogoRenderer();normalizeHeader(root());ensureAddRowBars(root());}
+  function schedule(){clearTimeout(timer);timer=setTimeout(run,120);}
+  function patchPreview(){if(typeof window.previewCurrentForm==='function'&&!window.previewCurrentForm.__a4AllDocsAddRowLogoFinal){var old=window.previewCurrentForm;window.previewCurrentForm=function(){var ret=old.apply(this,arguments);setTimeout(run,160);setTimeout(run,600);return ret;};window.previewCurrentForm.__a4AllDocsAddRowLogoFinal=true;}}
+  document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#prodDocType,#fTemplate'))setTimeout(run,250);},true);
+  document.addEventListener('change',function(e){if(e.target&&e.target.matches&&e.target.matches('#prodDocType,#fTemplate'))setTimeout(run,250);},true);
+  function boot(){patchLogoRenderer();patchPreview();run();var target=document.getElementById('a4Preview')||document.getElementById('a4CheckOutput');if(target&&!observer&&window.MutationObserver){observer=new MutationObserver(function(muts){for(var i=0;i<muts.length;i++){if(muts[i].addedNodes&&muts[i].addedNodes.length){schedule();break;}}});observer.observe(target,{childList:true,subtree:true});}}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,300);setTimeout(boot,1200);setTimeout(boot,2600);});
+  window.addEventListener('load',function(){setTimeout(boot,300);setTimeout(boot,1200);});
+  setTimeout(boot,500);setTimeout(boot,1800);
+  window.AETERLINK_A4_ALL_DOCS_ADD_ROW_LOGO_FINAL={run:run,ensureAddRowBars:ensureAddRowBars,normalizeHeader:normalizeHeader,logo:LOGO};
+})();
+</script>
