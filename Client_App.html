@@ -5,7 +5,7 @@
 <script>
 (function () {
   var client = window.AETERLINK_CLIENT = window.AETERLINK_CLIENT || {};
-  client.version = 'CLIENT_APP_MODULAR_2026_05_09_R08_REGISTER_V2';
+  client.version = 'CLIENT_APP_MODULAR_2026_05_11_R09_LIFECYCLE_STABLE';
   client.buildTimestamp = new Date().toISOString();
   client.lifecycleStages = [
     { key: 'All', label: 'All documents' },
@@ -21,8 +21,34 @@
   client.lifecycleLabels = client.lifecycleStages.reduce(function (map, stage) { map[stage.key] = stage.label; return map; }, {});
   client.lifecycleHint = 'Used to group documents by project lifecycle: initiation → planning → design → procurement → installation → testing → handover → Warranty/DLP';
   client.lifecycleLabel = function (key) { return client.lifecycleLabels[key] || key || ''; };
-  client.setBuildBadge = function (buildInfo) { var badge = document.getElementById('versionBadge'); if (!badge) return; var info = buildInfo || {}; badge.textContent = (info.appVersion || client.version) + ' - ' + (info.buildTimestamp || client.buildTimestamp); };
-  client.loadBuildInfo = function () { if (typeof google === 'undefined' || !google.script || !google.script.run) { client.setBuildBadge(); return; } google.script.run.withSuccessHandler(function (info) { client.setBuildBadge(info); }).withFailureHandler(function () { client.setBuildBadge(); }).apiBuildInfo(); };
+  client.setBuildBadge = function (buildInfo) {
+    var badge = document.getElementById('versionBadge');
+    if (!badge) return;
+    var info = buildInfo || {};
+    badge.textContent = (info.appVersion || client.version) + ' - ' + (info.buildTimestamp || client.buildTimestamp);
+  };
+  client.loadBuildInfo = function (force) {
+    if (!force && client.__buildInfoLoaded) return;
+    if (client.__buildInfoLoading) return;
+    if (typeof google === 'undefined' || !google.script || !google.script.run) {
+      client.__buildInfoLoaded = true;
+      client.setBuildBadge();
+      return;
+    }
+    client.__buildInfoLoading = true;
+    google.script.run
+      .withSuccessHandler(function (info) {
+        client.__buildInfoLoading = false;
+        client.__buildInfoLoaded = true;
+        client.setBuildBadge(info);
+      })
+      .withFailureHandler(function () {
+        client.__buildInfoLoading = false;
+        client.__buildInfoLoaded = true;
+        client.setBuildBadge();
+      })
+      .apiBuildInfo();
+  };
   client.debugInfo = function () { return { version: client.version, buildTimestamp: client.buildTimestamp, href: window.location.href }; };
 })();
 </script>
@@ -31,51 +57,64 @@
 </style>
 <script>
 (function(){
-  var state={userRemovedAll:false,lastTemplate:''};
-  function byId(id){return document.getElementById(id)}
-  function r(){return window.AETERLINK_A4_RENDERER}
-  function wrap(){return byId('a4Preview')||document}
-  function area(){return wrap().querySelector('#a4PrintArea')||wrap().querySelector('.a4-print-area')||wrap()}
-  function pages(){return [].slice.call(area().querySelectorAll('.a4-page')).filter(function(p){return p.querySelector('.a4-photo-grid')})}
-  function firstPage(){return area().querySelector('.a4-page')}
-  function text(e){return String(e?e.textContent||'':'').trim()}
-  function empty(){return {PhotoUrl:'',ItemNo:'',Description:'',Caption:'',Note:''}}
-  function collect(){var out=[];pages().forEach(function(p){[].slice.call(p.querySelectorAll('.a4-photo-block')).forEach(function(b){var img=b.querySelector('.a4-photo-box img'),fs=b.querySelectorAll('.a4-photo-field-box,.a4-photo-text');var item=text(fs[0]),desc=text(fs[1]),note=text(fs[2]),url=img?img.getAttribute('src')||'':'';if(url||item||desc||note)out.push({PhotoUrl:url,ItemNo:item,Description:desc,Caption:desc,Note:note});});});return out}
-  function makePage(photos){if(!r())return null;var base=firstPage(),page=document.createElement('div'),inner=document.createElement('div'),content=document.createElement('div'),box=document.createElement('div');page.className='a4-page';inner.className='a4-page-inner';content.className='a4-content';['.a4-header','.a4-project-grid'].forEach(function(sel){var n=base&&base.querySelector(sel);if(n)inner.appendChild(n.cloneNode(true));});box.innerHTML=r().section('PHOTO REPORT')+r().photoGrid((photos&&photos.length)?photos:[empty(),empty()]);while(box.firstChild)content.appendChild(box.firstChild);inner.appendChild(content);var f=base&&base.querySelector('.a4-footer');if(f)inner.appendChild(f.cloneNode(true));page.appendChild(inner);return page}
-  function insert(photos){var target=pages().pop()||firstPage();if(!target||!target.parentNode)return;var p=makePage(photos);if(!p)return;target.parentNode.insertBefore(p,target.nextSibling);normalize()}
-  function toolbar(){var a=byId('a4Preview');if(!a)return;var tb=byId('prodPhotoReportToolbar');if(tb)return tb;tb=document.createElement('div');tb.id='prodPhotoReportToolbar';tb.className='prod-photo-report-toolbar a4-no-print';tb.innerHTML='<button type="button" class="primary" onclick="AETERLINK_PHOTO_REPORT.addPhotoReport()">+ Add Photo Report / Photo</button><span id="prodPhotoReportHint">Photo report is available for every document.</span>';a.parentNode.insertBefore(tb,a);return tb}
-  function hint(){toolbar();var h=byId('prodPhotoReportHint');if(h)h.textContent=pages().length?('PHOTO REPORT active: '+area().querySelectorAll('.a4-photo-block').length+' photo slot(s). Delete all photos to remove the sheet.'):('No PHOTO REPORT sheet. Click button to add a PHOTO REPORT sheet again.')}
+  var state={userRemovedAll:false,lastTemplate:'',bootTimer:null,bootTries:0};
+  function byId(id){return document.getElementById(id);}
+  function r(){return window.AETERLINK_A4_RENDERER;}
+  function wrap(){return byId('a4Preview')||document;}
+  function area(){return wrap().querySelector('#a4PrintArea')||wrap().querySelector('.a4-print-area')||wrap();}
+  function pages(){return [].slice.call(area().querySelectorAll('.a4-page')).filter(function(p){return p.querySelector('.a4-photo-grid');});}
+  function firstPage(){return area().querySelector('.a4-page');}
+  function text(e){return String(e?e.textContent||'':'').trim();}
+  function empty(){return {PhotoUrl:'',ItemNo:'',Description:'',Caption:'',Note:''};}
+  function isDocumentsActive(){return !byId('view-documents')||!byId('view-documents').classList.contains('mod-hide');}
+  function collect(){var out=[];pages().forEach(function(p){[].slice.call(p.querySelectorAll('.a4-photo-block')).forEach(function(b){var img=b.querySelector('.a4-photo-box img'),fs=b.querySelectorAll('.a4-photo-field-box,.a4-photo-text');var item=text(fs[0]),desc=text(fs[1]),note=text(fs[2]),url=img?img.getAttribute('src')||'':'';if(url||item||desc||note)out.push({PhotoUrl:url,ItemNo:item,Description:desc,Caption:desc,Note:note});});});return out;}
+  function makePage(photos){if(!r())return null;var base=firstPage(),page=document.createElement('div'),inner=document.createElement('div'),content=document.createElement('div'),box=document.createElement('div');page.className='a4-page';inner.className='a4-page-inner';content.className='a4-content';['.a4-header','.a4-project-grid'].forEach(function(sel){var n=base&&base.querySelector(sel);if(n)inner.appendChild(n.cloneNode(true));});box.innerHTML=r().section('PHOTO REPORT')+r().photoGrid((photos&&photos.length)?photos:[empty(),empty()]);while(box.firstChild)content.appendChild(box.firstChild);inner.appendChild(content);var f=base&&base.querySelector('.a4-footer');if(f)inner.appendChild(f.cloneNode(true));page.appendChild(inner);return page;}
+  function insert(photos){var target=pages().pop()||firstPage();if(!target||!target.parentNode)return;var p=makePage(photos);if(!p)return;target.parentNode.insertBefore(p,target.nextSibling);normalize();}
+  function toolbar(){var a=byId('a4Preview');if(!a||!a.parentNode)return null;var tb=byId('prodPhotoReportToolbar');if(tb)return tb;tb=document.createElement('div');tb.id='prodPhotoReportToolbar';tb.className='prod-photo-report-toolbar a4-no-print';tb.innerHTML='<button type="button" class="primary" onclick="AETERLINK_PHOTO_REPORT.addPhotoReport()">+ Add Photo Report / Photo</button><span id="prodPhotoReportHint">Photo report is available for every document.</span>';a.parentNode.insertBefore(tb,a);return tb;}
+  function hint(){toolbar();var h=byId('prodPhotoReportHint');if(h)h.textContent=pages().length?('PHOTO REPORT active: '+area().querySelectorAll('.a4-photo-block').length+' photo slot(s). Delete all photos to remove the sheet.'):('No PHOTO REPORT sheet. Click button to add a PHOTO REPORT sheet again.');}
   function renumber(){var i=1;pages().forEach(function(p){[].slice.call(p.querySelectorAll('.a4-photo-block')).forEach(function(b){var box=b.querySelector('.a4-photo-box');if(box&&!box.querySelector('img')&&(/^Photo\s*\d*$/i.test(text(box))||!text(box)))box.textContent='Photo '+i;i++;});});}
-  function normalize(){pages().forEach(function(p){if(!p.querySelector('.a4-photo-block'))p.remove()});renumber();hint();}
-  function ensure(){var tpl=(byId('fTemplate')&&byId('fTemplate').value)||(byId('prodDocType')&&byId('prodDocType').value)||'';if(tpl!==state.lastTemplate){state.lastTemplate=tpl;state.userRemovedAll=false}if(!state.userRemovedAll&&!pages().length&&firstPage())insert([empty(),empty()]);else normalize()}
-  function add(){state.userRemovedAll=false;var ps=pages();if(!ps.length){insert([empty()]);return}var grid=ps[ps.length-1].querySelector('.a4-photo-grid'),count=grid?grid.querySelectorAll('.a4-photo-block').length:0;if(grid&&count<2){var t=document.createElement('div');t.innerHTML=r().photoBlock(empty(),count);grid.appendChild(t.firstChild);normalize()}else insert([empty()])}
-  function patchRenderer(){if(!r()||r().__photoManagerPatched)return;var oldDel=r().deletePhotoBlock;r().deletePhotoBlock=function(btn){var b=btn&&btn.closest?btn.closest('.a4-photo-block'):null;if(b&&b.parentNode)b.parentNode.removeChild(b);else if(oldDel)oldDel.apply(r(),arguments);pages().forEach(function(p){if(!p.querySelector('.a4-photo-block'))p.remove()});if(!pages().length)state.userRemovedAll=true;normalize()};var oldAdd=r().addPhotoBlock;r().addPhotoBlock=function(btn){state.userRemovedAll=false;var actions=btn&&btn.closest?btn.closest('.a4-preview-actions'):null,grid=actions?actions.previousElementSibling:null;if(!grid||!grid.classList.contains('a4-photo-grid')){add();return}var count=grid.querySelectorAll('.a4-photo-block').length;if(count<2){var t=document.createElement('div');t.innerHTML=r().photoBlock(empty(),count);grid.appendChild(t.firstChild);normalize()}else insert([empty()])};r().__photoManagerPatched=true}
-  function patchCollect(){if(!window.collectFormData||window.collectFormData.__photoPatch)return;var old=window.collectFormData;window.collectFormData=function(){var d=old.apply(this,arguments);d.Photos=collect();return d};window.collectFormData.__photoPatch=true}
-  function patchPreview(){if(!window.previewCurrentForm||window.previewCurrentForm.__photoPatch)return;var old=window.previewCurrentForm;window.previewCurrentForm=function(){var before=collect(),had=pages().length>0;var ret=old.apply(this,arguments);setTimeout(function(){if(had&&before.length){pages().forEach(function(p){p.remove()});for(var i=0;i<before.length;i+=2)insert(before.slice(i,i+2))}ensure()},180);return ret};window.previewCurrentForm.__photoPatch=true}
-  function boot(){patchRenderer();patchCollect();patchPreview();toolbar();setTimeout(ensure,260)}
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,900);setTimeout(boot,1800)});var tm=setInterval(boot,1200);setTimeout(function(){clearInterval(tm);boot()},12000);
-  window.AETERLINK_PHOTO_REPORT={addPhotoReport:add,collectPhotos:collect,normalize:normalize,ensureDefault:ensure,removeAll:function(){pages().forEach(function(p){p.remove()});state.userRemovedAll=true;normalize()}};
+  function normalize(){pages().forEach(function(p){if(!p.querySelector('.a4-photo-block'))p.remove();});renumber();hint();if(window.AETERLINK_MOVE_PHOTO_REPORT_LAST)try{window.AETERLINK_MOVE_PHOTO_REPORT_LAST();}catch(e){}}
+  function ensure(){if(!isDocumentsActive()||!firstPage())return;var tpl=(byId('fTemplate')&&byId('fTemplate').value)||(byId('prodDocType')&&byId('prodDocType').value)||'';if(tpl!==state.lastTemplate){state.lastTemplate=tpl;state.userRemovedAll=false;}if(!state.userRemovedAll&&!pages().length)insert([empty(),empty()]);else normalize();}
+  function add(){state.userRemovedAll=false;var ps=pages();if(!ps.length){insert([empty()]);return;}var grid=ps[ps.length-1].querySelector('.a4-photo-grid'),count=grid?grid.querySelectorAll('.a4-photo-block').length:0;if(grid&&count<2){var t=document.createElement('div');t.innerHTML=r().photoBlock(empty(),count);grid.appendChild(t.firstChild);normalize();}else insert([empty()]);}
+  function patchRenderer(){if(!r()||r().__photoManagerPatched)return;var oldDel=r().deletePhotoBlock;r().deletePhotoBlock=function(btn){var b=btn&&btn.closest?btn.closest('.a4-photo-block'):null;if(b&&b.parentNode)b.parentNode.removeChild(b);else if(oldDel)oldDel.apply(r(),arguments);pages().forEach(function(p){if(!p.querySelector('.a4-photo-block'))p.remove();});if(!pages().length)state.userRemovedAll=true;normalize();};var oldAdd=r().addPhotoBlock;r().addPhotoBlock=function(btn){state.userRemovedAll=false;var actions=btn&&btn.closest?btn.closest('.a4-preview-actions'):null,grid=actions?actions.previousElementSibling:null;if(!grid||!grid.classList.contains('a4-photo-grid')){add();return;}var count=grid.querySelectorAll('.a4-photo-block').length;if(count<2){var t=document.createElement('div');t.innerHTML=r().photoBlock(empty(),count);grid.appendChild(t.firstChild);normalize();}else insert([empty()]);};r().__photoManagerPatched=true;}
+  function patchCollect(){if(!window.collectFormData||window.collectFormData.__photoPatch)return;var old=window.collectFormData;window.collectFormData=function(){var d=old.apply(this,arguments);d.Photos=collect();return d;};window.collectFormData.__photoPatch=true;}
+  function patchPreview(){if(!window.previewCurrentForm||window.previewCurrentForm.__photoPatch)return;var old=window.previewCurrentForm;window.previewCurrentForm=function(){var before=collect(),had=pages().length>0;var ret=old.apply(this,arguments);setTimeout(function(){if(had&&before.length){pages().forEach(function(p){p.remove();});for(var i=0;i<before.length;i+=2)insert(before.slice(i,i+2));}ensure();},120);return ret;};window.previewCurrentForm.__photoPatch=true;}
+  function boot(){patchRenderer();patchCollect();patchPreview();toolbar();if(firstPage())setTimeout(ensure,120);}
+  function scheduleBoot(delay){clearTimeout(state.bootTimer);state.bootTimer=setTimeout(function(){boot();state.bootTries++;if(state.bootTries<6&&(!r()||!window.previewCurrentForm))scheduleBoot(500);},delay==null?0:delay);}
+  document.addEventListener('DOMContentLoaded',function(){scheduleBoot(50);setTimeout(function(){scheduleBoot(0);},900);});
+  window.addEventListener('load',function(){scheduleBoot(0);});
+  window.AETERLINK_PHOTO_REPORT={addPhotoReport:add,collectPhotos:collect,normalize:normalize,ensureDefault:ensure,removeAll:function(){pages().forEach(function(p){p.remove();});state.userRemovedAll=true;normalize();}};
 })();
 </script>
 <script>
 (function(){
-  var cache={register:[],records:[],filter:''};
-  function byId(id){return document.getElementById(id)}
+  var cache={register:[],records:[],filter:'',loaded:{register:false,records:false},inFlight:{register:false,records:false},lastLoad:{register:0,records:0}};
+  function byId(id){return document.getElementById(id);}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function link(url,label){url=String(url||'').trim();if(!url)return '<span class="mod-link-empty">-</span>';return '<a class="mod-link-btn" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(label||'Open PDF')+'</a>';}
   function pill(v){return '<span class="mod-pill">'+esc(v||'')+'</span>';}
   function val(row,key){if(key==='PDF Link')return row.PdfUrl||row.FileUrl||'';if(key==='Folder')return row.DriveFolderUrl||'';if(key==='PDF Status')return row.PdfStatus||row.DocumentStatus||'';return row[key]||'';}
   function cols(type){return type==='records'?['FormRecordId','ProjectCode','TemplateCode','DocumentNo','RevisionNo','Status','PDF Status','PDF Link','Folder','UpdatedAt']:['DocumentId','ProjectCode','DocumentCode','DocumentTitle','Revision','Status','PDF Status','PDF Link','Folder','UpdatedAt'];}
-  function toolbar(type,count){return '<div class="doc-reg-toolbar"><input class="doc-reg-search" id="docRegSearch_'+type+'" placeholder="Search document / project / status..." value="'+esc(cache.filter)+'"><button class="mod-btn" onclick="AETERLINK_REGISTER_V2.refresh()">Refresh Register</button><button class="mod-btn" onclick="AETERLINK_REGISTER_V2.repair()">Repair PDF Columns</button><span class="doc-reg-badge">'+count+' record(s)</span></div>';}
+  function activeView(){return (window.APP_STATE&&APP_STATE.currentView)||'';}
+  function visible(id){var el=byId(id);return !!(el&&!el.closest('.mod-hide')&&!el.classList.contains('mod-hide'));}
+  function googleReady(){return typeof google!=='undefined'&&google.script&&google.script.run;}
+  function toolbar(type,count){return '<div class="doc-reg-toolbar"><input class="doc-reg-search" id="docRegSearch_'+type+'" placeholder="Search document / project / status..." value="'+esc(cache.filter)+'"><button class="mod-btn" onclick="AETERLINK_REGISTER_V2.refresh(\''+type+'\',{force:true})">Refresh</button><button class="mod-btn" onclick="AETERLINK_REGISTER_V2.repair()">Repair PDF Columns</button><span class="doc-reg-badge">'+count+' record(s)</span></div>';}
   function renderRows(rows,type){var c=cols(type);var q=String(cache.filter||'').toUpperCase();rows=(rows||[]).filter(function(r){return !q||JSON.stringify(r).toUpperCase().indexOf(q)>=0;});return toolbar(type,rows.length)+'<div class="mod-table-wrap"><table class="mod-table doc-reg-table"><thead><tr>'+c.map(function(x){return '<th>'+esc(x)+'</th>';}).join('')+'</tr></thead><tbody>'+rows.map(function(r){return '<tr>'+c.map(function(x){var v=val(r,x);if(x==='PDF Link')return '<td>'+link(v,'Open PDF')+'</td>';if(x==='Folder')return '<td>'+link(v,'Open Folder')+'</td>';if(x==='PDF Status'&&!v&&/PDF Saved/i.test(String(r.Status||r.DocumentStatus||'')))return '<td><span class="missing-pdf">Missing Link</span></td>';if(/status/i.test(x))return '<td>'+pill(v)+'</td>';var cls=x==='DocumentCode'||x==='DocumentNo'?' class="doc-code"':(x==='DocumentTitle'?' class="doc-title"':'');return '<td'+cls+'>'+esc(v)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';}
-  function bindSearch(type){setTimeout(function(){var s=byId('docRegSearch_'+type);if(s&&!s.__bound){s.addEventListener('input',function(){cache.filter=s.value;paint();});s.__bound=true;}},60);}
-  function paint(){if(byId('registerTable')){byId('registerTable').innerHTML=renderRows(cache.register,'register');bindSearch('register');}if(byId('recordsTable')){byId('recordsTable').innerHTML=renderRows(cache.records,'records');bindSearch('records');}}
-  function loadRegister(){var t=byId('registerTable');if(t)t.innerHTML='<div class="aeterlink-muted">Loading Document Register V2...</div>';google.script.run.withSuccessHandler(function(r){cache.register=(r&&r.rows)||[];paint();}).withFailureHandler(function(e){if(t)t.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiDocumentRegisterV2();}
-  function loadRecords(){var t=byId('recordsTable');if(t)t.innerHTML='<div class="aeterlink-muted">Loading Form Records / PDF V2...</div>';google.script.run.withSuccessHandler(function(r){cache.records=(r&&r.rows)||[];paint();}).withFailureHandler(function(e){if(t)t.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiFormRecordsPdfV2();}
-  function refresh(){if(typeof google==='undefined'||!google.script||!google.script.run)return;if(byId('view-register')&&!byId('view-register').classList.contains('mod-hide'))loadRegister();if(byId('view-records')&&!byId('view-records').classList.contains('mod-hide'))loadRecords();}
-  function repair(){if(typeof google==='undefined'||!google.script||!google.script.run)return;var target=byId('registerTable')||byId('recordsTable');if(target)target.insertAdjacentHTML('afterbegin','<div class="aeterlink-muted">Repairing PDF link/status columns...</div>');google.script.run.withSuccessHandler(function(){setTimeout(function(){loadRegister();loadRecords();},300);}).withFailureHandler(function(e){alert('Repair failed: '+(e&&e.message?e.message:String(e)));}).apiEnsureDocumentRegisterPdfColumnsV2();}
-  function patch(){if(window.showView&&!window.showView.__registerV2Patch){var old=window.showView;window.showView=function(name){var ret=old.apply(this,arguments);setTimeout(refresh,250);setTimeout(refresh,1000);return ret;};window.showView.__registerV2Patch=true;}if(window.refreshData&&!window.refreshData.__registerV2Patch){var oldRefresh=window.refreshData;window.refreshData=function(){var ret=oldRefresh.apply(this,arguments);setTimeout(refresh,700);setTimeout(refresh,1600);return ret;};window.refreshData.__registerV2Patch=true;}refresh();}
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(patch,900);setTimeout(patch,2200);});var timer=setInterval(patch,1500);setTimeout(function(){clearInterval(timer);patch();},18000);
-  window.AETERLINK_REGISTER_V2={refresh:function(){loadRegister();loadRecords();},repair:repair};
+  function bindSearch(type){setTimeout(function(){var s=byId('docRegSearch_'+type);if(s&&!s.__bound){s.addEventListener('input',function(){cache.filter=s.value;paint();});s.__bound=true;}},30);}
+  function afterPaint(){setTimeout(function(){try{if(window.AETERLINK_FORCE_RECORD_EDIT&&AETERLINK_FORCE_RECORD_EDIT.run)AETERLINK_FORCE_RECORD_EDIT.run();}catch(e){}},50);}
+  function paint(){if(byId('registerTable')){byId('registerTable').innerHTML=renderRows(cache.register,'register');bindSearch('register');}if(byId('recordsTable')){byId('recordsTable').innerHTML=renderRows(cache.records,'records');bindSearch('records');}afterPaint();}
+  function shouldThrottle(type,force){var now=Date.now();if(force)return false;if(cache.inFlight[type])return true;if(cache.loaded[type]&&now-cache.lastLoad[type]<120000)return true;if(now-cache.lastLoad[type]<1800)return true;return false;}
+  function setLoading(id,msg){var t=byId(id);if(t&&!t.querySelector('table'))t.innerHTML='<div class="aeterlink-muted">'+esc(msg)+'</div>';}
+  function loadRegister(opts){opts=opts||{};if(!googleReady()||shouldThrottle('register',opts.force))return;cache.inFlight.register=true;cache.lastLoad.register=Date.now();setLoading('registerTable','Loading Document Register V2...');google.script.run.withSuccessHandler(function(r){cache.inFlight.register=false;cache.loaded.register=true;cache.register=(r&&r.rows)||[];paint();}).withFailureHandler(function(e){cache.inFlight.register=false;var t=byId('registerTable');if(t)t.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiDocumentRegisterV2();}
+  function loadRecords(opts){opts=opts||{};if(!googleReady()||shouldThrottle('records',opts.force))return;cache.inFlight.records=true;cache.lastLoad.records=Date.now();setLoading('recordsTable','Loading Form Records / PDF V2...');google.script.run.withSuccessHandler(function(r){cache.inFlight.records=false;cache.loaded.records=true;cache.records=(r&&r.rows)||[];paint();}).withFailureHandler(function(e){cache.inFlight.records=false;var t=byId('recordsTable');if(t)t.innerHTML='<pre>'+esc(e&&e.message?e.message:String(e))+'</pre>';}).apiFormRecordsPdfV2();}
+  function refresh(scope,opts){opts=opts||{};if(scope==='records'){loadRecords(opts);return;}if(scope==='register'){loadRegister(opts);return;}if(visible('view-records')||activeView()==='records')loadRecords(opts);if(visible('view-register')||activeView()==='register')loadRegister(opts);}
+  function repair(){if(!googleReady())return;var target=byId('registerTable')||byId('recordsTable');if(target)target.insertAdjacentHTML('afterbegin','<div class="aeterlink-muted">Repairing PDF link/status columns...</div>');google.script.run.withSuccessHandler(function(){cache.loaded.register=false;cache.loaded.records=false;refresh('register',{force:true});refresh('records',{force:true});}).withFailureHandler(function(e){alert('Repair failed: '+(e&&e.message?e.message:String(e)));}).apiEnsureDocumentRegisterPdfColumnsV2();}
+  function patchLifecycle(){
+    if(window.showView&&!window.showView.__registerV2StablePatch){var old=window.showView;window.showView=function(name){var ret=old.apply(this,arguments);setTimeout(function(){if(name==='records')refresh('records');else if(name==='register')refresh('register');else if(name==='templates'&&window.loadTable)window.loadTable('FORM_TEMPLATES','templatesTable');},120);return ret;};window.showView.__registerV2StablePatch=true;}
+    if(window.refreshData&&!window.refreshData.__registerV2StablePatch){window.refreshData=function(){if(window.loadServer)window.loadServer();var view=activeView();if(view==='templates'&&window.loadTable)window.loadTable('FORM_TEMPLATES','templatesTable');if(view==='records')refresh('records',{force:true});if(view==='register')refresh('register',{force:true});};window.refreshData.__registerV2StablePatch=true;}
+  }
+  function boot(){patchLifecycle();refresh();}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,700);});
+  window.AETERLINK_REGISTER_V2={refresh:refresh,repair:repair,loadRecords:function(force){loadRecords({force:!!force});},loadRegister:function(force){loadRegister({force:!!force});},cache:cache};
 })();
 </script>
