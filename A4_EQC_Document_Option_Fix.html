@@ -1,0 +1,103 @@
+<!-- AETERLINK Documentation Module — A4_EQC_Document_Option_Fix.html -->
+<!-- Ensure the single Equipment Checklist document is PJ-EQC-001 and never disappears from dropdowns. -->
+<script id="a4-eqc-document-option-fix-script">
+(function(){
+  if(window.__AETERLINK_EQC_DOCUMENT_OPTION_FIX_V1__) return;
+  window.__AETERLINK_EQC_DOCUMENT_OPTION_FIX_V1__ = true;
+
+  var EQC = {TemplateCode:'PJ-EQC-001',TemplateName:'Equipment Checklist',PhaseKey:'05_CONSTRUCTION',Source:'final',Active:'TRUE'};
+  var OLD = 'PJ-EQUIP-CHK-001';
+
+  function byId(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  function eqcOptionHtml(selected){return '<option class="a4-doc-restore-master a4-eqc-final-option" value="'+EQC.TemplateCode+'" '+(selected===EQC.TemplateCode?'selected':'')+'>'+EQC.TemplateCode+' — '+EQC.TemplateName+'</option>';}
+
+  function normalizeRows(){
+    var rows = window.AETERLINK_ALL_DOCUMENT_ROWS || [];
+    rows = rows.filter(function(r){return String(r.TemplateCode||'') !== OLD;});
+    if(!rows.some(function(r){return String(r.TemplateCode||'') === EQC.TemplateCode;})) rows.push(Object.assign({}, EQC));
+    rows.sort(function(a,b){
+      var pa=String(a.PhaseKey||''), pb=String(b.PhaseKey||'');
+      if(pa!==pb) return pa.localeCompare(pb);
+      return String(a.TemplateCode||'').localeCompare(String(b.TemplateCode||''));
+    });
+    window.AETERLINK_ALL_DOCUMENT_ROWS = rows;
+  }
+
+  function removeOldOptions(sel){
+    if(!sel || !sel.options) return;
+    Array.prototype.slice.call(sel.options).forEach(function(o){if(o.value===OLD) o.remove();});
+  }
+
+  function hasEqc(sel){
+    if(!sel || !sel.options) return false;
+    return Array.prototype.slice.call(sel.options).some(function(o){return o.value===EQC.TemplateCode;});
+  }
+
+  function constructionGroup(sel){
+    if(!sel) return null;
+    var groups = Array.prototype.slice.call(sel.querySelectorAll('optgroup'));
+    for(var i=0;i<groups.length;i++){
+      if(/05|CONSTRUCTION|INSTALLATION/i.test(groups[i].label||'')) return groups[i];
+    }
+    return null;
+  }
+
+  function ensureEqcOption(sel){
+    if(!sel) return;
+    var current = sel.value;
+    removeOldOptions(sel);
+    if(!hasEqc(sel)){
+      var group = constructionGroup(sel);
+      if(group) group.insertAdjacentHTML('afterbegin', eqcOptionHtml(current));
+      else sel.insertAdjacentHTML('afterbegin', eqcOptionHtml(current));
+    }
+    if(current === OLD || !current){ sel.value = EQC.TemplateCode; }
+    else if(Array.prototype.slice.call(sel.options).some(function(o){return o.value===current;})){ sel.value = current; }
+  }
+
+  function repairTemplateTables(){
+    window.APP_STATE = window.APP_STATE || {};
+    APP_STATE.tables = APP_STATE.tables || {};
+    ['FORM_TEMPLATES','MODULE_DOCUMENT_RULES'].forEach(function(t){
+      var arr = APP_STATE.tables[t];
+      if(!Array.isArray(arr)) return;
+      APP_STATE.tables[t] = arr.filter(function(r){return String(r.TemplateCode||r.DocumentCode||'') !== OLD;});
+      if(t === 'FORM_TEMPLATES' && !APP_STATE.tables[t].some(function(r){return String(r.TemplateCode||'')===EQC.TemplateCode;})){
+        APP_STATE.tables[t].push({TemplateCode:EQC.TemplateCode,TemplateName:EQC.TemplateName,Module:'Construction / Installation',PhaseNo:'05_CONSTRUCTION',DocCategory:'Construction',Active:'TRUE'});
+      }
+    });
+  }
+
+  function apply(){
+    normalizeRows();
+    repairTemplateTables();
+    ensureEqcOption(byId('prodDocType'));
+    ensureEqcOption(byId('fTemplate'));
+  }
+
+  function patchRestore(){
+    if(window.AETERLINK_DOC_LIST_ALL_RESTORE && !window.AETERLINK_DOC_LIST_ALL_RESTORE.__eqcOptionFix){
+      var oldRun = window.AETERLINK_DOC_LIST_ALL_RESTORE.run;
+      var oldFetch = window.AETERLINK_DOC_LIST_ALL_RESTORE.fetchTables;
+      if(typeof oldRun === 'function'){
+        window.AETERLINK_DOC_LIST_ALL_RESTORE.run = function(){var ret = oldRun.apply(this, arguments); setTimeout(apply, 30); return ret;};
+      }
+      if(typeof oldFetch === 'function'){
+        window.AETERLINK_DOC_LIST_ALL_RESTORE.fetchTables = function(){var ret = oldFetch.apply(this, arguments); setTimeout(apply, 350); return ret;};
+      }
+      window.AETERLINK_DOC_LIST_ALL_RESTORE.__eqcOptionFix = true;
+    }
+  }
+
+  function boot(){patchRestore(); apply(); setTimeout(apply,250); setTimeout(apply,1000);}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,900);setTimeout(boot,2200);});
+  window.addEventListener('load',function(){setTimeout(boot,250);});
+  document.addEventListener('focusin',function(e){if(e.target && (e.target.id==='prodDocType'||e.target.id==='fTemplate')) setTimeout(apply,0);},true);
+  document.addEventListener('mousedown',function(e){if(e.target && (e.target.id==='prodDocType'||e.target.id==='fTemplate')) setTimeout(apply,0);},true);
+  document.addEventListener('change',function(e){if(e.target && (e.target.id==='prodDocType'||e.target.id==='fTemplate')) setTimeout(apply,40);},true);
+  setInterval(function(){patchRestore();apply();},2500);
+
+  window.AETERLINK_EQC_DOCUMENT_OPTION_FIX = {apply:apply, eqc:EQC, oldCode:OLD};
+})();
+</script>
