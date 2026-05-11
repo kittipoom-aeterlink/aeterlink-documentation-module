@@ -5,7 +5,8 @@
  * IMPORTANT:
  * - UI_Brand_Logo_Clean is not loaded because it injects PNG base64 repeatedly.
  * - Legacy A4_Overrides_Final is intercepted because it overrides addRow() and calls recursive pagination.
- * - A4_Row_Controls_Restore is the only A4 row editor. Do not load additional Add Row guards.
+ * - A4 row editing is handled by A4_Row_Controls_Restore plus A4_Row_Controls_Clean_Final loaded immediately after it.
+ * - Do not load A4_Add_Row_Freeze_Final_Guard or any additional Add Row guard.
  */
 
 function include(fileName) {
@@ -42,6 +43,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Project_Context_Preserve').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Photo_Report_Last_Page').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Row_Controls_Restore').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Row_Controls_Clean_Final').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
