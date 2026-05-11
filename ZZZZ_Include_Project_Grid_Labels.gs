@@ -5,7 +5,7 @@
  * IMPORTANT:
  * - UI_Brand_Logo_Clean is not loaded because it injects PNG base64 repeatedly.
  * - Legacy A4_Overrides_Final is intercepted because it overrides addRow() and calls recursive pagination.
- * - Final Add Row behavior is enforced by A4_Add_Row_Freeze_Final_Guard, loaded last.
+ * - A4_Row_Controls_Restore is the only A4 row editor. Do not load additional Add Row guards.
  */
 
 function include(fileName) {
@@ -26,12 +26,10 @@ function include(fileName) {
       '</style>',
       '<script id="a4-overrides-final-safe-inline-script">',
       '(function(){',
-      'if(window.__AETERLINK_A4_OVERRIDES_FINAL_INTERCEPT_SAFE_V15__)return;window.__AETERLINK_A4_OVERRIDES_FINAL_INTERCEPT_SAFE_V15__=true;',
-      'function esc(v){return String(v==null?"":v).replace(/[&<>\\"\']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;","\'":"&#39;"}[c];});}',
-      'function statusCell(value){var opts=["","-","Not Started","In Progress","Pending","Done","Issue","N/A","Open","Closed","Approved","Submitted"];var v=(value==null?"Pending":String(value).trim())||"Pending";var html="<select class=\\\"a4-status-select\\\" contenteditable=\\\"false\\\">";opts.forEach(function(o){html+="<option value=\\\""+esc(o)+"\\\""+(o===v?" selected":"")+">"+(o?esc(o):"-")+"</option>";});return html+"</select><span class=\\\"a4-status-print\\\">"+esc(v)+"</span>";}',
+      'if(window.__AETERLINK_A4_OVERRIDES_FINAL_INTERCEPT_SAFE_V16__)return;window.__AETERLINK_A4_OVERRIDES_FINAL_INTERCEPT_SAFE_V16__=true;',
       'function logoSvg(){return "<svg class=\\\"a4-logo-img\\\" viewBox=\\\"0 0 1200 165\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\" preserveAspectRatio=\\\"xMidYMid meet\\\" aria-label=\\\"AETERLINK Logo\\\"><g fill=\\\"#0b86c6\\\"><path d=\\\"M25 135c52-32 78-68 88-134h42c-3 42-26 66-70 86-21 10-34 25-45 54-9 20-34 18-15-6z\\\"/><circle cx=\\\"190\\\" cy=\\\"123\\\" r=\\\"38\\\"/><text x=\\\"285\\\" y=\\\"122\\\" font-family=\\\"Arial,Helvetica,sans-serif\\\" font-weight=\\\"900\\\" font-size=\\\"112\\\" letter-spacing=\\\"18\\\">AETERLINK</text></g></svg>";}',
-      'function patch(){var rr=window.AETERLINK_A4_RENDERER;if(!rr||rr.__aeterlinkFinalInterceptSafeApplied)return;rr.__aeterlinkFinalInterceptSafeApplied=true;rr.logoSvg=logoSvg;rr.table=function(columns,rows,className){columns=(columns||[]).filter(function(c){return c.key!=="Action";});rows=rows||[];var html="<table class=\\\""+esc(className||"a4-scope-table")+"\\\"><thead><tr>"+columns.map(function(col){return "<th style=\\\"width:"+esc(col.width||"auto")+";\\\">"+esc(col.label||col.key||"")+"</th>";}).join("")+"</tr></thead><tbody>"+rows.map(function(row){return "<tr>"+columns.map(function(col){var val=row[col.key]||"";if(col.key==="Status")return "<td>"+statusCell(val)+"</td>";return "<td class=\\\"a4-editable\\\" contenteditable=\\\"true\\\" spellcheck=\\\"false\\\">"+esc(val)+"</td>";}).join("")+"</tr>";}).join("")+"</tbody></table>";return html+"<div class=\\\"a4-row-control-bar a4-no-print\\\"><button type=\\\"button\\\" class=\\\"a4-add-row-btn\\\">+ Add Row</button></div>";};}',
-      'document.addEventListener("DOMContentLoaded",function(){setTimeout(patch,0);setTimeout(patch,300);});window.addEventListener("load",function(){setTimeout(patch,0);});setTimeout(patch,250);',
+      'function patchLogo(){var rr=window.AETERLINK_A4_RENDERER;if(!rr||rr.__aeterlinkLogoOnlyInterceptV16)return;rr.__aeterlinkLogoOnlyInterceptV16=true;rr.logoSvg=logoSvg;}',
+      'document.addEventListener("DOMContentLoaded",function(){setTimeout(patchLogo,0);setTimeout(patchLogo,300);});window.addEventListener("load",function(){setTimeout(patchLogo,0);});setTimeout(patchLogo,250);',
       '})();',
       '</script>'
     ].join('\n');
@@ -44,7 +42,6 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Project_Context_Preserve').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Photo_Report_Last_Page').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Row_Controls_Restore').getContent(); } catch (err) {}
-    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Print_Pdf_Table_Parity_Final').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
@@ -55,8 +52,6 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Draft_Issue_Edit_UI').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Form_Record_Edit_Buttons_Force').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('Form_Records_Loading_Stabilizer').getContent(); } catch (err) {}
-    // Must be last: it captures Add/Delete/Edit before legacy row handlers can trigger preview refresh or pagination.
-    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Add_Row_Freeze_Final_Guard').getContent(); } catch (err) {}
   }
 
   return content;
