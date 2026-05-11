@@ -4,12 +4,9 @@
  *
  * IMPORTANT:
  * - Old stacked A4 patch modules are intentionally NOT loaded to avoid slow UI and conflicting Add Row handlers.
- * - A4_Runtime_Fast_Final is the single active runtime for:
- *   1) A4 row Add/Delete
- *   2) EQC stable Add Row and paging
- *   3) editable A4 titles/section titles
- *   4) header bounds and A4-safe table overflow
+ * - A4_Runtime_Fast_Final is the single active runtime for base Add/Delete and EQC rendering.
  * - A4_Runtime_Fast_Dedupe_Fix is a small cleanup layer for duplicate buttons and WCR Remarks width.
+ * - A4_Runtime_Fast_Pagination_Fix restores automatic page creation after Add Row without old heavy modules.
  * - Do not load A4_Add_Row_Freeze_Final_Guard or additional Add Row guards.
  */
 
@@ -47,6 +44,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Photo_Report_Last_Page').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Fast_Final').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Fast_Dedupe_Fix').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Fast_Pagination_Fix').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
