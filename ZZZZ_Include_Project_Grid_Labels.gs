@@ -1,12 +1,6 @@
 /**
  * AETERLINK Documentation Module — ZZZZ_Include_Project_Grid_Labels.gs
  * Clean production include chain.
- *
- * IMPORTANT:
- * - Old stacked A4 runtime/hotfix modules are intentionally NOT loaded.
- * - A4_Runtime_Clean_V3 is the active A4 runtime for Add/Delete rendering.
- * - A4_Add_Row_Pagination_Guard is a small height-safe paginator loaded after V3.
- * - Do not load A4_Runtime_Clean_V2, A4_Runtime_Fast_Final, Dedupe, Row_Pagination, or old Add Row guards together.
  */
 
 function include(fileName) {
@@ -43,6 +37,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Photo_Report_Last_Page').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Clean_V3').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Add_Row_Pagination_Guard').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Data_Layout_Final').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
