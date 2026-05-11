@@ -1,72 +1,43 @@
 <!-- AETERLINK Documentation Module — A4_Logo_Display_Fix.html -->
-<!-- Logo-only permanent fix: render the supplied AETERLINK artwork as inline vector. No external file, no img tag, no base64 dependency. -->
+<!-- Logo-only permanent fix: stable CSS background logo. No repeated DOM repaint, no interval, no MutationObserver. -->
 <style id="a4-logo-display-fix-style">
-  .a4-logo-cell{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;}
-  .a4-logo-cell img{display:none!important;visibility:hidden!important;}
-  .a4-logo-vector-final{width:41mm!important;max-width:41mm!important;height:auto!important;max-height:5.3mm!important;display:block!important;}
-  @media print{.a4-logo-cell img{display:none!important;visibility:hidden!important}.a4-logo-vector-final{width:41mm!important;max-width:41mm!important;height:auto!important;max-height:5.3mm!important;display:block!important;}}
+  .a4-logo-cell{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%202048%20253%22%20preserveAspectRatio%3D%22xMidYMid%20meet%22%3E%3Cpath%20fill%3D%22%23007cc6%22%20fill-rule%3D%22evenodd%22%20d%3D%22M222%20162L212%20165L203%20170L192%20181L185%20197L185%20217L192%20233L200%20242L207%20247L220%20252L240%20252L256%20245L267%20234L274%20220L275%20199L270%20185L266%20179L255%20169L242%20163ZM1893%2054L1890%2058L1891%20229L1894%20232L1921%20232L1925%20229L1926%20146L2005%20231L2046%20232L2047%20228L1965%20138L1968%20132L2028%2057L2028%2054L1991%2054L1926%20135L1925%2056L1923%2054ZM1674%2054L1672%2056L1673%20229L1703%20230L1705%20228L1705%20132L1707%20130L1814%20225L1821%20230L1824%20229L1824%2056L1822%2054L1794%2054L1791%2056L1791%20154L1789%20155L1677%2054ZM1571%2054L1568%2058L1568%20228L1572%20232L1599%20232L1603%20229L1603%2057L1601%2054ZM1395%2054L1394%20230L1397%20232L1512%20231L1514%20229L1514%20207L1510%20204L1428%20203L1428%2057L1425%2054ZM1030%2055L1030%20230L1033%20232L1144%20231L1146%20229L1146%20207L1142%20204L1064%20203L1065%20154L1139%20154L1141%20151L1141%20130L1138%20127L1065%20127L1064%2082L1141%2081L1144%2078L1144%2056L1142%2054ZM818%2054L816%2056L816%2078L819%2081L877%2081L879%2083L879%20229L883%20232L912%20231L913%2083L915%2081L973%2081L976%2079L976%2055ZM650%2054L648%2056L648%20230L651%20232L760%20232L764%20230L764%20207L760%20204L682%20203L682%20156L684%20154L757%20154L759%20151L759%20130L756%20127L683%20127L682%2082L759%2081L762%2079L762%2056L760%2054ZM1210%2050L1207%2053L1207%20233L1211%20235L1234%20235L1237%20233L1238%20167L1240%20165L1258%20165L1262%20168L1308%20234L1342%20235L1342%20232L1293%20162L1294%20159L1300%20157L1311%20150L1323%20138L1330%20125L1332%20117L1332%2098L1330%2089L1323%2075L1309%2061L1289%2052L1277%2050ZM1238%2082L1240%2080L1280%2080L1289%2083L1300%2093L1304%20103L1304%20112L1300%20122L1291%20131L1282%20135L1239%20135ZM501%2042L472%2098L408%20229L410%20231L444%20230L448%20225L462%20190L466%20187L541%20187L545%20190L561%20227L564%20230L599%20231L599%20225L521%2073L508%2045L505%2042ZM502%20107L505%20110L506%20114L531%20158L530%20161L475%20160L499%20110ZM165%204L153%200L137%200L125%204L110%2017L106%2024L103%2034L102%2056L98%2077L90%2099L79%20119L70%20131L50%20151L33%20163L15%20173L5%20185L0%20199L0%20213L3%20223L7%20230L19%20242L33%20248L52%20248L63%20244L76%20233L82%20223L85%20214L86%20189L91%20166L98%20148L105%20135L117%20118L132%20102L158%2083L173%2075L182%2064L187%2052L187%2033L184%2024L179%2016Z%22%2F%3E%3C%2Fsvg%3E')!important;
+    background-repeat:no-repeat!important;
+    background-position:center center!important;
+    background-size:41mm auto!important;
+  }
+  .a4-logo-cell > *{opacity:0!important;visibility:hidden!important;pointer-events:none!important;}
+  .a4-logo-cell img,.a4-logo-img,.a4-official-logo-img,.a4-logo-vector-final,.a4-logo-svg-final{display:none!important;visibility:hidden!important;}
+  @media print{
+    .a4-logo-cell{background-repeat:no-repeat!important;background-position:center center!important;background-size:41mm auto!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+    .a4-logo-cell > *{opacity:0!important;visibility:hidden!important;pointer-events:none!important;}
+  }
 </style>
 <script id="a4-logo-display-fix-script">
 (function(){
-  if(window.__AETERLINK_A4_LOGO_DISPLAY_FIX_V4__) return;
-  window.__AETERLINK_A4_LOGO_DISPLAY_FIX_V4__ = true;
+  if(window.__AETERLINK_A4_LOGO_DISPLAY_FIX_V5__) return;
+  window.__AETERLINK_A4_LOGO_DISPLAY_FIX_V5__ = true;
 
-  function officialLogoHtml(){
-    return '<svg class="a4-logo-vector-final" viewBox="0 0 2048 253" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="AETERLINK Logo">'
-      + '<path fill="#007cc6" fill-rule="evenodd" d="M222 162L212 165L203 170L192 181L185 197L185 217L192 233L200 242L207 247L220 252L240 252L256 245L267 234L274 220L275 199L270 185L266 179L255 169L242 163ZM1893 54L1890 58L1891 229L1894 232L1921 232L1925 229L1926 146L2005 231L2046 232L2047 228L1965 138L1968 132L2028 57L2028 54L1991 54L1926 135L1925 56L1923 54ZM1674 54L1672 56L1673 229L1703 230L1705 228L1705 132L1707 130L1814 225L1821 230L1824 229L1824 56L1822 54L1794 54L1791 56L1791 154L1789 155L1677 54ZM1571 54L1568 58L1568 228L1572 232L1599 232L1603 229L1603 57L1601 54ZM1395 54L1394 230L1397 232L1512 231L1514 229L1514 207L1510 204L1428 203L1428 57L1425 54ZM1030 55L1030 230L1033 232L1144 231L1146 229L1146 207L1142 204L1064 203L1065 154L1139 154L1141 151L1141 130L1138 127L1065 127L1064 82L1141 81L1144 78L1144 56L1142 54ZM818 54L816 56L816 78L819 81L877 81L879 83L879 229L883 232L912 231L913 83L915 81L973 81L976 79L976 55ZM650 54L648 56L648 230L651 232L760 232L764 230L764 207L760 204L682 203L682 156L684 154L757 154L759 151L759 130L756 127L683 127L682 82L759 81L762 79L762 56L760 54ZM1210 50L1207 53L1207 233L1211 235L1234 235L1237 233L1238 167L1240 165L1258 165L1262 168L1308 234L1342 235L1342 232L1293 162L1294 159L1300 157L1311 150L1323 138L1330 125L1332 117L1332 98L1330 89L1323 75L1309 61L1289 52L1277 50ZM1238 82L1240 80L1280 80L1289 83L1300 93L1304 103L1304 112L1300 122L1291 131L1282 135L1239 135ZM501 42L472 98L408 229L410 231L444 230L448 225L462 190L466 187L541 187L545 190L561 227L564 230L599 231L599 225L521 73L508 45L505 42ZM502 107L505 110L506 114L531 158L530 161L475 160L499 110ZM165 4L153 0L137 0L125 4L110 17L106 24L103 34L102 56L98 77L90 99L79 119L70 131L50 151L33 163L15 173L5 185L0 199L0 213L3 223L7 230L19 242L33 248L52 248L63 244L76 233L82 223L85 214L86 189L91 166L98 148L105 135L117 118L132 102L158 83L173 75L182 64L187 52L187 33L184 24L179 16Z"/>'
-      + '</svg>';
-  }
-
-  function isLogoCell(node){return !!(node && node.classList && node.classList.contains('a4-logo-cell'));}
-  function applyLogo(root){
-    root = root || document;
-    var cells = [];
-    if(isLogoCell(root)) cells.push(root);
-    if(root.querySelectorAll) root.querySelectorAll('.a4-logo-cell').forEach(function(cell){cells.push(cell);});
-    cells.forEach(function(cell){
-      if(cell.getAttribute('data-aeterlink-logo-fixed') === 'official-vector-v4' && cell.querySelector('.a4-logo-vector-final')) return;
-      cell.innerHTML = officialLogoHtml();
-      cell.setAttribute('data-aeterlink-logo-fixed','official-vector-v4');
-    });
-  }
-
+  function logoAnchor(){ return '<span class="a4-logo-anchor" aria-hidden="true"></span>'; }
   function patchRenderer(){
     if(window.AETERLINK_A4_RENDERER){
-      window.AETERLINK_A4_RENDERER.logoSvg = officialLogoHtml;
-      window.AETERLINK_A4_RENDERER.__aeterlinkLogoDisplayFixed = 'official-vector-v4';
+      window.AETERLINK_A4_RENDERER.logoSvg = logoAnchor;
+      window.AETERLINK_A4_RENDERER.__aeterlinkLogoDisplayFixed = 'css-background-v5';
+    }
+    if(window.AETERLINK_PRINT_LOGO_EQC_FINAL && typeof window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo === 'function'){
+      window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo = function(){ patchRenderer(); };
+      window.AETERLINK_PRINT_LOGO_EQC_FINAL.__logoDisplayFixV5 = true;
     }
   }
-
-  function patchPrintObject(){
-    if(window.AETERLINK_PRINT_LOGO_EQC_FINAL && typeof window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo === 'function' && !window.AETERLINK_PRINT_LOGO_EQC_FINAL.__logoDisplayFixV4){
-      window.AETERLINK_PRINT_LOGO_EQC_FINAL.patchLogo = function(){patchRenderer();applyLogo(document);};
-      window.AETERLINK_PRINT_LOGO_EQC_FINAL.__logoDisplayFixV4 = true;
-    }
-  }
-
-  function boot(){patchRenderer();patchPrintObject();applyLogo(document);}
-
-  var obs = null;
-  function observe(){
-    if(obs || !document.body) return;
-    obs = new MutationObserver(function(muts){
-      var need = false;
-      muts.forEach(function(m){
-        if(isLogoCell(m.target)) need = true;
-        Array.prototype.slice.call(m.addedNodes || []).forEach(function(n){if(isLogoCell(n) || (n.querySelector && n.querySelector('.a4-logo-cell'))) need = true;});
-      });
-      if(need) setTimeout(boot,0);
-    });
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){boot();observe();},0);setTimeout(boot,700);setTimeout(boot,1800);});
-  window.addEventListener('load',function(){setTimeout(function(){boot();observe();},200);setTimeout(boot,1200);});
-  document.addEventListener('click',function(e){if(e.target && e.target.closest && e.target.closest('#prodDocType,#fTemplate,.a4-clean-add-row,.a4-clean-delete-row,.mod-btn,.a4-print-btn')) setTimeout(boot,250);},true);
-  setTimeout(function(){boot();observe();},600);
-  setTimeout(boot,2200);
-  setInterval(boot,1200);
-
-  window.AETERLINK_A4_LOGO_DISPLAY_FIX = {apply:boot, html:officialLogoHtml};
+  function boot(){ patchRenderer(); }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,700);});
+  window.addEventListener('load',function(){setTimeout(boot,200);});
+  setTimeout(boot,600);
+  window.AETERLINK_A4_LOGO_DISPLAY_FIX = {apply:boot};
 })();
 </script>
