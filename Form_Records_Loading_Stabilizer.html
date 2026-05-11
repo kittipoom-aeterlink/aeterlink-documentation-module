@@ -1,0 +1,62 @@
+<!-- AETERLINK Documentation Module — Form_Records_Loading_Stabilizer.html -->
+<!-- Prevent Form Records / Document Register table flicker caused by repeated refresh calls. -->
+<script id="form-records-loading-stabilizer-script">
+(function(){
+  if(window.__AETERLINK_FORM_RECORDS_LOADING_STABILIZER__) return;
+  window.__AETERLINK_FORM_RECORDS_LOADING_STABILIZER__ = true;
+
+  function isTarget(el){ return el && (el.id === 'recordsTable' || el.id === 'registerTable'); }
+  function isLoadingHtml(v){ return /Loading\s+(Form Records|Document Register)/i.test(String(v || '')); }
+  function hasStableContent(el){ return !!(el && (el.querySelector('table') || el.querySelector('.mod-table-wrap'))); }
+  function restoreActionButtons(){
+    try { if(window.AETERLINK_FORCE_RECORD_EDIT && window.AETERLINK_FORCE_RECORD_EDIT.run) window.AETERLINK_FORCE_RECORD_EDIT.run(); } catch(err) {}
+  }
+
+  try {
+    var proto = Element.prototype;
+    var desc = Object.getOwnPropertyDescriptor(proto, 'innerHTML');
+    if(desc && desc.set && desc.get && !desc.set.__aeterlinkStabilized){
+      var originalSet = desc.set;
+      var originalGet = desc.get;
+      var stabilizedSet = function(value){
+        if(isTarget(this) && isLoadingHtml(value) && hasStableContent(this)){
+          this.setAttribute('data-aeterlink-refreshing', 'true');
+          return;
+        }
+        originalSet.call(this, value);
+        if(isTarget(this)) setTimeout(restoreActionButtons, 80);
+      };
+      stabilizedSet.__aeterlinkStabilized = true;
+      Object.defineProperty(proto, 'innerHTML', {
+        configurable: true,
+        enumerable: desc.enumerable,
+        get: function(){ return originalGet.call(this); },
+        set: stabilizedSet
+      });
+    }
+  } catch(err) {
+    // Ignore when browser sandbox prevents descriptor wrapping. The observer below still repairs action buttons.
+  }
+
+  function patchRegisterRefresh(){
+    if(!window.AETERLINK_REGISTER_V2 || !window.AETERLINK_REGISTER_V2.refresh || window.AETERLINK_REGISTER_V2.__stableRefreshPatch) return;
+    var old = window.AETERLINK_REGISTER_V2.refresh;
+    var last = 0;
+    window.AETERLINK_REGISTER_V2.refresh = function(force){
+      var now = Date.now();
+      if(!force && now - last < 1600) return;
+      last = now;
+      var ret = old.apply(this, arguments);
+      setTimeout(restoreActionButtons, 400);
+      setTimeout(restoreActionButtons, 1200);
+      return ret;
+    };
+    window.AETERLINK_REGISTER_V2.__stableRefreshPatch = true;
+  }
+
+  function boot(){ patchRegisterRefresh(); restoreActionButtons(); }
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 300); setTimeout(boot, 1200); setTimeout(boot, 2500); });
+  var timer = setInterval(boot, 1000);
+  setTimeout(function(){ clearInterval(timer); boot(); }, 20000);
+})();
+</script>
