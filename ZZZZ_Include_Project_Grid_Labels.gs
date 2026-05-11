@@ -1,13 +1,11 @@
 /**
  * AETERLINK Documentation Module — ZZZZ_Include_Project_Grid_Labels.gs
- * Fast production include chain.
+ * Clean production include chain.
  *
  * IMPORTANT:
- * - Old stacked A4 patch modules are intentionally NOT loaded to avoid slow UI and conflicting Add Row handlers.
- * - A4_Runtime_Fast_Final is the single active runtime for base Add/Delete and EQC rendering.
- * - A4_Runtime_Fast_Dedupe_Fix is a small cleanup layer for duplicate buttons and WCR Remarks width.
- * - A4_Runtime_Fast_Pagination_Fix restores automatic page creation after Add Row without old heavy modules.
- * - Do not load A4_Add_Row_Freeze_Final_Guard or additional Add Row guards.
+ * - Old stacked A4 runtime/hotfix modules are intentionally NOT loaded.
+ * - A4_Runtime_Clean_V2 is the only active A4 runtime for Add/Delete/Pagination.
+ * - Do not load A4_Runtime_Fast_Final, Dedupe, Pagination, Row_Pagination, or Add Row guards together.
  */
 
 function include(fileName) {
@@ -16,7 +14,7 @@ function include(fileName) {
 
   if (fileName === 'A4_Overrides_Final') {
     return [
-      '<!-- A4_Overrides_Final intercepted by fast production include -->',
+      '<!-- A4_Overrides_Final intercepted by clean production include -->',
       '<style id="a4-overrides-final-safe-inline-style">',
       '.a4-logo-img{width:41mm!important;max-width:41mm!important;height:auto!important;max-height:14mm!important;display:block!important;object-fit:contain!important}',
       '.a4-page .a4-section-title,.a4-print-area .a4-section-title{background:#113e63!important;background-color:#113e63!important;background-image:linear-gradient(#113e63,#113e63)!important;color:#fff!important;border:1px solid #113e63!important}',
@@ -27,9 +25,9 @@ function include(fileName) {
       '</style>',
       '<script id="a4-overrides-final-safe-inline-script">',
       '(function(){',
-      'if(window.__AETERLINK_A4_OVERRIDES_FINAL_FAST_SAFE_V1__)return;window.__AETERLINK_A4_OVERRIDES_FINAL_FAST_SAFE_V1__=true;',
+      'if(window.__AETERLINK_A4_OVERRIDES_FINAL_CLEAN_SAFE_V1__)return;window.__AETERLINK_A4_OVERRIDES_FINAL_CLEAN_SAFE_V1__=true;',
       'function logoSvg(){return "<svg class=\\\"a4-logo-img\\\" viewBox=\\\"0 0 1200 165\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\" preserveAspectRatio=\\\"xMidYMid meet\\\" aria-label=\\\"AETERLINK Logo\\\"><g fill=\\\"#0b86c6\\\"><path d=\\\"M25 135c52-32 78-68 88-134h42c-3 42-26 66-70 86-21 10-34 25-45 54-9 20-34 18-15-6z\\\"/><circle cx=\\\"190\\\" cy=\\\"123\\\" r=\\\"38\\\"/><text x=\\\"285\\\" y=\\\"122\\\" font-family=\\\"Arial,Helvetica,sans-serif\\\" font-weight=\\\"900\\\" font-size=\\\"112\\\" letter-spacing=\\\"18\\\">AETERLINK</text></g></svg>";}',
-      'function patchLogo(){var rr=window.AETERLINK_A4_RENDERER;if(!rr||rr.__aeterlinkLogoFastInterceptV1)return;rr.__aeterlinkLogoFastInterceptV1=true;rr.logoSvg=logoSvg;}',
+      'function patchLogo(){var rr=window.AETERLINK_A4_RENDERER;if(!rr||rr.__aeterlinkLogoCleanInterceptV1)return;rr.__aeterlinkLogoCleanInterceptV1=true;rr.logoSvg=logoSvg;}',
       'document.addEventListener("DOMContentLoaded",function(){setTimeout(patchLogo,0);setTimeout(patchLogo,300);});window.addEventListener("load",function(){setTimeout(patchLogo,0);});setTimeout(patchLogo,250);',
       '})();',
       '</script>'
@@ -42,9 +40,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Project_Grid_Labels').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Project_Context_Preserve').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Photo_Report_Last_Page').getContent(); } catch (err) {}
-    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Fast_Final').getContent(); } catch (err) {}
-    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Fast_Dedupe_Fix').getContent(); } catch (err) {}
-    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Fast_Pagination_Fix').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Runtime_Clean_V2').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
