@@ -1,0 +1,122 @@
+<!-- AETERLINK Documentation Module — A4_EQC_Data_Layout_Final.html -->
+<!-- Final EQC patch: full 35-row equipment list, no Remarks column, readable column widths. -->
+<style id="a4-eqc-data-layout-final-style">
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(1),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(1){width:4%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(2),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(2){width:18%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(3),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(3){width:7%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(4),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(4){width:17%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(5),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(5){width:7%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(6),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(6){width:10%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(7),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(7){width:5%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(8),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(8){width:13%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(9),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(9){width:13%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(10),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(10){width:6%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(11),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(11),
+  #a4Preview table.a4-equipment-checklist-table th:nth-child(11),#a4Preview table.a4-equipment-checklist-table td:nth-child(11),
+  #a4CheckOutput table.a4-equipment-checklist-table th:nth-child(11),#a4CheckOutput table.a4-equipment-checklist-table td:nth-child(11){display:none!important;visibility:hidden!important;width:0!important;max-width:0!important;padding:0!important;border:0!important;}
+  #a4Preview table.a4-equipment-checklist-table th,#a4CheckOutput table.a4-equipment-checklist-table th{font-size:5.15pt!important;line-height:1.06!important;}
+  #a4Preview table.a4-equipment-checklist-table td,#a4CheckOutput table.a4-equipment-checklist-table td{font-size:5.55pt!important;line-height:1.08!important;}
+  #a4Preview table.a4-equipment-checklist-table td:nth-child(2),#a4Preview table.a4-equipment-checklist-table td:nth-child(4),#a4Preview table.a4-equipment-checklist-table td:nth-child(6),
+  #a4CheckOutput table.a4-equipment-checklist-table td:nth-child(2),#a4CheckOutput table.a4-equipment-checklist-table td:nth-child(4),#a4CheckOutput table.a4-equipment-checklist-table td:nth-child(6){text-align:left!important;}
+</style>
+<script id="a4-eqc-data-layout-final-script">
+(function(){
+  if(window.__AETERLINK_EQC_DATA_LAYOUT_FINAL_V1__) return;
+  window.__AETERLINK_EQC_DATA_LAYOUT_FINAL_V1__ = true;
+
+  var EQC_ROWS = [
+    ['1','Energy Meter','Acrel','ADL400','10','MDB Room','+1','OK','OK','OK'],
+    ['2','Energy Meter','Acrel','ADL400','6','EE Room','+1','OK','OK','OK'],
+    ['3','Split core current transformer','YHDC','SCT045B\n800A/5A','6','MDB Room','+1','OK','OK','OK'],
+    ['4','Split core current transformer','YHDC','SCT024TS 150A/5A','12','MDB Room','+1','OK','OK','OK'],
+    ['5','Split core current transformer','YHDC','SCT016S 50A/1A','12','MDB Room','+1','OK','OK','OK'],
+    ['6','Split core current transformer','YHDC','SCT016S 50A/1A','18','EE Room','+1','OK','OK','OK'],
+    ['7','Pulse Sensor','Efento','SKU: 5906660327721','4','MDB Room','+1','','',''],
+    ['8','Pulse Sensor','Efento','SKU: 5906660327721','2','EE Room','+1','','',''],
+    ['9','Flow Meter','EMS','US S','1','Chiller Room','+1','OK','OK','OK'],
+    ['10','Temperature sensor','Efento','EAN: 5905309601710','3','Chiller Room','+1','OK','OK','OK'],
+    ['11','Temperature & Humidity sensor','Efento','EAN: 5905309601338','18','Sale Area','+1','OK','OK','OK'],
+    ['12','Temperature & Humidity sensor','Efento','EAN: 5905309601338','4','Mall Area','+1','OK','OK','OK'],
+    ['13','Temperature & Humidity sensor','Efento','EAN: 5905309601314','1','Outdoor','+1','OK','OK','OK'],
+    ['14','Efento Gateway','Efento','EAN: 5906660327066','1','MDB Room','+1','OK','OK','OK'],
+    ['15','Efento Gateway','Efento','EAN: 5906660327066','1','Chiller Room','+1','OK','OK','OK'],
+    ['16','Efento Gateway','Efento','EAN: 5906660327066','1','EE Room','+1','OK','OK','OK'],
+    ['17','Efento Gateway','Efento','EAN: 5906660327066','7','Sale area','+1','OK','OK','OK'],
+    ['18','Efento Gateway','Efento','EAN: 5906660327066','4','Mall Area','+1','OK','OK','OK'],
+    ['19','Router','TP-link','MR200','1','MDB Room','+1','OK','OK','OK'],
+    ['20','Router','TP-link','MR200','1','Chiller Room','+1','OK','OK','OK'],
+    ['21','Router','TP-link','MR200','1','EE Room','+1','OK','OK','OK'],
+    ['22','Router','TP-link','MR200','1','Sale area','+1','OK','OK','OK'],
+    ['23','Router','TP-link','MR200','1','Male Area','+1','OK','OK','OK'],
+    ['24','Router','TP-link','TL-R605','1','Tech room','+1','OK','OK','OK'],
+    ['25','Pressure Transmitter','Huba Control','Type 528','2','Chiller Room','+1','OK','OK','OK'],
+    ['26','Energy Meter','Schneider Electric','Easy Logic PM2200','8','MDB Room','+1','OK','OK','OK'],
+    ['27','Split core current transformer','Dako CT','DP-23 250/5','24','MDB Room','+1','OK','OK','N/A'],
+    ['28','Flow Meter','Ketwells','KWF 2000B Series','1','Chiller Room','+1','OK','OK','OK'],
+    ['29','Temperature sensors','Siemens','QFA2890/WI','4','Mall Area','+1','OK','OK','OK'],
+    ['30','Gateway Siemens','Siemens','OCT200 KNBA','1','Sales Area','+1','OK','OK','OK'],
+    ['31','Digital Direct controler (DDC)','Honeywell','PEC8445-PB1-SO','1','HVAC Panel','+1','OK','OK','OK'],
+    ['32','Controller','Niagara','Jace 9000','2','Chiller Rm','+1','OK','OK','OK'],
+    ['33','Controller','Aeterlink','AirPlug Sumit','1','Sales Area','+1','OK','OK','OK'],
+    ['34','Receiver','Aeterlink','AirPlug Power TX','18','Sales Area','+1','OK','OK','OK'],
+    ['35','Temperature sensor','Aeterlink','AirPlug Sense-T','36','Sales Area','+1','OK','OK','OK']
+  ];
+  var KEYS = ['No','ItemDescription','Brand','Model','InstalledQuantity','Localisation','Floor','InstallationPosition','InstallationCondition','ConfirmationPower'];
+  var HEADERS = ['No.','Item description','brand','Product name','Installed Quantity','Localisation','Floor','Installation Position<br>(matches as-built drawings?)','Installation Condition<br>(no risk of falling or detachment?)','Confirmation of power-on<br>(operate after power-on?)'];
+  var WIDTHS = ['4%','18%','7%','17%','7%','10%','5%','13%','13%','6%','0%'];
+
+  function byId(id){return document.getElementById(id);}
+  function isEqcSelected(){var c=(byId('fTemplate')&&byId('fTemplate').value)||(byId('prodDocType')&&byId('prodDocType').value)||'';return /EQC|EQCH|EQUIP/i.test(c);}
+  function rows(){return EQC_ROWS.map(function(a){var o={};KEYS.forEach(function(k,i){o[k]=a[i]||'';});o.Remarks='';return o;});}
+  function patchTemplate(){
+    window.AETERLINK_TEMPLATES = window.AETERLINK_TEMPLATES || {};
+    var tpl = window.AETERLINK_TEMPLATES.EQUIPMENT_CHECKLIST;
+    if(!tpl || tpl.__eqcDataLayoutFinalPatched) return false;
+    tpl.__eqcDataLayoutFinalPatched = true;
+    tpl.columns = KEYS.map(function(k,i){return {key:k,label:HEADERS[i].replace(/<br>/g,' '),width:WIDTHS[i]};});
+    tpl.sampleData = function(){return {ProjectCode:'TEST-PJ',ProjectName:'Modular A4 Layout Check',Client:'Sample Client',MainContractor:'AETERLINK',DocumentNo:'',RevisionNo:'R00',Status:'Draft',ContractNo:'-',PurchaseOrderNo:'-',WorkType:'Equipment Installation / Inspection / Verification',CompletionDate:'',ReferenceDocuments:'PJ-EQC-001',Remarks:'',ChecklistRows:rows()};};
+    return true;
+  }
+  function forceSampleRowsIfNeeded(){
+    if(!isEqcSelected()) return;
+    var f = byId('fRows');
+    if(!f) return;
+    var arr=[];
+    try{arr=JSON.parse(f.value||'[]');}catch(e){arr=[];}
+    if(!Array.isArray(arr) || arr.length < 35 || arr[0] && !('ItemDescription' in arr[0])){
+      f.value = JSON.stringify(rows(),null,2);
+    }
+  }
+  function normalizeTable(table){
+    if(!table) return;
+    var cols = table.querySelectorAll('colgroup col');
+    if(cols.length){WIDTHS.forEach(function(w,i){if(cols[i])cols[i].style.width=w;});}
+    var ths = table.querySelectorAll('thead th');
+    HEADERS.forEach(function(h,i){if(ths[i])ths[i].innerHTML=h;});
+    table.querySelectorAll('thead th:nth-child(11),tbody td:nth-child(11)').forEach(function(cell){cell.style.display='none';cell.style.visibility='hidden';cell.style.width='0';cell.style.maxWidth='0';cell.style.padding='0';cell.style.border='0';});
+  }
+  function normalizeAll(){
+    rootTables().forEach(normalizeTable);
+    if(window.AETERLINK_A4_ADD_ROW_PAGINATION_GUARD && AETERLINK_A4_ADD_ROW_PAGINATION_GUARD.schedule) AETERLINK_A4_ADD_ROW_PAGINATION_GUARD.schedule(260);
+  }
+  function rootTables(){return Array.prototype.slice.call(document.querySelectorAll('#a4Preview table.a4-equipment-checklist-table,#a4CheckOutput table.a4-equipment-checklist-table'));}
+  function patchPreview(){
+    if(typeof window.loadSampleForTemplate==='function' && !window.loadSampleForTemplate.__eqcDataLayoutFinal){
+      var oldLoad=window.loadSampleForTemplate;
+      window.loadSampleForTemplate=function(){patchTemplate();var ret=oldLoad.apply(this,arguments);forceSampleRowsIfNeeded();setTimeout(normalizeAll,260);return ret;};
+      window.loadSampleForTemplate.__eqcDataLayoutFinal=true;
+    }
+    if(typeof window.previewCurrentForm==='function' && !window.previewCurrentForm.__eqcDataLayoutFinal){
+      var oldPreview=window.previewCurrentForm;
+      window.previewCurrentForm=function(){patchTemplate();forceSampleRowsIfNeeded();var ret=oldPreview.apply(this,arguments);setTimeout(normalizeAll,320);return ret;};
+      window.previewCurrentForm.__eqcDataLayoutFinal=true;
+    }
+  }
+  function boot(){patchTemplate();patchPreview();forceSampleRowsIfNeeded();setTimeout(normalizeAll,500);}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,1200);});
+  window.addEventListener('load',function(){setTimeout(boot,300);});
+  document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('.a4-clean-add-row,.a4-clean-delete-row'))setTimeout(normalizeAll,480);},true);
+  setTimeout(boot,900);setTimeout(boot,2200);
+  window.AETERLINK_EQC_DATA_LAYOUT_FINAL={rows:rows,apply:boot,normalize:normalizeAll};
+})();
+</script>
