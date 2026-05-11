@@ -10,6 +10,7 @@
  * - Full document type dropdown is restored by A4_Document_List_All_Restore.
  * - Equipment Checklist final columns and single-code cleanup are handled by A4_Equipment_Checklist_Final.
  * - Equipment Checklist render path is locked by A4_Equipment_Checklist_Render_Lock to prevent generic renderer fallback.
+ * - Stable EQC-only Add Row is handled by A4_EQC_Add_Row_Stable_Final.
  * - All A4 documents get WCR-style header/logo and Add Row bar by A4_All_Documents_Add_Row_Logo_Final.
  * - A4 header right boundary is fixed by A4_Header_Bounds_Final.
  * - Final UX corrections are loaded last by A4_Final_UX_Corrections.
@@ -53,6 +54,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Delete_Row_Draft_Fix').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Equipment_Checklist_Final').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Equipment_Checklist_Render_Lock').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Add_Row_Stable_Final').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_All_Documents_Add_Row_Logo_Final').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Header_Bounds_Final').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Final_UX_Corrections').getContent(); } catch (err) {}
@@ -69,6 +71,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Document_List_All_Restore').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Equipment_Checklist_Final').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Equipment_Checklist_Render_Lock').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Add_Row_Stable_Final').getContent(); } catch (err) {}
   }
 
   return content;
