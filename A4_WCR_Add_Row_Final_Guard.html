@@ -1,0 +1,145 @@
+<!-- AETERLINK Documentation Module — A4_WCR_Add_Row_Final_Guard.html -->
+<!-- WCR only: final guard to keep + Add Row visible after any A4 preview/pagination re-render. -->
+<style id="a4-wcr-add-row-final-guard-style">
+  #a4Preview .a4-wcr-add-row-final-toolbar,
+  #a4CheckOutput .a4-wcr-add-row-final-toolbar{
+    position:sticky!important;
+    top:8px!important;
+    z-index:5000!important;
+    display:flex!important;
+    justify-content:flex-end!important;
+    align-items:center!important;
+    width:210mm!important;
+    max-width:calc(100% - 16px)!important;
+    margin:0 auto 6px auto!important;
+    padding:0!important;
+    pointer-events:none!important;
+  }
+  #a4Preview .a4-wcr-add-row-final-btn,
+  #a4CheckOutput .a4-wcr-add-row-final-btn{
+    display:inline-flex!important;
+    visibility:visible!important;
+    align-items:center!important;
+    justify-content:center!important;
+    min-width:24mm!important;
+    height:7mm!important;
+    padding:0 3mm!important;
+    border:1px solid #78b7d8!important;
+    border-radius:6px!important;
+    background:#fff!important;
+    color:#06345d!important;
+    font:800 8pt Arial,"Noto Sans Thai",sans-serif!important;
+    box-shadow:0 2px 8px rgba(9,36,63,.18)!important;
+    cursor:pointer!important;
+    pointer-events:auto!important;
+  }
+  #a4Preview .a4-wcr-add-row-final-btn:hover,
+  #a4CheckOutput .a4-wcr-add-row-final-btn:hover{background:#eef8ff!important;border-color:#1486bd!important;}
+  @media print{.a4-wcr-add-row-final-toolbar,.a4-wcr-add-row-final-btn{display:none!important;visibility:hidden!important}}
+</style>
+<script id="a4-wcr-add-row-final-guard-script">
+(function(){
+  if(window.__AETERLINK_WCR_ADD_ROW_FINAL_GUARD_V1__) return;
+  window.__AETERLINK_WCR_ADD_ROW_FINAL_GUARD_V1__ = true;
+
+  function byId(id){return document.getElementById(id);}
+  function val(id){var e=byId(id);return e?String(e.value||'').trim():'';}
+  function setVal(id,v){var e=byId(id);if(e)e.value=v==null?'':String(v);}
+  function clean(v){return String(v==null?'':v).trim();}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function docCode(){return val('prodDocType')||val('fTemplate')||'';}
+  function root(){return byId('a4Preview')||byId('a4CheckOutput')||document.body;}
+  function isWcr(){
+    var r=root();
+    return /PJ-WCR-001|WCR|WORK COMPLETION|WORK-COMPLETE/i.test(docCode()) || !!(r&&r.querySelector&&r.querySelector('table.a4-work-completion-table,.a4-page table.a4-scope-table'));
+  }
+  function tables(){
+    var r=root();
+    if(!r||!r.querySelectorAll) return [];
+    return Array.prototype.slice.call(r.querySelectorAll('table.a4-work-completion-table,.a4-page table.a4-scope-table')).filter(function(t){
+      var page=t.closest&&t.closest('.a4-page');
+      var txt=String(page?page.textContent:t.textContent||'');
+      return t&&t.tBodies&&t.tBodies[0]&&!t.classList.contains('a4-equipment-checklist-table')&&!/EQUIPMENT CHECKLIST/i.test(txt);
+    });
+  }
+  function parseRows(){try{var a=JSON.parse(val('fRows')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}}
+  function rowText(tr){return clean(tr?tr.textContent:'').replace(/^Add Row$/i,'');}
+  function usefulRows(rows){return (rows||[]).filter(function(r){return clean(r&&(r.Item||r.WorkDescription||r.Description||r.Status||r.Remarks));});}
+  function cell(td){if(!td)return'';var c=td.cloneNode(true);c.querySelectorAll('button,.a4-no-print,.a4-wcr-row-delete-btn,.a4-wcr-add-row-final-btn').forEach(function(n){n.remove();});return clean(c.textContent);}
+  function collectDomRows(){
+    var out=[];
+    tables().forEach(function(t){
+      Array.prototype.slice.call(t.tBodies[0].rows).forEach(function(tr){
+        var c=tr.cells||[];
+        if(c.length<6||!rowText(tr))return;
+        out.push({Item:cell(c[0]),WorkDescription:cell(c[1]),Qty:cell(c[2]),Unit:cell(c[3]),Status:cell(c[4])||'Pending',Remarks:cell(c[5])});
+      });
+    });
+    return out;
+  }
+  function syncHiddenRows(rows){try{setVal('fRows',JSON.stringify(rows||[],null,2));}catch(e){}}
+  function td(v){return '<td contenteditable="true" spellcheck="false">'+esc(v)+'</td>';}
+  function appendRowToDom(){
+    var list=tables();
+    var t=list[list.length-1];
+    if(!t||!t.tBodies||!t.tBodies[0])return false;
+    t.classList.add('a4-work-completion-table');
+    t.tBodies[0].insertAdjacentHTML('beforeend','<tr>'+td('')+td('')+td('')+td('')+td('Pending')+td('')+'</tr>');
+    return true;
+  }
+  function refreshAfterAdd(){
+    setTimeout(ensure,100);
+    setTimeout(function(){
+      try{if(window.AETERLINK_WCR_ADD_ROW_REMARKS_FIX&&typeof AETERLINK_WCR_ADD_ROW_REMARKS_FIX.apply==='function')AETERLINK_WCR_ADD_ROW_REMARKS_FIX.apply();}catch(e){}
+      ensure();
+    },350);
+  }
+  function addRow(){
+    var rows=usefulRows(collectDomRows());
+    if(!rows.length)rows=usefulRows(parseRows());
+    rows.push({Item:'',WorkDescription:'',Qty:'',Unit:'',Status:'Pending',Remarks:''});
+    syncHiddenRows(rows);
+    if(typeof window.previewCurrentForm==='function'){
+      try{window.previewCurrentForm();}catch(e){appendRowToDom();}
+      setTimeout(function(){
+        var domRows=usefulRows(collectDomRows());
+        if(domRows.length<rows.length)appendRowToDom();
+        refreshAfterAdd();
+      },450);
+    }else{
+      appendRowToDom();
+      refreshAfterAdd();
+    }
+  }
+  function ensure(){
+    if(!isWcr())return;
+    var r=root();
+    if(!r||!r.insertBefore)return;
+    var existing=r.querySelector('.a4-wcr-add-row-final-toolbar');
+    if(existing)return;
+    var toolbar=document.createElement('div');
+    toolbar.className='a4-wcr-add-row-final-toolbar a4-no-print';
+    var btn=document.createElement('button');
+    btn.type='button';
+    btn.className='a4-wcr-add-row-final-btn a4-no-print';
+    btn.textContent='+ Add Row';
+    btn.onclick=function(ev){ev.preventDefault();ev.stopPropagation();addRow();};
+    toolbar.appendChild(btn);
+    var firstPage=r.querySelector&&r.querySelector('.a4-page');
+    if(firstPage&&firstPage.parentNode===r)r.insertBefore(toolbar,firstPage);
+    else r.insertBefore(toolbar,r.firstChild);
+  }
+  function patchPreview(){
+    if(window.previewCurrentForm&&!window.previewCurrentForm.__wcrAddRowFinalGuardV1){
+      var fn=window.previewCurrentForm;
+      window.previewCurrentForm=function(){var ret=fn.apply(this,arguments);setTimeout(ensure,150);setTimeout(ensure,650);setTimeout(ensure,1300);return ret;};
+      window.previewCurrentForm.__wcrAddRowFinalGuardV1=true;
+    }
+  }
+  function boot(){patchPreview();ensure();}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,250);setTimeout(boot,900);setTimeout(boot,2000);});
+  window.addEventListener('load',function(){setTimeout(boot,250);setTimeout(boot,1200);});
+  var tm=setInterval(boot,1000);setTimeout(function(){clearInterval(tm);boot();},30000);
+  window.AETERLINK_WCR_ADD_ROW_FINAL_GUARD={ensure:ensure,addRow:addRow,collectRows:collectDomRows};
+})();
+</script>
