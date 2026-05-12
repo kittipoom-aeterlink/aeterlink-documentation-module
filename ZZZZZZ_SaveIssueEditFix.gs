@@ -3,7 +3,7 @@
  * Targeted fix for Save Draft / Issue / Edit only.
  *
  * Scope:
- * - Keep existing save/issue implementation.
+ * - Keep existing save/issue implementation directly to avoid wrapper recursion / stack overflow.
  * - Fix edit loading when the user clicks Edit from Document Register where the row may only contain
  *   DocumentId / DocumentCode, not FormRecordId.
  * - Do not change A4 rendering, tables, row controls, photo report, layout, or other modules.
@@ -14,9 +14,10 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
   var REGISTER_TABLE = 'DOCUMENT_REGISTER';
 
   function save(payload) {
-    var result = AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload || {});
-    try { markEditable_(result && result.record ? result.record : {}); } catch (err) {}
-    return result;
+    // Important: call the original Draft/Issue API directly.
+    // Do not call apiModularSaveFormRecord* from here, because those global functions are overridden
+    // by several legacy files and can create a recursive call chain in Apps Script.
+    return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload || {});
   }
 
   function getRecord(payload) {
@@ -34,8 +35,6 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
     var candidates = buildDocumentCandidates_(payload, register);
     var row = id ? findRow_(form, fh, 'FormRecordId', id) : -1;
 
-    // Document Register rows often pass DocumentId first, e.g. DR-LOTUS-LTL-PJ-EQC-001.
-    // The real FORM_RECORDS key is normally DocumentNo / DocumentCode, so try all normalized candidates.
     if (row < 0) {
       for (var i = 0; i < candidates.length && row < 0; i++) {
         row = findRow_(form, fh, 'DocumentNo', candidates[i]);
@@ -53,7 +52,6 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
     var record = rowObject_(fh, form.getRange(row, 1, 1, fh.length).getDisplayValues()[0]);
     var data = parseJson_(record.DataJson);
 
-    // Backfill critical data fields for stable edit/issue/save after loading.
     data.FormRecordId = record.FormRecordId || data.FormRecordId || '';
     data.ProjectCode = record.ProjectCode || data.ProjectCode || clean_(register.ProjectCode || payload.ProjectCode || '');
     data.TemplateCode = canonicalCode_(record.TemplateCode || data.TemplateCode || register.TemplateCode || inferTemplateCode_(register, payload));
@@ -61,7 +59,6 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
     data.RevisionNo = normalizeRevision_(record.RevisionNo || record.Revision || data.RevisionNo || register.RevisionNo || register.Revision || 'R00');
     data.Status = record.Status || record.DocumentStatus || data.Status || 'Draft';
 
-    // Keep the row editable even after PDF generation. The UI will open issued records as revision draft.
     try { setRowValues_(form, fh, row, { LockedAfterPdf: 'FALSE' }); } catch (err) {}
     record.LockedAfterPdf = 'FALSE';
 
@@ -155,17 +152,6 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
     return best.row;
   }
 
-  function markEditable_(record) {
-    if (!record || !record.FormRecordId && !record.DocumentNo) return;
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var form = ss && ss.getSheetByName(FORM_TABLE);
-    if (!form) return;
-    var fh = headers_(form);
-    var row = record.FormRecordId ? findRow_(form, fh, 'FormRecordId', record.FormRecordId) : -1;
-    if (row < 0 && record.DocumentNo) row = findRow_(form, fh, 'DocumentNo', record.DocumentNo);
-    if (row > 0) setRowValues_(form, fh, row, { LockedAfterPdf: 'FALSE' });
-  }
-
   function nextRevisionNo_(documentNo) {
     var base = stripRevision_(documentNo);
     if (!base) return 'R01';
@@ -237,7 +223,7 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
   return { save: save, getRecord: getRecord };
 })();
 
-function apiModularSaveFormRecord(payload) { return AETERLINK_SAVE_ISSUE_EDIT_FIX.save(payload); }
-function apiModularSaveFormRecordV2(payload) { return AETERLINK_SAVE_ISSUE_EDIT_FIX.save(payload); }
-function apiModularSaveFormRecordV3(payload) { return AETERLINK_SAVE_ISSUE_EDIT_FIX.save(payload); }
+function apiModularSaveFormRecord(payload) { return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload || {}); }
+function apiModularSaveFormRecordV2(payload) { return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload || {}); }
+function apiModularSaveFormRecordV3(payload) { return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload || {}); }
 function apiGetFormRecordForEditV2(payload) { return AETERLINK_SAVE_ISSUE_EDIT_FIX.getRecord(payload); }
