@@ -1,154 +1,137 @@
 <!-- AETERLINK Documentation Module — A4_Save_Issue_NoStack_Client_Fix.html -->
-<!-- Save/Issue only: use guarded payload collection and a unique server endpoint to avoid maximum call stack recursion. -->
+<!-- Save/Issue only: force guarded no-stack save endpoint and prevent legacy handlers from reintroducing recursive collect/save. -->
 <script id="a4-save-issue-nostack-client-fix-script">
 (function(){
-  if(window.__AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX_V1__) return;
-  window.__AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX_V1__ = true;
+  if(window.__AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX_V2__) return;
+  window.__AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX_V2__ = true;
 
-  var saving = false;
-  var editStateRef = null;
+  var saving=false;
+  var editStateRef=null;
+  var patchTimer=null;
 
   function byId(id){return document.getElementById(id);}
   function val(id){var e=byId(id);return e?String(e.value||'').trim():'';}
   function setVal(id,v){var e=byId(id);if(e)e.value=v==null?'':String(v);}
   function msg(t){var e=byId('prodStatusMsg')||byId('saveStatus');if(e)e.textContent=t;}
   function googleReady(){return typeof google!=='undefined'&&google.script&&google.script.run;}
-  function code(){return val('fTemplate')||val('prodDocType')||'PJ-WCR-001';}
-  function isEqc(){return /PJ-EQC-001|PJ-EQUIP-CHK-001|EQC|EQUIP/i.test(code());}
-  function parseRows(){try{var a=JSON.parse(val('fRows')||'[]');return Array.isArray(a)?a:[];}catch(e){throw new Error('Rows JSON is invalid: '+e.message);}}
+  function docCode(){return val('fTemplate')||val('prodDocType')||'PJ-WCR-001';}
+  function isEqc(){return /PJ-EQC-001|PJ-EQUIP-CHK-001|EQC|EQUIP/i.test(docCode());}
+  function isWcr(){return /PJ-WCR-001|WORK-COMPLETE|WORK COMPLETION|WCR/i.test(docCode()) || !!document.querySelector('table.a4-work-completion-table');}
   function safeClone(obj){return JSON.parse(JSON.stringify(obj||{}));}
+  function clean(v){return String(v==null?'':v).trim();}
+  function googleNow(){return new Date().toISOString();}
+
   function syncHidden(){
     [['prodProjectCode','fProjectCode'],['prodProjectName','fProjectName'],['prodClient','fClient'],['prodMainContractor','fMainContractor'],['prodRevisionNo','fRevisionNo'],['prodStatus','fStatus']].forEach(function(x){var a=byId(x[0]),b=byId(x[1]);if(a&&b)b.value=a.value;});
     var dt=byId('prodDocType'),ft=byId('fTemplate');if(dt&&ft)ft.value=dt.value;
   }
-  function syncRowsOnly(){
-    try{if(window.AETERLINK_EQC_ROW_DELETE_RESTORE&&AETERLINK_EQC_ROW_DELETE_RESTORE.apply)AETERLINK_EQC_ROW_DELETE_RESTORE.apply();}catch(e){}
-    try{if(window.AETERLINK_EQC_DATA_LAYOUT_FINAL&&AETERLINK_EQC_DATA_LAYOUT_FINAL.normalize)AETERLINK_EQC_DATA_LAYOUT_FINAL.normalize();}catch(e){}
-    try{if(window.AETERLINK_A4_ROW_CONTROLS&&AETERLINK_A4_ROW_CONTROLS.syncRows)AETERLINK_A4_ROW_CONTROLS.syncRows();}catch(e){}
+  function parseHiddenRows(){try{var a=JSON.parse(val('fRows')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}}
+  function textFromCell(td){
+    if(!td)return '';
+    var c=td.cloneNode(true);
+    c.querySelectorAll('button,.a4-no-print,.a4-status-print,.a4-wcr-row-delete-btn,.a4-eqc-row-delete-btn').forEach(function(n){n.remove();});
+    c.querySelectorAll('select').forEach(function(s){s.replaceWith(document.createTextNode(s.value||''));});
+    return clean(c.textContent).replace(/^\s*[xX×-]?\s*/,'').trim();
+  }
+  function collectWcrRowsFromDom(){
+    var out=[];
+    document.querySelectorAll('#a4Preview table.a4-work-completion-table,#a4CheckOutput table.a4-work-completion-table').forEach(function(t){
+      if(!t.tBodies||!t.tBodies[0])return;
+      Array.prototype.slice.call(t.tBodies[0].rows).forEach(function(tr){var c=tr.cells;if(c&&c.length>=6)out.push({Item:textFromCell(c[0]),WorkDescription:textFromCell(c[1]),Qty:textFromCell(c[2]),Unit:textFromCell(c[3]),Status:textFromCell(c[4])||'Pending',Remarks:textFromCell(c[5])});});
+    });
+    return out;
+  }
+  function collectEqcRowsFromDom(){
+    var out=[];
+    document.querySelectorAll('#a4Preview table.a4-equipment-checklist-table,#a4CheckOutput table.a4-equipment-checklist-table').forEach(function(t){
+      if(!t.tBodies||!t.tBodies[0])return;
+      Array.prototype.slice.call(t.tBodies[0].rows).forEach(function(tr,i){var c=tr.cells;if(c&&c.length>=10)out.push({No:String(i+1),ItemDescription:textFromCell(c[1]),Brand:textFromCell(c[2]),Model:textFromCell(c[3]),InstalledQuantity:textFromCell(c[4]),Localisation:textFromCell(c[5]),Floor:textFromCell(c[6]),InstallationPosition:textFromCell(c[7]),InstallationCondition:textFromCell(c[8]),ConfirmationPower:textFromCell(c[9]),Remarks:''});});
+    });
+    return out;
+  }
+  function currentRows(){
+    var rows=[];
+    if(isEqc()) rows=collectEqcRowsFromDom();
+    else if(isWcr()) rows=collectWcrRowsFromDom();
+    if(!rows.length) rows=parseHiddenRows();
+    var f=byId('fRows'); if(f) try{f.value=JSON.stringify(rows,null,2);}catch(e){}
+    return rows;
+  }
+  function projectCtx(){
+    var c=window.AETERLINK_PROJECT_CONTEXT&&AETERLINK_PROJECT_CONTEXT.current?AETERLINK_PROJECT_CONTEXT.current():{};
+    return {
+      ProjectCode:clean(c.ProjectCode)||val('fProjectCode')||val('prodProjectCode')||'TEST-PJ',
+      ProjectName:clean(c.ProjectName)||val('fProjectName')||val('prodProjectName')||'',
+      ProjectLocation:clean(c.ProjectLocation)||clean(c.SiteLocation)||val('fProjectLocation')||val('prodProjectLocation')||'',
+      Client:clean(c.Client)||val('fClient')||val('prodClient')||'',
+      MainContractor:clean(c.MainContractor)||val('fMainContractor')||val('prodMainContractor')||''
+    };
   }
   function collectDataNoRecursion(){
     syncHidden();
-    syncRowsOnly();
-    var rows=parseRows();
+    var rows=currentRows();
+    var c=projectCtx();
     var data={
-      ProjectCode:val('fProjectCode')||val('prodProjectCode')||'TEST-PJ',
-      ProjectName:val('fProjectName')||val('prodProjectName')||'',
-      ProjectLocation:val('fProjectLocation')||'',
-      Client:val('fClient')||val('prodClient')||'',
-      MainContractor:val('fMainContractor')||val('prodMainContractor')||'',
-      TemplateCode:code(),
+      ProjectCode:c.ProjectCode,
+      ProjectName:c.ProjectName,
+      ProjectLocation:c.ProjectLocation,
+      Client:c.Client,
+      MainContractor:c.MainContractor,
+      TemplateCode:docCode(),
       DocumentNo:val('fDocumentNo')||val('prodDocumentNo')||'',
       RevisionNo:val('fRevisionNo')||val('prodRevisionNo')||'R00',
       Status:val('fStatus')||val('prodStatus')||'Draft',
-      ReferenceDocuments:isEqc()?'PJ-EQC-001':'',
       Remarks:val('fRemarks')||'',
       PreparedBy:val('fPreparedBy')||'',
       ApprovalStatus:val('fApprovalStatus')||'Draft'
     };
     if(isEqc()){
-      data.TemplateCode='PJ-EQC-001';
-      data.WorkType='Equipment Installation / Inspection / Verification';
-      data.DocumentPurpose='Capture the required information, references, responsibilities, status and records for this document type.';
-      data.ChecklistRows=rows;
-      data.Rows=rows;
+      data.TemplateCode='PJ-EQC-001';data.ReferenceDocuments='PJ-EQC-001';data.WorkType='Equipment Installation / Inspection / Verification';data.ChecklistRows=rows;data.Rows=rows;
     }else{
-      data.ScopeRows=rows;
-      data.Rows=rows;
+      data.TemplateCode=/PJ-WCR-001|WORK/i.test(data.TemplateCode)?'PJ-WCR-001':data.TemplateCode;data.ScopeRows=rows;data.Rows=rows;
     }
     return data;
   }
   function cleanPrintClone(clone){
     if(!clone)return '';
-    clone.querySelectorAll('.a4-no-print,.a4-preview-actions,.a4-row-control-bar,.a4-row-delete-btn,.a4-eqc-row-delete-btn,.prod-inline-editor,.prod-row-delete,.prod-photo-report-toolbar,.row-actions,.photo-actions,.a4-eqc-header-toolbar').forEach(function(n){n.remove();});
+    clone.querySelectorAll('.a4-no-print,.a4-preview-actions,.a4-row-control-bar,.a4-clean-row-bar,.a4-row-delete-btn,.a4-eqc-row-delete-btn,.a4-wcr-row-delete-btn,.prod-inline-editor,.prod-row-delete,.prod-photo-report-toolbar,.row-actions,.photo-actions,.a4-eqc-header-toolbar').forEach(function(n){n.remove();});
     clone.querySelectorAll('[contenteditable]').forEach(function(n){n.removeAttribute('contenteditable');n.removeAttribute('spellcheck');});
     clone.querySelectorAll('select').forEach(function(sel){var td=sel.closest('td');if(td)td.textContent=sel.value||'';});
     return clone.outerHTML;
   }
-  function buildHtml(){
-    var area=byId('a4Preview');
-    var printArea=area&&(area.querySelector('#a4PrintArea')||area.querySelector('.a4-print-area')||area.firstElementChild);
-    return cleanPrintClone(printArea?printArea.cloneNode(true):(area?area.cloneNode(true):null));
-  }
-  function collectCss(){
-    return Array.prototype.slice.call(document.querySelectorAll('style')).map(function(s){return s.textContent||'';}).join('\n')+'\n.a4-no-print,.a4-preview-actions,.a4-row-control-bar,.a4-row-delete-btn,.a4-eqc-row-delete-btn,.prod-inline-editor,.prod-row-delete,.prod-photo-report-toolbar,.row-actions,.photo-actions,.a4-eqc-header-toolbar{display:none!important;visibility:hidden!important}';
-  }
-  function currentEditState(){
-    if(editStateRef)return editStateRef;
-    if(window.AETERLINK_DRAFT_ISSUE_EDIT_UI&&AETERLINK_DRAFT_ISSUE_EDIT_UI.state)editStateRef=AETERLINK_DRAFT_ISSUE_EDIT_UI.state;
-    return editStateRef||{};
-  }
+  function buildHtml(){var area=byId('a4Preview');var printArea=area&&(area.querySelector('#a4PrintArea')||area.querySelector('.a4-print-area')||area.firstElementChild);return cleanPrintClone(printArea?printArea.cloneNode(true):(area?area.cloneNode(true):null));}
+  function collectCss(){return Array.prototype.slice.call(document.querySelectorAll('style')).map(function(s){return s.textContent||'';}).join('\n')+'\n.a4-no-print,.a4-preview-actions,.a4-row-control-bar,.a4-clean-row-bar,.a4-row-delete-btn,.a4-eqc-row-delete-btn,.a4-wcr-row-delete-btn,.prod-inline-editor,.prod-row-delete,.prod-photo-report-toolbar,.row-actions,.photo-actions,.a4-eqc-header-toolbar{display:none!important;visibility:hidden!important}';}
+  function currentEditState(){if(editStateRef)return editStateRef;if(window.AETERLINK_DRAFT_ISSUE_EDIT_UI&&AETERLINK_DRAFT_ISSUE_EDIT_UI.state)editStateRef=window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state;return editStateRef||{};}
   function applySaved(rec,status,res){
-    rec=rec||{};res=res||{};
-    var st=currentEditState();
-    st.formRecordId=rec.FormRecordId||st.formRecordId||'';
-    st.documentNo=rec.DocumentNo||st.documentNo||'';
-    if(rec.DocumentNo){setVal('fDocumentNo',rec.DocumentNo);setVal('prodDocumentNo',rec.DocumentNo);}
-    setVal('fRevisionNo',rec.RevisionNo||rec.Revision||val('fRevisionNo')||'R00');
-    setVal('prodRevisionNo',rec.RevisionNo||rec.Revision||val('prodRevisionNo')||'R00');
-    setVal('fStatus',rec.Status||status||'Draft');
-    setVal('prodStatus',rec.Status||status||'Draft');
-    var box=byId('prodDocNoBox');if(box)box.textContent=rec.DocumentNo||'Not issued';
-    var rid=byId('prodRecordIdBox');if(rid)rid.textContent=st.formRecordId||'Not saved yet';
-    var pill=byId('prodStatusPill');if(pill)pill.textContent=rec.Status||status||'Draft';
+    rec=rec||{};res=res||{};var st=currentEditState();st.formRecordId=rec.FormRecordId||st.formRecordId||'';st.documentNo=rec.DocumentNo||st.documentNo||'';
+    if(rec.DocumentNo){setVal('fDocumentNo',rec.DocumentNo);setVal('prodDocumentNo',rec.DocumentNo);} else if(status!=='Issued'){setVal('fDocumentNo','');setVal('prodDocumentNo','');}
+    setVal('fRevisionNo',rec.RevisionNo||rec.Revision||val('fRevisionNo')||'R00');setVal('prodRevisionNo',rec.RevisionNo||rec.Revision||val('prodRevisionNo')||'R00');setVal('fStatus',rec.Status||status||'Draft');setVal('prodStatus',rec.Status||status||'Draft');
+    var box=byId('prodDocNoBox');if(box)box.textContent=rec.DocumentNo||'Not issued';var rid=byId('prodRecordIdBox');if(rid)rid.textContent=st.formRecordId||'Not saved yet';var pill=byId('prodStatusPill');if(pill)pill.textContent=rec.Status||status||'Draft';
   }
   function saveStatus(status){
     if(saving){msg('Saving is already in progress...');return;}
     if(!googleReady()){msg('Cannot save: google.script.run is not available.');return;}
-    var data,payload,issued;
+    var payload,data,issued;
     try{
-      data=collectDataNoRecursion();
-      status=status||'Draft';
-      issued=String(status).toUpperCase()==='ISSUED';
-      data.Status=status;
-      if(!issued)data.DocumentNo='';
+      data=collectDataNoRecursion();status=status||'Draft';issued=String(status).toUpperCase()==='ISSUED';data.Status=status;if(!issued)data.DocumentNo='';
       var st=currentEditState();
-      payload={
-        FormRecordId:st.formRecordId||data.FormRecordId||'',
-        ProjectCode:data.ProjectCode,
-        TemplateCode:isEqc()?'PJ-EQC-001':data.TemplateCode,
-        DocumentNo:issued?(st.revisionMode?st.sourceDocumentNo:(st.documentNo||data.DocumentNo||'')):'',
-        SourceDocumentNo:st.sourceDocumentNo||'',
-        SourceFormRecordId:st.sourceFormRecordId||'',
-        RevisionNo:data.RevisionNo||'R00',
-        Status:status,
-        DocumentStatus:status,
-        Data:safeClone(data),
-        RevisionReason:val('prodRevisionReason'),
-        SubmittedAt:issued?new Date().toISOString():'',
-        LockedAfterPdf:'FALSE',
-        Html:issued?buildHtml():'',
-        Styles:issued?collectCss():''
-      };
+      payload={FormRecordId:st.formRecordId||data.FormRecordId||'',ProjectCode:data.ProjectCode,TemplateCode:data.TemplateCode,DocumentNo:issued?(st.revisionMode?st.sourceDocumentNo:(st.documentNo||data.DocumentNo||'')):'',SourceDocumentNo:st.sourceDocumentNo||'',SourceFormRecordId:st.sourceFormRecordId||'',RevisionNo:data.RevisionNo||'R00',Status:status,DocumentStatus:status,Data:safeClone(data),RevisionReason:val('prodRevisionReason'),SubmittedAt:issued?googleNow():'',LockedAfterPdf:'FALSE',Html:issued?buildHtml():'',Styles:issued?collectCss():''};
     }catch(e){msg('Save failed: '+e.message);return;}
-    saving=true;
-    msg(issued?'Issuing document and generating document number...':'Saving draft without document number...');
-    google.script.run.withSuccessHandler(function(res){
-      saving=false;
-      var rec=res&&res.record?res.record:{};
-      applySaved(rec,status,res||{});
-      if(status==='Issued')msg('Issued: '+(rec.DocumentNo||'-')+' / '+(rec.RevisionNo||'R00')+(res&&res.fileUrl?' | PDF saved to Drive':''));
-      else msg('Draft saved. FormRecordId: '+((rec&&rec.FormRecordId)||'-'));
-      if(window.refreshData)window.refreshData();
-      if(window.previewCurrentForm)setTimeout(window.previewCurrentForm,180);
-    }).withFailureHandler(function(e){
-      saving=false;
-      msg('Save failed: '+(e&&e.message?e.message:String(e)));
-    }).apiSafeSaveIssueNoStackV1(payload);
+    saving=true;msg(issued?'Issuing document and generating document number...':'Saving draft without document number...');
+    google.script.run.withSuccessHandler(function(res){saving=false;var rec=res&&res.record?res.record:{};applySaved(rec,status,res||{});if(status==='Issued')msg('Issued: '+(rec.DocumentNo||'-')+' / '+(rec.RevisionNo||'R00')+(res&&res.fileUrl?' | PDF saved to Drive':''));else msg('Draft saved. FormRecordId: '+((rec&&rec.FormRecordId)||'-'));if(window.refreshData)window.refreshData();if(window.previewCurrentForm)setTimeout(window.previewCurrentForm,180);}).withFailureHandler(function(e){saving=false;msg('Save failed: '+(e&&e.message?e.message:String(e)));}).apiSafeSaveIssueNoStackV1(payload);
   }
   function patch(){
     window.prodSaveDraft=function(){saveStatus('Draft');};
     window.prodIssueSend=function(){saveStatus('Issued');};
     window.saveCurrentForm=function(){saveStatus(val('prodStatus')||val('fStatus')||'Draft');};
-    if(window.AETERLINK_DRAFT_ISSUE_EDIT_UI){
-      editStateRef=window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state||editStateRef;
-      window.AETERLINK_DRAFT_ISSUE_EDIT_UI.saveDraft=function(){saveStatus('Draft');};
-      window.AETERLINK_DRAFT_ISSUE_EDIT_UI.issue=function(){saveStatus('Issued');};
-    }
+    if(window.AETERLINK_DRAFT_ISSUE_EDIT_UI){editStateRef=window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state||editStateRef;window.AETERLINK_DRAFT_ISSUE_EDIT_UI.saveDraft=function(){saveStatus('Draft');};window.AETERLINK_DRAFT_ISSUE_EDIT_UI.issue=function(){saveStatus('Issued');};}
   }
+  function isSaveIssueButton(btn){var t=clean(btn&&btn.textContent||'');if(!t)return '';if(/Save\s*Draft/i.test(t))return 'Draft';if(/Issue\s*\/\s*Send/i.test(t))return 'Issued';return '';}
+  document.addEventListener('click',function(e){var btn=e.target&&e.target.closest?e.target.closest('button'):null;var status=isSaveIssueButton(btn);if(!status)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();saveStatus(status);return false;},true);
   function boot(){patch();}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,800);setTimeout(boot,2200);});
   window.addEventListener('load',function(){setTimeout(boot,200);setTimeout(boot,1300);});
-  setTimeout(boot,900);setTimeout(boot,2400);
+  setTimeout(boot,900);setTimeout(boot,2400);patchTimer=setInterval(boot,900);setTimeout(function(){clearInterval(patchTimer);boot();},35000);
   window.AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX={saveDraft:function(){saveStatus('Draft');},issue:function(){saveStatus('Issued');},collectData:collectDataNoRecursion};
 })();
 </script>
