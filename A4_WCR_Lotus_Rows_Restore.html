@@ -1,9 +1,36 @@
 <!-- AETERLINK Documentation Module — A4_WCR_Lotus_Rows_Restore.html -->
-<!-- WCR only: restore Lotus Work Completion Report rows when ScopeRows is blank/empty. -->
+<!-- WCR only: restore Lotus Work Completion Report rows and keep Add Row button visible after preview re-render. -->
+<style id="a4-wcr-lotus-rows-restore-style">
+  #a4Preview .a4-wcr-floating-add-row-btn,
+  #a4CheckOutput .a4-wcr-floating-add-row-btn{
+    position:absolute!important;
+    right:12mm!important;
+    top:98mm!important;
+    z-index:980!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:3px!important;
+    min-width:20mm!important;
+    height:5.5mm!important;
+    padding:0 2.5mm!important;
+    border:1px solid #bcd5e6!important;
+    border-radius:4px!important;
+    background:#ffffff!important;
+    color:#06345d!important;
+    font:700 7pt Arial,"Noto Sans Thai",sans-serif!important;
+    box-shadow:0 1px 4px rgba(9,36,63,.12)!important;
+    cursor:pointer!important;
+    pointer-events:auto!important;
+  }
+  #a4Preview .a4-wcr-floating-add-row-btn:hover,
+  #a4CheckOutput .a4-wcr-floating-add-row-btn:hover{background:#eef8ff!important;border-color:#73b6db!important;}
+  @media print{.a4-wcr-floating-add-row-btn{display:none!important;visibility:hidden!important}}
+</style>
 <script id="a4-wcr-lotus-rows-restore-script">
 (function(){
-  if(window.__AETERLINK_WCR_LOTUS_ROWS_RESTORE_V1__) return;
-  window.__AETERLINK_WCR_LOTUS_ROWS_RESTORE_V1__ = true;
+  if(window.__AETERLINK_WCR_LOTUS_ROWS_RESTORE_V2__) return;
+  window.__AETERLINK_WCR_LOTUS_ROWS_RESTORE_V2__ = true;
 
   var running = false;
   var previewRequested = false;
@@ -71,10 +98,24 @@
   function parseRows(){ try{ var a = JSON.parse(val('fRows') || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
   function usefulRows(rows){ return (rows || []).filter(function(r){ return clean(r && (r.WorkDescription || r.Description || r.Item)); }); }
   function rowText(tr){ return clean(tr ? tr.textContent : '').replace(/^Add Row$/i,''); }
+  function scopePages(){ return Array.prototype.slice.call(document.querySelectorAll('#a4Preview .a4-page,#a4CheckOutput .a4-page')).filter(function(p){ return /SCOPE OF WORK|WORK COMPLETION/i.test(String(p.textContent||'')) && !/EQUIPMENT CHECKLIST/i.test(String(p.textContent||'')); }); }
   function tables(){ return Array.prototype.slice.call(document.querySelectorAll('#a4Preview table.a4-work-completion-table,#a4Preview .a4-page table.a4-scope-table,#a4CheckOutput table.a4-work-completion-table,#a4CheckOutput .a4-page table.a4-scope-table')).filter(function(t){ return t && t.tBodies && t.tBodies[0] && !t.classList.contains('a4-equipment-checklist-table'); }); }
   function tableHasRows(){ return tables().some(function(t){ return Array.prototype.slice.call(t.tBodies[0].rows).some(function(tr){ return rowText(tr); }); }); }
   function setHiddenRows(rows){ try{ setVal('fRows', JSON.stringify(rows, null, 2)); }catch(e){} }
   function td(v){ return '<td contenteditable="true" spellcheck="false">' + esc(v) + '</td>'; }
+
+  function collectDomRows(){
+    var out = [];
+    tables().forEach(function(t){
+      Array.prototype.slice.call(t.tBodies[0].rows).forEach(function(tr){
+        var c = tr.cells || [];
+        if(c.length < 6 || !rowText(tr)) return;
+        out.push({Item:clean(c[0].textContent),WorkDescription:clean(c[1].textContent),Qty:clean(c[2].textContent),Unit:clean(c[3].textContent),Status:clean(c[4].textContent),Remarks:clean(c[5].textContent)});
+      });
+    });
+    return out;
+  }
+
   function fillDomRows(rows){
     var t = tables()[0];
     if(!t || !t.tBodies || !t.tBodies[0] || tableHasRows()) return false;
@@ -83,6 +124,7 @@
     t.tBodies[0].innerHTML = html;
     return true;
   }
+
   function patchSampleData(rows){
     var tpl = window.AETERLINK_TEMPLATES && window.AETERLINK_TEMPLATES.WCR;
     if(!tpl || tpl.__lotusRowsRestorePatched) return;
@@ -95,44 +137,83 @@
     };
     tpl.__lotusRowsRestorePatched = true;
   }
+
+  function ensureAddRowButton(){
+    if(!isWcr() || !isLotus()) return;
+    var pages = scopePages();
+    var page = pages[0] || (tables()[0] && tables()[0].closest('.a4-page'));
+    if(!page) return;
+    if(getComputedStyle(page).position === 'static') page.style.position = 'relative';
+    var btn = page.querySelector('.a4-wcr-floating-add-row-btn');
+    if(!btn){
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'a4-wcr-floating-add-row-btn a4-no-print';
+      btn.textContent = '+ Add Row';
+      page.appendChild(btn);
+    }
+    btn.onclick = function(ev){
+      ev.preventDefault(); ev.stopPropagation();
+      var rows = usefulRows(collectDomRows());
+      if(!rows.length) rows = usefulRows(parseRows());
+      if(!rows.length) rows = lotusRows();
+      rows.push({Item:'',WorkDescription:'',Qty:'',Unit:'',Status:'Pending',Remarks:''});
+      setHiddenRows(rows);
+      if(typeof window.previewCurrentForm === 'function'){
+        try{ window.previewCurrentForm(); }catch(e){}
+        setTimeout(function(){ ensureAddRowButton(); afterFill(); }, 450);
+      }else{
+        var last = tables().slice(-1)[0];
+        if(last && last.tBodies && last.tBodies[0]) last.tBodies[0].insertAdjacentHTML('beforeend','<tr>'+td('')+td('')+td('')+td('')+td('Pending')+td('')+'</tr>');
+        afterFill();
+      }
+    };
+  }
+
   function restore(){
     if(running) return;
     if(!isWcr() || !isLotus()) return;
     running = true;
     try{
       var current = usefulRows(parseRows());
-      if(current.length || tableHasRows()) return;
-      var rows = lotusRows();
-      setHiddenRows(rows);
-      patchSampleData(rows);
-      if(!previewRequested && typeof window.previewCurrentForm === 'function'){
-        previewRequested = true;
-        setTimeout(function(){ try{ window.previewCurrentForm(); }catch(e){} setTimeout(function(){ fillDomRows(rows); afterFill(); }, 350); }, 40);
-      }else{
-        fillDomRows(rows);
-        afterFill();
+      if(!current.length && !tableHasRows()){
+        var rows = lotusRows();
+        setHiddenRows(rows);
+        patchSampleData(rows);
+        if(!previewRequested && typeof window.previewCurrentForm === 'function'){
+          previewRequested = true;
+          setTimeout(function(){ try{ window.previewCurrentForm(); }catch(e){} setTimeout(function(){ fillDomRows(rows); afterFill(); }, 350); }, 40);
+        }else{
+          fillDomRows(rows);
+        }
       }
+      ensureAddRowButton();
     }finally{
       running = false;
     }
   }
+
   function afterFill(){
+    ensureAddRowButton();
     try{ if(window.AETERLINK_WCR_ADD_ROW_REMARKS_FIX && typeof AETERLINK_WCR_ADD_ROW_REMARKS_FIX.apply === 'function') AETERLINK_WCR_ADD_ROW_REMARKS_FIX.apply(); }catch(e){}
     try{ if(window.AETERLINK_A4_RUNTIME_CLEAN_V3 && typeof AETERLINK_A4_RUNTIME_CLEAN_V3.apply === 'function') AETERLINK_A4_RUNTIME_CLEAN_V3.apply(); }catch(e){}
+    setTimeout(ensureAddRowButton, 120);
   }
+
   function boot(){ setTimeout(restore,80); setTimeout(restore,500); setTimeout(restore,1400); }
   document.addEventListener('DOMContentLoaded', boot);
   window.addEventListener('load', boot);
-  var oldPreview = window.previewCurrentForm;
+
   function patchPreview(){
-    if(window.previewCurrentForm && window.previewCurrentForm !== oldPreview && !window.previewCurrentForm.__lotusRowsRestoreV1){
+    if(window.previewCurrentForm && !window.previewCurrentForm.__lotusRowsRestoreV2){
       var fn = window.previewCurrentForm;
       window.previewCurrentForm = function(){ var ret = fn.apply(this, arguments); setTimeout(restore,250); setTimeout(restore,900); return ret; };
-      window.previewCurrentForm.__lotusRowsRestoreV1 = true;
+      window.previewCurrentForm.__lotusRowsRestoreV2 = true;
     }
   }
-  setInterval(patchPreview, 1000);
+  var patchTimer = setInterval(function(){ patchPreview(); restore(); }, 1200);
+  setTimeout(function(){ clearInterval(patchTimer); patchPreview(); restore(); }, 30000);
   setTimeout(boot,300); setTimeout(boot,1500); setTimeout(boot,3500);
-  window.AETERLINK_WCR_LOTUS_ROWS_RESTORE = {restore:restore, rows:lotusRows};
+  window.AETERLINK_WCR_LOTUS_ROWS_RESTORE = {restore:restore, rows:lotusRows, ensureAddRowButton:ensureAddRowButton};
 })();
 </script>
