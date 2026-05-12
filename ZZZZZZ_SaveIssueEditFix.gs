@@ -3,9 +3,10 @@
  * Targeted fix for Save Draft / Issue / Edit only.
  *
  * Scope:
- * - Keep existing save/issue implementation directly to avoid wrapper recursion / stack overflow.
- * - Fix edit loading when the user clicks Edit from Document Register where the row may only contain
- *   DocumentId / DocumentCode, not FormRecordId.
+ * - Route every legacy apiModularSaveFormRecord* wrapper to apiSafeSaveIssueNoStackV1.
+ * - This removes the old AETERLINK_DRAFT_ISSUE_EDIT_API.save() path that can recurse and throw
+ *   "Maximum call stack size exceeded".
+ * - Keep edit loading logic unchanged.
  * - Do not change A4 rendering, tables, row controls, photo report, layout, or other modules.
  */
 
@@ -14,10 +15,7 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
   var REGISTER_TABLE = 'DOCUMENT_REGISTER';
 
   function save(payload) {
-    // Important: call the original Draft/Issue API directly.
-    // Do not call apiModularSaveFormRecord* from here, because those global functions are overridden
-    // by several legacy files and can create a recursive call chain in Apps Script.
-    return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload || {});
+    return apiSafeSaveIssueNoStackV1(payload || {});
   }
 
   function getRecord(payload) {
@@ -100,20 +98,9 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
   }
 
   function buildDocumentCandidates_(payload, reg) {
-    var raw = [
-      payload.DocumentNo,
-      payload.DocumentCode,
-      reg.DocumentNo,
-      reg.DocumentCode,
-      payload.DocumentId,
-      reg.DocumentId
-    ].map(clean_).filter(Boolean);
+    var raw = [payload.DocumentNo, payload.DocumentCode, reg.DocumentNo, reg.DocumentCode, payload.DocumentId, reg.DocumentId].map(clean_).filter(Boolean);
     var out = [];
-    raw.forEach(function (x) {
-      out.push(x);
-      if (/^DR-/i.test(x)) out.push(x.replace(/^DR-/i, ''));
-      out.push(stripRevision_(x));
-    });
+    raw.forEach(function (x) { out.push(x); if (/^DR-/i.test(x)) out.push(x.replace(/^DR-/i, '')); out.push(stripRevision_(x)); });
     return unique_(out.filter(Boolean));
   }
 
@@ -124,7 +111,6 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
     var revision = normalizeRevision_(payload.RevisionNo || payload.Revision || reg.RevisionNo || reg.Revision || '');
     var candidateMap = {};
     candidates.forEach(function (c) { candidateMap[clean_(c)] = true; candidateMap[stripRevision_(c)] = true; });
-
     var best = { row: -1, score: -1, updated: '' };
     for (var i = 0; i < values.length; i++) {
       var obj = rowObject_(headers, values[i]);
@@ -136,18 +122,14 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
       var rowTemplate = canonicalCode_(obj.TemplateCode || data.TemplateCode || '');
       var rowRev = normalizeRevision_(obj.RevisionNo || obj.Revision || data.RevisionNo || '');
       var score = 0;
-
       if (doc && candidateMap[doc]) score += 100;
       if (baseDoc && candidateMap[baseDoc]) score += 80;
       if (project && rowProject === project) score += 20;
       if (template && rowTemplate === template) score += 20;
       if (revision && rowRev === revision) score += 12;
       if (score <= 0) continue;
-
       var updated = clean_(obj.UpdatedAt || obj.CreatedAt || '');
-      if (score > best.score || (score === best.score && updated > best.updated)) {
-        best = { row: i + 2, score: score, updated: updated };
-      }
+      if (score > best.score || (score === best.score && updated > best.updated)) best = { row: i + 2, score: score, updated: updated };
     }
     return best.row;
   }
@@ -193,25 +175,10 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
     return rows;
   }
 
-  function ensureColumns_(sheet, names) {
-    var headers = headers_(sheet);
-    names.forEach(function (name) {
-      if (headers.indexOf(name) < 0) {
-        sheet.getRange(1, headers.length + 1).setValue(name);
-        headers.push(name);
-      }
-    });
-  }
+  function ensureColumns_(sheet, names) { var headers = headers_(sheet); names.forEach(function (name) { if (headers.indexOf(name) < 0) { sheet.getRange(1, headers.length + 1).setValue(name); headers.push(name); } }); }
   function headers_(sheet) { return sheet.getLastColumn() < 1 ? [] : sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0].map(clean_); }
   function rowObject_(headers, row) { var o = {}; headers.forEach(function (h, i) { if (h) o[h] = row[i]; }); return o; }
-  function findRow_(sheet, headers, key, value) {
-    value = clean_(value);
-    var c = headers.indexOf(key) + 1;
-    if (c < 1 || !value || sheet.getLastRow() < 2) return -1;
-    var vals = sheet.getRange(2, c, sheet.getLastRow() - 1, 1).getDisplayValues();
-    for (var i = 0; i < vals.length; i++) if (clean_(vals[i][0]) === value) return i + 2;
-    return -1;
-  }
+  function findRow_(sheet, headers, key, value) { value = clean_(value); var c = headers.indexOf(key) + 1; if (c < 1 || !value || sheet.getLastRow() < 2) return -1; var vals = sheet.getRange(2, c, sheet.getLastRow() - 1, 1).getDisplayValues(); for (var i = 0; i < vals.length; i++) if (clean_(vals[i][0]) === value) return i + 2; return -1; }
   function setRowValues_(sheet, headers, row, values) { Object.keys(values || {}).forEach(function (k) { var c = headers.indexOf(k) + 1; if (c > 0) sheet.getRange(row, c).setValue(values[k]); }); }
   function parseJson_(s) { try { return s ? JSON.parse(s) : {}; } catch (err) { return {}; } }
   function clean_(v) { return String(v == null ? '' : v).trim(); }
@@ -223,7 +190,12 @@ var AETERLINK_SAVE_ISSUE_EDIT_FIX = (function () {
   return { save: save, getRecord: getRecord };
 })();
 
-function apiModularSaveFormRecord(payload) { return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload || {}); }
-function apiModularSaveFormRecordV2(payload) { return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload || {}); }
-function apiModularSaveFormRecordV3(payload) { return AETERLINK_DRAFT_ISSUE_EDIT_API.save(payload || {}); }
-function apiGetFormRecordForEditV2(payload) { return AETERLINK_SAVE_ISSUE_EDIT_FIX.getRecord(payload); }
+function apiModularSaveFormRecord(payload) { return apiSafeSaveIssueNoStackV1(payload || {}); }
+function apiModularSaveFormRecordV2(payload) { return apiSafeSaveIssueNoStackV1(payload || {}); }
+function apiModularSaveFormRecordV3(payload) { return apiSafeSaveIssueNoStackV1(payload || {}); }
+function apiGetFormRecordForEditV2(payload) {
+  if (typeof apiGetFormRecordExactForEditV1 === 'function') {
+    try { return apiGetFormRecordExactForEditV1(payload); } catch (err) {}
+  }
+  return AETERLINK_SAVE_ISSUE_EDIT_FIX.getRecord(payload);
+}
