@@ -1,0 +1,143 @@
+<!-- AETERLINK Documentation Module — A4_EQC_Row_Delete_Restore.html -->
+<!-- EQC only: restore delete button for each table row. No other functions changed. -->
+<style id="a4-eqc-row-delete-restore-style">
+  #a4Preview table.a4-equipment-checklist-table tbody tr,
+  #a4CheckOutput table.a4-equipment-checklist-table tbody tr{position:relative!important;}
+  #a4Preview table.a4-equipment-checklist-table tbody td:first-child,
+  #a4CheckOutput table.a4-equipment-checklist-table tbody td:first-child{position:relative!important;overflow:visible!important;}
+  #a4Preview .a4-eqc-row-delete-btn,
+  #a4CheckOutput .a4-eqc-row-delete-btn{
+    position:absolute!important;
+    left:-4.2mm!important;
+    top:50%!important;
+    transform:translateY(-50%)!important;
+    width:3.2mm!important;
+    height:3.2mm!important;
+    min-width:3.2mm!important;
+    padding:0!important;
+    margin:0!important;
+    border:1px solid #d15b5b!important;
+    background:#fff!important;
+    color:#a91d1d!important;
+    border-radius:50%!important;
+    font-size:7px!important;
+    line-height:2.7mm!important;
+    font-weight:900!important;
+    text-align:center!important;
+    cursor:pointer!important;
+    z-index:320!important;
+    display:block!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+  }
+  #a4Preview .a4-eqc-row-delete-btn:hover,
+  #a4CheckOutput .a4-eqc-row-delete-btn:hover{background:#fff1f1!important;color:#7e1010!important;}
+  @media print{.a4-eqc-row-delete-btn{display:none!important;visibility:hidden!important;}}
+</style>
+<script id="a4-eqc-row-delete-restore-script">
+(function(){
+  if(window.__AETERLINK_EQC_ROW_DELETE_RESTORE_V1__) return;
+  window.__AETERLINK_EQC_ROW_DELETE_RESTORE_V1__ = true;
+
+  var scheduled = null;
+  var observer = null;
+  var KEYS = ['No','ItemDescription','Brand','Model','InstalledQuantity','Localisation','Floor','InstallationPosition','InstallationCondition','ConfirmationPower'];
+
+  function root(){return document.getElementById('a4Preview') || document.getElementById('a4CheckOutput') || document;}
+  function tables(){return Array.prototype.slice.call(root().querySelectorAll('table.a4-equipment-checklist-table'));}
+  function rows(){var out=[];tables().forEach(function(t){if(t.tBodies&&t.tBodies[0])out=out.concat(Array.prototype.slice.call(t.tBodies[0].rows));});return out;}
+  function cleanText(td){
+    if(!td) return '';
+    var sel = td.querySelector && td.querySelector('select.a4-eqc-status-select');
+    if(sel) return sel.value || '';
+    var clone = td.cloneNode(true);
+    clone.querySelectorAll('button,.a4-no-print,.a4-eqc-row-delete-btn,.a4-clean-delete-row').forEach(function(n){n.remove();});
+    return String(clone.textContent||'').replace(/^[\s×✕✖xX*•-]+/,'').trim();
+  }
+  function ensureButtons(){
+    tables().forEach(function(t){
+      if(!t.tBodies || !t.tBodies[0]) return;
+      Array.prototype.slice.call(t.tBodies[0].rows).forEach(function(tr){
+        var td = tr.cells && tr.cells[0];
+        if(!td) return;
+        td.style.position='relative';
+        td.style.overflow='visible';
+        td.querySelectorAll('.a4-clean-delete-row,.a4-row-delete-btn').forEach(function(n){n.remove();});
+        if(!td.querySelector('.a4-eqc-row-delete-btn')){
+          td.insertAdjacentHTML('afterbegin','<button type="button" class="a4-eqc-row-delete-btn a4-no-print" title="Delete this row" aria-label="Delete this row">×</button>');
+        }
+      });
+    });
+  }
+  function renumber(){
+    rows().forEach(function(tr,i){
+      var td=tr.cells&&tr.cells[0];
+      if(!td) return;
+      var btn=td.querySelector('.a4-eqc-row-delete-btn');
+      td.childNodes.forEach(function(n){
+        if(n.nodeType===3) n.nodeValue='';
+      });
+      var textNodes=[];
+      Array.prototype.slice.call(td.childNodes).forEach(function(n){if(n.nodeType===3)textNodes.push(n);});
+      if(btn){
+        var txt=document.createTextNode(String(i+1));
+        if(btn.nextSibling) td.insertBefore(txt,btn.nextSibling); else td.appendChild(txt);
+      }else{
+        td.textContent=String(i+1);
+      }
+    });
+  }
+  function syncRows(){
+    var data=[];
+    rows().forEach(function(tr,i){
+      var c=tr.cells;
+      if(!c || c.length<10) return;
+      var row={};
+      KEYS.forEach(function(k,idx){row[k]=idx===0?String(i+1):cleanText(c[idx]);});
+      row.Remarks='';
+      data.push(row);
+    });
+    var f=document.getElementById('fRows');
+    if(f && data.length){try{f.value=JSON.stringify(data,null,2);}catch(e){}}
+  }
+  function repaginate(){
+    if(window.AETERLINK_A4_ADD_ROW_PAGINATION_GUARD && AETERLINK_A4_ADD_ROW_PAGINATION_GUARD.schedule){
+      try{AETERLINK_A4_ADD_ROW_PAGINATION_GUARD.schedule(160);}catch(e){}
+    }
+  }
+  function normalize(){ensureButtons();renumber();syncRows();}
+  function schedule(delay){clearTimeout(scheduled);scheduled=setTimeout(function(){normalize();},delay==null?120:delay);}
+  function deleteRow(btn){
+    var tr=btn && btn.closest ? btn.closest('tr') : null;
+    if(!tr) return;
+    tr.remove();
+    normalize();
+    repaginate();
+  }
+
+  document.addEventListener('click',function(e){
+    var btn=e.target && e.target.closest ? e.target.closest('.a4-eqc-row-delete-btn') : null;
+    if(!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    deleteRow(btn);
+  },true);
+
+  function observe(){
+    if(observer || !document.body) return;
+    var target=document.getElementById('a4Preview') || document.getElementById('a4CheckOutput') || document.body;
+    observer=new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){
+        var nodes=Array.prototype.slice.call(muts[i].addedNodes||[]);
+        if(nodes.some(function(n){return n&&n.nodeType===1&&((n.matches&&n.matches('table.a4-equipment-checklist-table,table.a4-equipment-checklist-table tr'))||(n.querySelector&&n.querySelector('table.a4-equipment-checklist-table')));})){schedule(120);return;}
+      }
+    });
+    observer.observe(target,{childList:true,subtree:true});
+  }
+  function boot(){normalize();observe();}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,900);}); else setTimeout(boot,0);
+  window.addEventListener('load',function(){setTimeout(boot,250);setTimeout(boot,1000);});
+  setTimeout(boot,900);setTimeout(boot,2200);
+  window.AETERLINK_EQC_ROW_DELETE_RESTORE={apply:normalize,deleteRow:deleteRow};
+})();
+</script>
