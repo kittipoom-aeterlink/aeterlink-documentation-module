@@ -1,0 +1,23 @@
+<!-- AETERLINK Documentation Module — A4_EQC_Print_Column_Width_Fix.html -->
+<!-- Print/PDF only: adjust Equipment Checklist column widths so the last three inspection columns are balanced. No other behavior changes. -->
+<style id="a4-eqc-print-column-width-fix-style">
+  @media print{
+    table.a4-equipment-checklist-table{table-layout:fixed!important;width:100%!important;max-width:100%!important;}
+    table.a4-equipment-checklist-table col:nth-child(1){width:4%!important;}
+    table.a4-equipment-checklist-table col:nth-child(2){width:16.5%!important;}
+    table.a4-equipment-checklist-table col:nth-child(3){width:7%!important;}
+    table.a4-equipment-checklist-table col:nth-child(4){width:16%!important;}
+    table.a4-equipment-checklist-table col:nth-child(5){width:7%!important;}
+    table.a4-equipment-checklist-table col:nth-child(6){width:9%!important;}
+    table.a4-equipment-checklist-table col:nth-child(7){width:4.5%!important;}
+    table.a4-equipment-checklist-table col:nth-child(8){width:12%!important;}
+    table.a4-equipment-checklist-table col:nth-child(9){width:12%!important;}
+    table.a4-equipment-checklist-table col:nth-child(10){width:12%!important;}
+    table.a4-equipment-checklist-table col:nth-child(11),
+    table.a4-equipment-checklist-table th:nth-child(11),
+    table.a4-equipment-checklist-table td:nth-child(11){display:none!important;width:0!important;max-width:0!important;padding:0!important;border:0!important;}
+    table.a4-equipment-checklist-table th:nth-child(8),
+    table.a4-equipment-checklist-table th:nth-child(9),
+    table.a4-equipment-checklist-table th:nth-child(10){font-size:5pt!important;line-height:1.08!important;word-break:normal!important;overflow-wrap:normal!important;hyphens:none!important;white-space:normal!important;text-align:center!important;}
+  }
+</style>
