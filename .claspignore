@@ -1,0 +1,31 @@
+# AETERLINK Documentation Module clasp cleanup
+# Keep repository tooling out of Apps Script deployment.
+.github/**
+scripts/**
+node_modules/**
+.git/**
+*.md
+*.zip
+*.xlsx
+*.xls
+*.csv
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.pdf
+
+# Old A4 runtime / row-control patch files replaced by the current production include chain.
+A4_Runtime_Clean_V2.html
+A4_Runtime_Fast_Final.html
+A4_Runtime_Fast_Dedupe_Fix.html
+A4_Runtime_Fast_Pagination_Fix.html
+A4_Final_UX_Corrections.html
+A4_EQC_Add_Row_Stable_Final.html
+A4_Equipment_Checklist_Render_Lock.html
+A4_Row_Pagination_Final.html
+A4_Row_Controls_Restore.html
+A4_Row_Controls_Clean_Final.html
+A4_Add_Row_Freeze_Final_Guard.html
+
+# Keep current production WCR/EQC/A4 guard files in root; do not ignore active files.
