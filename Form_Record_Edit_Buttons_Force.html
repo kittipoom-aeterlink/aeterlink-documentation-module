@@ -1,5 +1,5 @@
 <!-- AETERLINK Documentation Module — Form_Record_Edit_Buttons_Force.html -->
-<!-- Rebuilt Form Records / Document Register action layer: one Action column only, stable Edit/Delete binding. -->
+<!-- Form Records / Document Register action layer: exact FormRecordId edit, one Action column only, stable Edit/Delete binding. -->
 <style id="form-record-edit-buttons-force-style">
   .a4-record-action-head,
   .a4-edit-action-head,
@@ -21,14 +21,15 @@
 </style>
 <script id="form-record-edit-buttons-force-script">
 (function(){
-  if(window.__AETERLINK_FORCE_RECORD_EDIT_BUTTONS_V2__) return;
-  window.__AETERLINK_FORCE_RECORD_EDIT_BUTTONS_V2__=true;
+  if(window.__AETERLINK_FORCE_RECORD_EDIT_BUTTONS_V3__) return;
+  window.__AETERLINK_FORCE_RECORD_EDIT_BUTTONS_V3__=true;
 
   function trim(v){return String(v==null?'':v).trim();}
   function byId(id){return document.getElementById(id);}
   function msg(t){var e=byId('prodStatusMsg')||byId('saveStatus');if(e)e.textContent=t;}
   function googleReady(){return typeof google!=='undefined'&&google.script&&google.script.run;}
-  function setVal(id,v){var e=byId(id);if(e)e.value=v||'';}
+  function setVal(id,v){var e=byId(id);if(e)e.value=v==null?'':String(v);}
+  function text(id,v){var e=byId(id);if(e)e.textContent=v==null?'':String(v);}
   function isIssuedStatus(s){s=trim(s).toUpperCase();return s.indexOf('ISSUED')>=0||s.indexOf('PDF')>=0||s.indexOf('APPROVED')>=0;}
   function isActionCell(c){return !!(c && (/^Action$/i.test(trim(c.textContent)) || c.classList.contains('a4-record-action-head') || c.classList.contains('a4-edit-action-head') || c.classList.contains('a4-record-action-cell') || c.classList.contains('a4-edit-action-cell')));}
   function headers(table){var h=table&&table.tHead&&table.tHead.rows[0];if(!h)return[];return [].slice.call(h.cells).map(function(th){return trim(th.textContent);});}
@@ -85,30 +86,59 @@
       ProjectCode:at('ProjectCode')
     };
   }
+  function applyLoadedRecord(res,payload){
+    var r=res.record||{},d=res.data||{};
+    var issued=isIssuedStatus(r.Status||r.DocumentStatus||d.Status||'');
+    var state={
+      formRecordId:r.FormRecordId||d.FormRecordId||payload.FormRecordId||'',
+      documentNo:r.DocumentNo||d.DocumentNo||'',
+      sourceDocumentNo:'',
+      sourceFormRecordId:'',
+      revisionMode:false,
+      loadedStatus:r.Status||d.Status||'Draft'
+    };
+    window.AETERLINK_FORCE_EDIT_STATE=state;
+    if(window.AETERLINK_DRAFT_ISSUE_EDIT_UI&&window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state){
+      window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state.formRecordId=state.formRecordId;
+      window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state.documentNo=state.documentNo;
+      window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state.sourceDocumentNo='';
+      window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state.sourceFormRecordId='';
+      window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state.revisionMode=false;
+      window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state.loadedStatus=state.loadedStatus;
+    }
+    setVal('fTemplate',d.TemplateCode||r.TemplateCode||payload.TemplateCode||'');
+    setVal('prodDocType',d.TemplateCode||r.TemplateCode||payload.TemplateCode||'');
+    setVal('fProjectCode',d.ProjectCode||r.ProjectCode||payload.ProjectCode||'');setVal('prodProjectCode',d.ProjectCode||r.ProjectCode||payload.ProjectCode||'');
+    setVal('fProjectName',d.ProjectName||'');setVal('prodProjectName',d.ProjectName||'');
+    setVal('fProjectLocation',d.ProjectLocation||d.SiteLocation||'');setVal('prodProjectLocation',d.ProjectLocation||d.SiteLocation||'');
+    setVal('fClient',d.Client||'');setVal('prodClient',d.Client||'');
+    setVal('fMainContractor',d.MainContractor||'');setVal('prodMainContractor',d.MainContractor||'');
+    setVal('fDocumentNo',r.DocumentNo||d.DocumentNo||'');setVal('prodDocumentNo',r.DocumentNo||d.DocumentNo||'');
+    setVal('fRevisionNo',r.RevisionNo||r.Revision||d.RevisionNo||'R00');setVal('prodRevisionNo',r.RevisionNo||r.Revision||d.RevisionNo||'R00');
+    setVal('fStatus',r.Status||r.DocumentStatus||d.Status||'Draft');setVal('prodStatus',r.Status||r.DocumentStatus||d.Status||'Draft');
+    var rows=d.ChecklistRows||d.ScopeRows||d.Rows||[];setVal('fRows',JSON.stringify(rows,null,2));
+    text('prodDocNoBox',r.DocumentNo||d.DocumentNo||'Not issued');
+    text('prodRecordIdBox',state.formRecordId||'Not saved yet');
+    text('prodStatusPill',r.Status||r.DocumentStatus||d.Status||'Draft');
+    if(window.showView)window.showView('documents');
+    if(window.previewCurrentForm)setTimeout(window.previewCurrentForm,250);
+    if(window.AETERLINK_EQC_EDIT_LOAD_RENDER_FIX&&window.AETERLINK_EQC_EDIT_LOAD_RENDER_FIX.render)setTimeout(window.AETERLINK_EQC_EDIT_LOAD_RENDER_FIX.render,420);
+    if(window.AETERLINK_WCR_ADD_ROW_REMARKS_FIX&&window.AETERLINK_WCR_ADD_ROW_REMARKS_FIX.apply)setTimeout(window.AETERLINK_WCR_ADD_ROW_REMARKS_FIX.apply,480);
+    msg('Loaded Form Record for edit: '+(state.formRecordId||'-')+(issued?' / Status: Issued':''));
+  }
   function loadFallback(payload){
     if(!googleReady())return;
     msg('Loading record for edit...');
-    google.script.run.withSuccessHandler(function(res){
-      var r=res.record||{},d=res.data||{};
-      var issued=!!res.isIssued||isIssuedStatus(r.Status||r.DocumentStatus||'');
-      var nextRev=issued?(res.nextRevisionNo||'R01'):(r.RevisionNo||d.RevisionNo||'R00');
-      window.AETERLINK_FORCE_EDIT_STATE={formRecordId:issued?'':(r.FormRecordId||''),documentNo:issued?'':(r.DocumentNo||''),sourceDocumentNo:issued?(res.baseDocumentNo||r.DocumentNo||d.DocumentNo||''):(d.SourceDocumentNo||d.RevisionOf||''),sourceFormRecordId:issued?(r.FormRecordId||''):(d.SourceFormRecordId||''),revisionMode:issued,nextRevisionNo:nextRev};
-      setVal('fTemplate',r.TemplateCode||d.TemplateCode||payload.TemplateCode||'');
-      setVal('prodDocType',r.TemplateCode||d.TemplateCode||payload.TemplateCode||'');
-      setVal('fProjectCode',d.ProjectCode||r.ProjectCode||payload.ProjectCode||'');setVal('prodProjectCode',d.ProjectCode||r.ProjectCode||payload.ProjectCode||'');
-      setVal('fProjectName',d.ProjectName||'');setVal('prodProjectName',d.ProjectName||'');
-      setVal('fClient',d.Client||'');setVal('prodClient',d.Client||'');
-      setVal('fMainContractor',d.MainContractor||'');setVal('prodMainContractor',d.MainContractor||'');
-      setVal('fDocumentNo',issued?'':(r.DocumentNo||d.DocumentNo||''));setVal('prodDocumentNo',issued?'':(r.DocumentNo||d.DocumentNo||''));
-      setVal('fRevisionNo',nextRev);setVal('prodRevisionNo',nextRev);
-      setVal('fStatus','Draft');setVal('prodStatus','Draft');
-      var rows=d.ChecklistRows||d.ScopeRows||d.Rows||[];setVal('fRows',JSON.stringify(rows,null,2));
-      if(window.showView)window.showView('documents');
-      if(window.previewCurrentForm)setTimeout(window.previewCurrentForm,250);
-      msg(issued?'Loaded issued document as revision draft. Source: '+(window.AETERLINK_FORCE_EDIT_STATE.sourceDocumentNo||'-')+' / Next revision: '+nextRev:'Loaded draft for edit: '+(r.FormRecordId||'-'));
-    }).withFailureHandler(function(e){msg('Load failed: '+(e&&e.message?e.message:String(e)));}).apiGetFormRecordForEditV2(payload);
+    var exact=trim(payload.FormRecordId);
+    if(exact){
+      google.script.run.withSuccessHandler(function(res){applyLoadedRecord(res,payload);}).withFailureHandler(function(e){msg('Load failed: '+(e&&e.message?e.message:String(e)));}).apiGetFormRecordExactForEditV1({FormRecordId:exact});
+      return;
+    }
+    google.script.run.withSuccessHandler(function(res){applyLoadedRecord(res,payload);}).withFailureHandler(function(e){msg('Load failed: '+(e&&e.message?e.message:String(e)));}).apiGetFormRecordForEditV2(payload);
   }
   function load(payload){
+    payload=payload||{};
+    if(trim(payload.FormRecordId)){loadFallback(payload);return;}
     if(window.AETERLINK_DRAFT_ISSUE_EDIT_UI&&typeof window.AETERLINK_DRAFT_ISSUE_EDIT_UI.loadForEdit==='function') window.AETERLINK_DRAFT_ISSUE_EDIT_UI.loadForEdit(payload);
     else loadFallback(payload);
   }
@@ -149,9 +179,9 @@
   }
   function run(){document.querySelectorAll('#recordsTable table,#registerTable table,.doc-reg-table').forEach(ensureTable);}
   function patch(){
-    if(window.showView&&!window.showView.__forceRecordEditButtonsV2){var old=window.showView;window.showView=function(){var ret=old.apply(this,arguments);setTimeout(run,120);setTimeout(run,600);setTimeout(run,1400);return ret;};window.showView.__forceRecordEditButtonsV2=true;}
-    if(window.refreshData&&!window.refreshData.__forceRecordEditButtonsV2){var oldR=window.refreshData;window.refreshData=function(){var ret=oldR.apply(this,arguments);setTimeout(run,700);setTimeout(run,1600);return ret;};window.refreshData.__forceRecordEditButtonsV2=true;}
-    if(window.AETERLINK_REGISTER_V2&&window.AETERLINK_REGISTER_V2.refresh&&!window.AETERLINK_REGISTER_V2.__forceRecordEditButtonsV2){var oldV=window.AETERLINK_REGISTER_V2.refresh;window.AETERLINK_REGISTER_V2.refresh=function(){var ret=oldV.apply(this,arguments);setTimeout(run,500);setTimeout(run,1300);return ret;};window.AETERLINK_REGISTER_V2.__forceRecordEditButtonsV2=true;}
+    if(window.showView&&!window.showView.__forceRecordEditButtonsV3){var old=window.showView;window.showView=function(){var ret=old.apply(this,arguments);setTimeout(run,120);setTimeout(run,600);setTimeout(run,1400);return ret;};window.showView.__forceRecordEditButtonsV3=true;}
+    if(window.refreshData&&!window.refreshData.__forceRecordEditButtonsV3){var oldR=window.refreshData;window.refreshData=function(){var ret=oldR.apply(this,arguments);setTimeout(run,700);setTimeout(run,1600);return ret;};window.refreshData.__forceRecordEditButtonsV3=true;}
+    if(window.AETERLINK_REGISTER_V2&&window.AETERLINK_REGISTER_V2.refresh&&!window.AETERLINK_REGISTER_V2.__forceRecordEditButtonsV3){var oldV=window.AETERLINK_REGISTER_V2.refresh;window.AETERLINK_REGISTER_V2.refresh=function(){var ret=oldV.apply(this,arguments);setTimeout(run,500);setTimeout(run,1300);return ret;};window.AETERLINK_REGISTER_V2.__forceRecordEditButtonsV3=true;}
   }
   function boot(){patch();run();}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,400);setTimeout(boot,1200);setTimeout(boot,2600);});
