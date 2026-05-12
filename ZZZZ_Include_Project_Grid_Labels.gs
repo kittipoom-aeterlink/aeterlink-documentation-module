@@ -41,7 +41,8 @@ function include(fileName) {
       'A4_EQC_Edit_Load_Render_Fix',
       'A4_Save_Issue_NoStack_Client_Fix',
       'A4_WCR_Add_Row_Remarks_Fix',
-      'A4_WCR_Lotus_Rows_Restore'
+      'A4_WCR_Lotus_Rows_Restore',
+      'A4_WCR_Add_Row_Final_Guard'
     ].forEach(function (name) {
       try { content += '\n' + HtmlService.createHtmlOutputFromFile(name).getContent(); } catch (err) {}
     });
