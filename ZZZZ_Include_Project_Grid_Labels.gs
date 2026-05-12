@@ -47,6 +47,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Row_Delete_Restore').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Edit_Load_Render_Fix').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Save_Issue_NoStack_Client_Fix').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_WCR_Add_Row_Remarks_Fix').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
