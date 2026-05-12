@@ -7,7 +7,8 @@
  * - Load exact record for edit by FormRecordId OR DocumentNo/DocumentCode/DocumentId.
  * - Keep issued DocumentNo unchanged when opening from Document Register.
  * - Keep Save Draft / Issue on a single no-stack path.
- * - Do not change document layout, EQC table, WCR table, print, photo report, or other modules.
+ * - Prevent Google Sheets 50,000 characters per-cell errors by storing oversized DataJson in chunks.
+ * - Do not change document layout, EQC table, WCR table, print, photo report UI, row controls, or other modules.
  */
 
 function apiSafeSaveIssueNoStackV1(payload) {
@@ -34,7 +35,6 @@ function apiGetFormRecordExactForEditV1(payload) {
     for (var i = 0; i < refs.length && row < 1; i++) row = findRowSafeSave_(sh, headers, 'DocumentNo', refs[i]);
   }
   if (row < 1) row = findBestSafeEditRow_(sh, headers, payload, refs);
-
   if (row < 1) throw new Error('Form Record not found for edit: ' + (formRecordId || refs.join(' / ') || '-'));
 
   var record = rowObjectSafeSave_(headers, sh.getRange(row, 1, 1, headers.length).getDisplayValues()[0]);
@@ -90,7 +90,7 @@ function safeDraftNoStack_(payload) {
     var record = buildSafeFormRecord_({old: old, data: data, formRecordId: formRecordId, projectCode: projectCode, templateCode: templateCode, documentNo: '', revisionNo: revisionNo, status: 'Draft', user: user, nowIso: nowIso, payload: payload, pdfStatus: 'Draft'});
     var values = headers.map(function (h) { return Object.prototype.hasOwnProperty.call(record, h) ? record[h] : ''; });
     if (row > 0) sh.getRange(row, 1, 1, headers.length).setValues([values]); else { sh.appendRow(values); row = sh.getLastRow(); }
-    return { ok: true, action: old.FormRecordId ? 'updated' : 'created', tableName: 'FORM_RECORDS', row: row, record: record, numbering: 'SAFE_DRAFT_NO_STACK' };
+    return { ok: true, action: old.FormRecordId ? 'updated' : 'created', tableName: 'FORM_RECORDS', row: row, record: record, numbering: 'SAFE_DRAFT_NO_STACK', dataStorage: record.DataJson && record.DataJson.indexOf('__aeterlinkLargeDataJsonV1') >= 0 ? 'CHUNKED' : 'INLINE' };
   } finally { if (locked) lock.releaseLock(); }
 }
 
@@ -131,10 +131,8 @@ function safeIssueNoStack_(payload) {
     var values = headers.map(function (h) { return Object.prototype.hasOwnProperty.call(record, h) ? record[h] : ''; });
     if (row > 0) sh.getRange(row, 1, 1, headers.length).setValues([values]); else { sh.appendRow(values); row = sh.getLastRow(); }
 
-    var result = { ok: true, action: old.FormRecordId ? 'updated' : 'created', tableName: 'FORM_RECORDS', row: row, record: record, numbering: 'SAFE_ISSUE_DIRECT_NO_STACK' };
+    var result = { ok: true, action: old.FormRecordId ? 'updated' : 'created', tableName: 'FORM_RECORDS', row: row, record: record, numbering: 'SAFE_ISSUE_DIRECT_NO_STACK', dataStorage: record.DataJson && record.DataJson.indexOf('__aeterlinkLargeDataJsonV1') >= 0 ? 'CHUNKED' : 'INLINE' };
 
-    // Release FORM_RECORDS lock before PDF export because Drive PDF save owns its own lock.
-    // This prevents nested script-lock waits and keeps Issue/Send on a non-recursive path.
     lock.releaseLock();
     locked = false;
 
@@ -225,11 +223,95 @@ function markSafeEditableAfterPdf_(formRecordId, documentNo) {
   if (row > 0) setRowValuesSafeSave_(sh, headers, row, { LockedAfterPdf: 'FALSE' });
 }
 
-function safeFormRecordColumns_() { return ['FormRecordId','ProjectCode','TemplateCode','DocumentNo','RevisionNo','Status','DataJson','PdfUrl','SubmittedBy','SubmittedAt','ApprovedBy','ApprovedAt','CreatedAt','UpdatedAt','UpdatedBy','Revision','IsDeleted','RelatedTable','RelatedRecordId','DocumentStatus','LockedAfterPdf','WorkflowGateId','ReviewComment','IssueNo','RevisionReason','DriveFileId','DriveFolderUrl','PdfStatus','IssuedPdfFileName']; }
+function safeFormRecordColumns_() {
+  return ['FormRecordId','ProjectCode','TemplateCode','DocumentNo','RevisionNo','Status','DataJson','PdfUrl','SubmittedBy','SubmittedAt','ApprovedBy','ApprovedAt','CreatedAt','UpdatedAt','UpdatedBy','Revision','IsDeleted','RelatedTable','RelatedRecordId','DocumentStatus','LockedAfterPdf','WorkflowGateId','ReviewComment','IssueNo','RevisionReason','DriveFileId','DriveFolderUrl','PdfStatus','IssuedPdfFileName'];
+}
 
 function buildSafeFormRecord_(o) {
   o = o || {}; var old = o.old || {}, payload = o.payload || {}, data = o.data || {};
-  return {FormRecordId:o.formRecordId,ProjectCode:o.projectCode,TemplateCode:o.templateCode,DocumentNo:o.documentNo,RevisionNo:o.revisionNo,Status:o.status,DataJson:JSON.stringify(data),PdfUrl:old.PdfUrl||payload.PdfUrl||'',SubmittedBy:old.SubmittedBy||payload.SubmittedBy||o.user,SubmittedAt:o.status==='Issued'?(payload.SubmittedAt||old.SubmittedAt||o.nowIso):(old.SubmittedAt||''),ApprovedBy:old.ApprovedBy||payload.ApprovedBy||'',ApprovedAt:old.ApprovedAt||payload.ApprovedAt||'',CreatedAt:old.CreatedAt||payload.CreatedAt||o.nowIso,UpdatedAt:o.nowIso,UpdatedBy:o.user,Revision:o.revisionNo,IsDeleted:'FALSE',RelatedTable:payload.RelatedTable||old.RelatedTable||'',RelatedRecordId:payload.RelatedRecordId||old.RelatedRecordId||'',DocumentStatus:o.status,LockedAfterPdf:'FALSE',WorkflowGateId:payload.WorkflowGateId||old.WorkflowGateId||'',ReviewComment:payload.ReviewComment||old.ReviewComment||'',IssueNo:extractSafeIssueNo_(o.documentNo)||old.IssueNo||'XXX',RevisionReason:payload.RevisionReason||old.RevisionReason||'',DriveFileId:old.DriveFileId||'',DriveFolderUrl:old.DriveFolderUrl||'',PdfStatus:o.pdfStatus||o.status,IssuedPdfFileName:old.IssuedPdfFileName||''};
+  var dataJson = storeSafeDataJson_(o.formRecordId, data, o.nowIso, o.user);
+  return {FormRecordId:o.formRecordId,ProjectCode:o.projectCode,TemplateCode:o.templateCode,DocumentNo:o.documentNo,RevisionNo:o.revisionNo,Status:o.status,DataJson:dataJson,PdfUrl:old.PdfUrl||payload.PdfUrl||'',SubmittedBy:old.SubmittedBy||payload.SubmittedBy||o.user,SubmittedAt:o.status==='Issued'?(payload.SubmittedAt||old.SubmittedAt||o.nowIso):(old.SubmittedAt||''),ApprovedBy:old.ApprovedBy||payload.ApprovedBy||'',ApprovedAt:old.ApprovedAt||payload.ApprovedAt||'',CreatedAt:old.CreatedAt||payload.CreatedAt||o.nowIso,UpdatedAt:o.nowIso,UpdatedBy:o.user,Revision:o.revisionNo,IsDeleted:'FALSE',RelatedTable:payload.RelatedTable||old.RelatedTable||'',RelatedRecordId:payload.RelatedRecordId||old.RelatedRecordId||'',DocumentStatus:o.status,LockedAfterPdf:'FALSE',WorkflowGateId:payload.WorkflowGateId||old.WorkflowGateId||'',ReviewComment:payload.ReviewComment||old.ReviewComment||'',IssueNo:extractSafeIssueNo_(o.documentNo)||old.IssueNo||'XXX',RevisionReason:payload.RevisionReason||old.RevisionReason||'',DriveFileId:old.DriveFileId||'',DriveFolderUrl:old.DriveFolderUrl||'',PdfStatus:o.pdfStatus||o.status,IssuedPdfFileName:old.IssuedPdfFileName||''};
+}
+
+function storeSafeDataJson_(formRecordId, data, nowIso, user) {
+  var json = JSON.stringify(data || {});
+  var maxInline = 45000;
+  formRecordId = cleanSafeSave_(formRecordId || (data && data.FormRecordId) || '');
+  if (json.length <= maxInline) {
+    cleanupSafeDataChunks_(formRecordId, nowIso, user);
+    return json;
+  }
+
+  if (!formRecordId) throw new Error('Cannot store oversized DataJson without FormRecordId.');
+  var sh = ensureSafeDataChunksSheet_();
+  cleanupSafeDataChunks_(formRecordId, nowIso, user);
+  var headers = headersSafeSave_(sh);
+  var chunkSize = 45000;
+  var chunkKey = formRecordId + '-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMddHHmmssSSS');
+  var rows = [];
+  for (var i = 0, idx = 0; i < json.length; i += chunkSize, idx++) {
+    var rowObj = {ChunkKey:chunkKey, FormRecordId:formRecordId, ChunkIndex:String(idx), ChunkValue:json.substring(i, i + chunkSize), UpdatedAt:nowIso || new Date().toISOString(), UpdatedBy:user || activeUserSafeSave_().email, IsDeleted:'FALSE'};
+    rows.push(headers.map(function (h) { return Object.prototype.hasOwnProperty.call(rowObj, h) ? rowObj[h] : ''; }));
+  }
+  if (rows.length) sh.getRange(sh.getLastRow() + 1, 1, rows.length, headers.length).setValues(rows);
+  return JSON.stringify({__aeterlinkLargeDataJsonV1:true, storage:'FORM_RECORD_DATA_CHUNKS', ChunkKey:chunkKey, FormRecordId:formRecordId, ChunkCount:rows.length, Length:json.length, UpdatedAt:nowIso || new Date().toISOString()});
+}
+
+function ensureSafeDataChunksSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var name = 'FORM_RECORD_DATA_CHUNKS';
+  var sh = ss.getSheetByName(name);
+  if (!sh) sh = ss.insertSheet(name);
+  ensureSafeSaveColumns_(sh, ['ChunkKey','FormRecordId','ChunkIndex','ChunkValue','UpdatedAt','UpdatedBy','IsDeleted']);
+  try { sh.getRange(1, 1, 1, sh.getLastColumn()).setFontWeight('bold'); sh.setFrozenRows(1); } catch (err) {}
+  return sh;
+}
+
+function cleanupSafeDataChunks_(formRecordId, nowIso, user) {
+  formRecordId = cleanSafeSave_(formRecordId);
+  if (!formRecordId) return;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss && ss.getSheetByName('FORM_RECORD_DATA_CHUNKS');
+  if (!sh || sh.getLastRow() < 2) return;
+  var headers = headersSafeSave_(sh);
+  var idCol = headers.indexOf('FormRecordId') + 1;
+  var delCol = headers.indexOf('IsDeleted') + 1;
+  var atCol = headers.indexOf('UpdatedAt') + 1;
+  var byCol = headers.indexOf('UpdatedBy') + 1;
+  if (idCol < 1 || delCol < 1) return;
+  var vals = sh.getRange(2, idCol, sh.getLastRow() - 1, 1).getDisplayValues();
+  for (var i = 0; i < vals.length; i++) {
+    if (cleanSafeSave_(vals[i][0]) !== formRecordId) continue;
+    var row = i + 2;
+    sh.getRange(row, delCol).setValue('TRUE');
+    if (atCol > 0) sh.getRange(row, atCol).setValue(nowIso || new Date().toISOString());
+    if (byCol > 0) sh.getRange(row, byCol).setValue(user || activeUserSafeSave_().email);
+  }
+}
+
+function readSafeDataChunks_(pointer) {
+  pointer = pointer || {};
+  var chunkKey = cleanSafeSave_(pointer.ChunkKey || pointer.chunkKey || '');
+  if (!chunkKey) return {};
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss && ss.getSheetByName('FORM_RECORD_DATA_CHUNKS');
+  if (!sh || sh.getLastRow() < 2) return {};
+  var headers = headersSafeSave_(sh);
+  var keyCol = headers.indexOf('ChunkKey') + 1;
+  var idxCol = headers.indexOf('ChunkIndex') + 1;
+  var valCol = headers.indexOf('ChunkValue') + 1;
+  var delCol = headers.indexOf('IsDeleted') + 1;
+  if (keyCol < 1 || idxCol < 1 || valCol < 1) return {};
+  var values = sh.getRange(2, 1, sh.getLastRow() - 1, headers.length).getDisplayValues();
+  var parts = [];
+  values.forEach(function (r) {
+    if (cleanSafeSave_(r[keyCol - 1]) !== chunkKey) return;
+    if (delCol > 0 && String(r[delCol - 1] || '').toUpperCase() === 'TRUE') return;
+    parts.push({index: parseInt(r[idxCol - 1] || '0', 10), value: String(r[valCol - 1] || '')});
+  });
+  parts.sort(function (a, b) { return a.index - b.index; });
+  var json = parts.map(function (p) { return p.value; }).join('');
+  try { return json ? JSON.parse(json) : {}; } catch (err) { return {}; }
 }
 
 function createSafeDocumentNo_(sheet, headers, projectCode, templateCode, revisionNo) {
@@ -263,7 +345,7 @@ function headersSafeSave_(sheet) { return sheet.getLastColumn() < 1 ? [] : sheet
 function rowObjectSafeSave_(headers, row) { var o = {}; headers.forEach(function (h, i) { if (h) o[h] = row[i]; }); return o; }
 function findRowSafeSave_(sheet, headers, key, value) { value = cleanSafeSave_(value); var col = headers.indexOf(key) + 1; if (col < 1 || !value || sheet.getLastRow() < 2) return -1; var vals = sheet.getRange(2, col, sheet.getLastRow() - 1, 1).getDisplayValues(); for (var i = 0; i < vals.length; i++) if (cleanSafeSave_(vals[i][0]) === value) return i + 2; return -1; }
 function setRowValuesSafeSave_(sheet, headers, row, values) { Object.keys(values || {}).forEach(function (k) { var c = headers.indexOf(k) + 1; if (c > 0) sheet.getRange(row, c).setValue(values[k]); }); }
-function parseSafeSaveJson_(s) { try { return s ? JSON.parse(s) : {}; } catch (err) { return {}; } }
+function parseSafeSaveJson_(s) { try { var obj = s ? JSON.parse(s) : {}; return obj && obj.__aeterlinkLargeDataJsonV1 ? readSafeDataChunks_(obj) : (obj || {}); } catch (err) { return {}; } }
 function cleanSafeSave_(v) { return String(v == null ? '' : v).trim(); }
 function normalizeRevisionSafeSave_(v) { v = cleanSafeSave_(v).toUpperCase(); if (!v || v === '0') return 'R00'; var n = parseInt(v.replace(/\D/g, ''), 10); return isNaN(n) ? v : 'R' + ('00' + n).slice(-2); }
 function canonicalSafeSave_(code) { code = cleanSafeSave_(code).toUpperCase(); if (code === 'PJ-WORK-COMPLETE-001' || code === 'PJ-WORK-COMPLETE') return 'PJ-WCR-001'; return code || 'PJ-WCR-001'; }
@@ -293,6 +375,8 @@ function apiSaveIssueNoStackHealthV1() {
   return {
     ok: true,
     route: 'apiSafeSaveIssueNoStackV1',
+    largeDataJsonStorage: 'FORM_RECORD_DATA_CHUNKS',
+    maxInlineDataJsonChars: 45000,
     draftIssueApiPatched: typeof AETERLINK_DRAFT_ISSUE_EDIT_API !== 'undefined' && !!AETERLINK_DRAFT_ISSUE_EDIT_API.__noStackFinalGuard,
     saveIssueFixPatched: typeof AETERLINK_SAVE_ISSUE_EDIT_FIX !== 'undefined' && !!AETERLINK_SAVE_ISSUE_EDIT_FIX.__noStackFinalGuard
   };
