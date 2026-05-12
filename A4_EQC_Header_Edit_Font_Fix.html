@@ -1,32 +1,39 @@
 <!-- AETERLINK Documentation Module — A4_EQC_Header_Edit_Font_Fix.html -->
-<!-- EQC only: editable table headers + header font-size control. No other modules/layout behavior changed. -->
+<!-- EQC only: preview width fit, editable headers, and font-size controls for table header/body/status. No other modules changed. -->
 <style id="a4-eqc-header-edit-font-fix-style">
-  #a4Preview table.a4-equipment-checklist-table,
-  #a4CheckOutput table.a4-equipment-checklist-table{table-layout:fixed!important;width:100%!important;max-width:100%!important;}
+  #a4Preview .a4-page.a4-eqc-preview-page{width:calc(210mm * var(--a4-eqc-preview-scale,1.08))!important;max-width:none!important;}
+  #a4Preview .a4-page.a4-eqc-preview-page .a4-page-inner{width:100%!important;max-width:none!important;}
+  #a4Preview .a4-page.a4-eqc-preview-page .a4-content{overflow:visible!important;}
 
-  /* Balanced EQC column widths: keep the last 3 status columns symmetrical and readable. */
+  #a4Preview table.a4-equipment-checklist-table,
+  #a4CheckOutput table.a4-equipment-checklist-table{table-layout:fixed!important;width:100%!important;max-width:100%!important;margin-left:0!important;}
+
+  /* EQC column widths: keep Confirmation of power-on wide enough in preview/print while staying inside A4 for print. */
   #a4Preview table.a4-equipment-checklist-table col:nth-child(1),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(1){width:4%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(2),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(2){width:16.5%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(3),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(3){width:7%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(4),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(4){width:16%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(5),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(5){width:7%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(6),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(6){width:9%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(7),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(7){width:4.5%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(8),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(8){width:12%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(9),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(9){width:12%!important;}
-  #a4Preview table.a4-equipment-checklist-table col:nth-child(10),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(10){width:12%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(2),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(2){width:16%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(3),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(3){width:6.5%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(4),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(4){width:15%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(5),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(5){width:6.8%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(6),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(6){width:8.8%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(7),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(7){width:4.2%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(8),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(8){width:12.5%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(9),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(9){width:12.5%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(10),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(10){width:13.7%!important;}
+  #a4Preview table.a4-equipment-checklist-table col:nth-child(11),#a4CheckOutput table.a4-equipment-checklist-table col:nth-child(11),
+  #a4Preview table.a4-equipment-checklist-table th:nth-child(11),#a4Preview table.a4-equipment-checklist-table td:nth-child(11),
+  #a4CheckOutput table.a4-equipment-checklist-table th:nth-child(11),#a4CheckOutput table.a4-equipment-checklist-table td:nth-child(11){display:none!important;width:0!important;max-width:0!important;padding:0!important;border:0!important;}
 
   #a4Preview table.a4-equipment-checklist-table th,
   #a4CheckOutput table.a4-equipment-checklist-table th{
-    font-size:var(--a4-eqc-header-font-size,5.2pt)!important;
-    line-height:1.12!important;
+    font-size:var(--a4-eqc-header-font-size,5.0pt)!important;
+    line-height:1.1!important;
     text-align:center!important;
     vertical-align:middle!important;
     white-space:normal!important;
     word-break:normal!important;
     overflow-wrap:normal!important;
     hyphens:none!important;
-    padding:.9mm .45mm!important;
+    padding:.75mm .35mm!important;
     cursor:text!important;
   }
   #a4Preview table.a4-equipment-checklist-table th:nth-child(8),
@@ -35,152 +42,139 @@
   #a4CheckOutput table.a4-equipment-checklist-table th:nth-child(8),
   #a4CheckOutput table.a4-equipment-checklist-table th:nth-child(9),
   #a4CheckOutput table.a4-equipment-checklist-table th:nth-child(10){
-    font-size:var(--a4-eqc-header-status-font-size,4.8pt)!important;
-    line-height:1.08!important;
-    padding:.8mm .35mm!important;
+    font-size:var(--a4-eqc-header-status-font-size,4.65pt)!important;
+    line-height:1.06!important;
+    padding:.7mm .3mm!important;
   }
+  #a4Preview table.a4-equipment-checklist-table td,
+  #a4CheckOutput table.a4-equipment-checklist-table td{
+    font-size:var(--a4-eqc-body-font-size,5.55pt)!important;
+    line-height:var(--a4-eqc-body-line-height,1.08)!important;
+  }
+  #a4Preview table.a4-equipment-checklist-table td:nth-child(8),
+  #a4Preview table.a4-equipment-checklist-table td:nth-child(9),
+  #a4Preview table.a4-equipment-checklist-table td:nth-child(10),
+  #a4CheckOutput table.a4-equipment-checklist-table td:nth-child(8),
+  #a4CheckOutput table.a4-equipment-checklist-table td:nth-child(9),
+  #a4CheckOutput table.a4-equipment-checklist-table td:nth-child(10){
+    font-size:var(--a4-eqc-status-font-size,5.45pt)!important;
+    text-align:center!important;
+  }
+  #a4Preview .a4-eqc-status-select,#a4CheckOutput .a4-eqc-status-select{font-size:var(--a4-eqc-status-font-size,5.45pt)!important;}
+
   #a4Preview table.a4-equipment-checklist-table th[contenteditable="true"]:focus,
   #a4CheckOutput table.a4-equipment-checklist-table th[contenteditable="true"]:focus{
-    outline:1px solid #d7a540!important;
-    background:#fffbe8!important;
-    box-shadow:inset 0 0 0 1px #d7a540!important;
+    outline:1px solid #d7a540!important;background:#fffbe8!important;box-shadow:inset 0 0 0 1px #d7a540!important;
   }
   #a4Preview .a4-eqc-header-toolbar,#a4CheckOutput .a4-eqc-header-toolbar{
-    display:flex!important;
-    justify-content:flex-end!important;
-    align-items:center!important;
-    gap:5px!important;
-    margin:1mm 0 1mm!important;
-    font-size:7pt!important;
-    color:#07385b!important;
+    display:flex!important;justify-content:flex-end!important;align-items:center!important;gap:5px!important;flex-wrap:wrap!important;
+    margin:1mm 0 1mm!important;font-size:7pt!important;color:#07385b!important;
   }
   #a4Preview .a4-eqc-header-toolbar label,#a4CheckOutput .a4-eqc-header-toolbar label{font-weight:800!important;}
-  #a4Preview .a4-eqc-header-font-size,#a4CheckOutput .a4-eqc-header-font-size{
-    border:1px solid #adc3d2!important;
-    background:#fff!important;
-    color:#07385b!important;
-    border-radius:5px!important;
-    padding:1px 5px!important;
-    font-size:7pt!important;
-    font-weight:800!important;
+  #a4Preview .a4-eqc-header-toolbar select,#a4CheckOutput .a4-eqc-header-toolbar select{
+    border:1px solid #adc3d2!important;background:#fff!important;color:#07385b!important;border-radius:5px!important;
+    padding:1px 5px!important;font-size:7pt!important;font-weight:800!important;
   }
   @media print{
     .a4-eqc-header-toolbar{display:none!important;visibility:hidden!important;}
-    table.a4-equipment-checklist-table{table-layout:fixed!important;width:100%!important;max-width:100%!important;}
-    table.a4-equipment-checklist-table th{font-size:var(--a4-eqc-header-font-size,5.2pt)!important;line-height:1.12!important;word-break:normal!important;overflow-wrap:normal!important;hyphens:none!important;white-space:normal!important;}
-    table.a4-equipment-checklist-table th:nth-child(8),table.a4-equipment-checklist-table th:nth-child(9),table.a4-equipment-checklist-table th:nth-child(10){font-size:var(--a4-eqc-header-status-font-size,4.8pt)!important;line-height:1.08!important;}
+    .a4-page.a4-eqc-preview-page{width:210mm!important;max-width:210mm!important;}
+    table.a4-equipment-checklist-table{table-layout:fixed!important;width:100%!important;max-width:100%!important;margin-left:0!important;}
+    table.a4-equipment-checklist-table th{font-size:var(--a4-eqc-header-font-size,5.0pt)!important;line-height:1.1!important;word-break:normal!important;overflow-wrap:normal!important;hyphens:none!important;white-space:normal!important;}
+    table.a4-equipment-checklist-table th:nth-child(8),table.a4-equipment-checklist-table th:nth-child(9),table.a4-equipment-checklist-table th:nth-child(10){font-size:var(--a4-eqc-header-status-font-size,4.65pt)!important;line-height:1.06!important;}
+    table.a4-equipment-checklist-table td{font-size:var(--a4-eqc-body-font-size,5.55pt)!important;line-height:var(--a4-eqc-body-line-height,1.08)!important;}
+    table.a4-equipment-checklist-table td:nth-child(8),table.a4-equipment-checklist-table td:nth-child(9),table.a4-equipment-checklist-table td:nth-child(10){font-size:var(--a4-eqc-status-font-size,5.45pt)!important;}
   }
 </style>
 <script id="a4-eqc-header-edit-font-fix-script">
 (function(){
-  if(window.__AETERLINK_EQC_HEADER_EDIT_FONT_FIX_V1__) return;
-  window.__AETERLINK_EQC_HEADER_EDIT_FONT_FIX_V1__ = true;
+  if(window.__AETERLINK_EQC_HEADER_EDIT_FONT_FIX_V2__) return;
+  window.__AETERLINK_EQC_HEADER_EDIT_FONT_FIX_V2__ = true;
 
-  var FONT_KEY = 'aeterlink_eqc_header_font_size_v1';
-  var STATUS_FONT_KEY = 'aeterlink_eqc_header_status_font_size_v1';
-  var HEADER_KEY = 'aeterlink_eqc_header_texts_v1';
-  var DEFAULT_HEADER_FONT = '5.2pt';
-  var DEFAULT_STATUS_FONT = '4.8pt';
+  var HEADER_FONT_KEY = 'aeterlink_eqc_header_font_size_v2';
+  var STATUS_HEADER_FONT_KEY = 'aeterlink_eqc_header_status_font_size_v2';
+  var BODY_FONT_KEY = 'aeterlink_eqc_body_font_size_v2';
+  var STATUS_FONT_KEY = 'aeterlink_eqc_status_font_size_v2';
+  var PREVIEW_SCALE_KEY = 'aeterlink_eqc_preview_scale_v2';
+  var HEADER_KEY = 'aeterlink_eqc_header_texts_v2';
+  var DEFAULTS = {header:'5.0pt',statusHeader:'4.65pt',body:'5.55pt',status:'5.45pt',preview:'1.08'};
   var DEFAULT_HEADERS = [
-    'No.',
-    'Item description',
-    'brand',
-    'Product name',
-    'Installed<br>Quantity',
-    'Localisation',
-    'Floor',
+    'No.', 'Item description', 'brand', 'Product name', 'Installed<br>Quantity', 'Localisation', 'Floor',
     'Installation Position<br>(matches as-built<br>drawings?)',
     'Installation Condition<br>(no risk of falling<br>or detachment?)',
     'Confirmation of power-on<br>(operate after<br>power-on?)'
   ];
+  var WIDTHS = ['4%','16%','6.5%','15%','6.8%','8.8%','4.2%','12.5%','12.5%','13.7%'];
 
   function root(){return document.getElementById('a4Preview') || document.getElementById('a4CheckOutput') || document;}
   function tables(){return Array.prototype.slice.call(root().querySelectorAll('table.a4-equipment-checklist-table'));}
-  function getStoredHeaders(){try{var a=JSON.parse(localStorage.getItem(HEADER_KEY)||'[]');return Array.isArray(a)&&a.length?a:null;}catch(e){return null;}}
-  function setStoredHeaders(arr){try{localStorage.setItem(HEADER_KEY,JSON.stringify(arr));}catch(e){}}
-  function getFont(){try{return localStorage.getItem(FONT_KEY)||DEFAULT_HEADER_FONT;}catch(e){return DEFAULT_HEADER_FONT;}}
-  function getStatusFont(){try{return localStorage.getItem(STATUS_FONT_KEY)||DEFAULT_STATUS_FONT;}catch(e){return DEFAULT_STATUS_FONT;}}
-  function setFont(v){try{localStorage.setItem(FONT_KEY,v);}catch(e){} document.documentElement.style.setProperty('--a4-eqc-header-font-size',v);}
-  function setStatusFont(v){try{localStorage.setItem(STATUS_FONT_KEY,v);}catch(e){} document.documentElement.style.setProperty('--a4-eqc-header-status-font-size',v);}
-  function htmlToPlain(h){var d=document.createElement('div');d.innerHTML=h;return String(d.textContent||'').trim();}
-  function normalizeLineBreaks(th){
-    var html = th.innerHTML.replace(/<div>/gi,'<br>').replace(/<\/div>/gi,'').replace(/&nbsp;/g,' ');
-    th.innerHTML = html;
+  function get(k,d){try{return localStorage.getItem(k)||d;}catch(e){return d;}}
+  function set(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  function setVar(name,val){document.documentElement.style.setProperty(name,val);}
+  function storedHeaders(){try{var a=JSON.parse(localStorage.getItem(HEADER_KEY)||'[]');return Array.isArray(a)&&a.length?a:null;}catch(e){return null;}}
+  function saveHeaders(arr){try{localStorage.setItem(HEADER_KEY,JSON.stringify(arr));}catch(e){}}
+  function plain(html){var d=document.createElement('div');d.innerHTML=html;return String(d.textContent||'').trim();}
+  function normalizeBreaks(th){th.innerHTML=th.innerHTML.replace(/<div>/gi,'<br>').replace(/<\/div>/gi,'').replace(/&nbsp;/g,' ');}
+  function readHeaders(){var t=tables()[0];if(!t)return null;var ths=Array.prototype.slice.call(t.querySelectorAll('thead th')).slice(0,10);return ths.length?ths.map(function(th){return th.innerHTML;}):null;}
+
+  function applyVars(){
+    setVar('--a4-eqc-header-font-size',get(HEADER_FONT_KEY,DEFAULTS.header));
+    setVar('--a4-eqc-header-status-font-size',get(STATUS_HEADER_FONT_KEY,DEFAULTS.statusHeader));
+    setVar('--a4-eqc-body-font-size',get(BODY_FONT_KEY,DEFAULTS.body));
+    setVar('--a4-eqc-status-font-size',get(STATUS_FONT_KEY,DEFAULTS.status));
+    setVar('--a4-eqc-preview-scale',get(PREVIEW_SCALE_KEY,DEFAULTS.preview));
   }
-  function readHeadersFromFirstTable(){
-    var t=tables()[0]; if(!t) return null;
-    var ths=Array.prototype.slice.call(t.querySelectorAll('thead th')).slice(0,10);
-    if(!ths.length) return null;
-    return ths.map(function(th){return th.innerHTML;});
+  function markEqcPages(){
+    tables().forEach(function(t){var p=t.closest('.a4-page');if(p)p.classList.add('a4-eqc-preview-page');});
   }
-  function applyHeaderTexts(){
-    var stored = getStoredHeaders();
-    var heads = stored || DEFAULT_HEADERS;
+  function applyWidths(){
+    tables().forEach(function(t){var cols=t.querySelectorAll('colgroup col');WIDTHS.forEach(function(w,i){if(cols[i])cols[i].style.width=w;});});
+  }
+  function applyHeaders(){
+    var stored=storedHeaders(); var heads=stored||DEFAULT_HEADERS;
     tables().forEach(function(t){
-      var ths=Array.prototype.slice.call(t.querySelectorAll('thead th')).slice(0,10);
-      ths.forEach(function(th,i){
-        if(!stored && htmlToPlain(th.innerHTML)) return;
-        if(heads[i] && th.innerHTML !== heads[i]) th.innerHTML = heads[i];
+      Array.prototype.slice.call(t.querySelectorAll('thead th')).slice(0,10).forEach(function(th,i){
+        if(!stored && plain(th.innerHTML)){} else if(heads[i] && th.innerHTML!==heads[i]) th.innerHTML=heads[i];
+        th.contentEditable='true'; th.spellcheck=false; th.setAttribute('data-eqc-header-editable','1');
       });
     });
   }
-  function ensureEditableHeaders(){
-    tables().forEach(function(t){
-      Array.prototype.slice.call(t.querySelectorAll('thead th')).slice(0,10).forEach(function(th){
-        th.contentEditable='true';
-        th.spellcheck=false;
-        th.setAttribute('data-eqc-header-editable','1');
-      });
-    });
-  }
+  function optionHtml(values,current){return values.map(function(v){return '<option value="'+v+'" '+(v===current?'selected':'')+'>'+v.replace('pt',' pt').replace('1.00','A4').replace('1.08','Preview +8%').replace('1.14','Preview +14%').replace('1.20','Preview +20%')+'</option>';}).join('');}
   function ensureToolbar(){
     tables().forEach(function(t){
       var previous=t.previousElementSibling;
       if(previous && previous.classList && previous.classList.contains('a4-eqc-header-toolbar')) return;
       var toolbar=document.createElement('div');
       toolbar.className='a4-eqc-header-toolbar a4-no-print';
-      toolbar.innerHTML='<label>Header font</label><select class="a4-eqc-header-font-size"><option value="4.4pt">4.4 pt</option><option value="4.6pt">4.6 pt</option><option value="4.8pt">4.8 pt</option><option value="5.0pt">5.0 pt</option><option value="5.2pt">5.2 pt</option><option value="5.4pt">5.4 pt</option><option value="5.6pt">5.6 pt</option><option value="5.8pt">5.8 pt</option><option value="6.0pt">6.0 pt</option></select><label>Status header</label><select class="a4-eqc-status-header-font-size"><option value="4.2pt">4.2 pt</option><option value="4.4pt">4.4 pt</option><option value="4.6pt">4.6 pt</option><option value="4.8pt">4.8 pt</option><option value="5.0pt">5.0 pt</option><option value="5.2pt">5.2 pt</option></select>';
+      toolbar.innerHTML=''
+        + '<label>Preview width</label><select class="a4-eqc-preview-scale">'+optionHtml(['1.00','1.08','1.14','1.20'],get(PREVIEW_SCALE_KEY,DEFAULTS.preview))+'</select>'
+        + '<label>Header</label><select class="a4-eqc-header-font-size">'+optionHtml(['4.4pt','4.6pt','4.8pt','5.0pt','5.2pt','5.4pt','5.6pt','5.8pt','6.0pt'],get(HEADER_FONT_KEY,DEFAULTS.header))+'</select>'
+        + '<label>Status header</label><select class="a4-eqc-status-header-font-size">'+optionHtml(['4.0pt','4.2pt','4.4pt','4.6pt','4.65pt','4.8pt','5.0pt','5.2pt'],get(STATUS_HEADER_FONT_KEY,DEFAULTS.statusHeader))+'</select>'
+        + '<label>Body</label><select class="a4-eqc-body-font-size">'+optionHtml(['4.8pt','5.0pt','5.2pt','5.4pt','5.55pt','5.8pt','6.0pt','6.2pt','6.5pt'],get(BODY_FONT_KEY,DEFAULTS.body))+'</select>'
+        + '<label>Status</label><select class="a4-eqc-status-font-size">'+optionHtml(['4.8pt','5.0pt','5.2pt','5.45pt','5.6pt','5.8pt','6.0pt'],get(STATUS_FONT_KEY,DEFAULTS.status))+'</select>';
       t.parentNode.insertBefore(toolbar,t);
     });
-    root().querySelectorAll('.a4-eqc-header-font-size').forEach(function(s){s.value=getFont();});
-    root().querySelectorAll('.a4-eqc-status-header-font-size').forEach(function(s){s.value=getStatusFont();});
   }
-  function applyColumnWidths(){
-    var widths=['4%','16.5%','7%','16%','7%','9%','4.5%','12%','12%','12%'];
-    tables().forEach(function(t){
-      var cols=t.querySelectorAll('colgroup col');
-      widths.forEach(function(w,i){if(cols[i]) cols[i].style.width=w;});
-    });
+  function syncToolbarValues(){
+    root().querySelectorAll('.a4-eqc-preview-scale').forEach(function(s){s.value=get(PREVIEW_SCALE_KEY,DEFAULTS.preview);});
+    root().querySelectorAll('.a4-eqc-header-font-size').forEach(function(s){s.value=get(HEADER_FONT_KEY,DEFAULTS.header);});
+    root().querySelectorAll('.a4-eqc-status-header-font-size').forEach(function(s){s.value=get(STATUS_HEADER_FONT_KEY,DEFAULTS.statusHeader);});
+    root().querySelectorAll('.a4-eqc-body-font-size').forEach(function(s){s.value=get(BODY_FONT_KEY,DEFAULTS.body);});
+    root().querySelectorAll('.a4-eqc-status-font-size').forEach(function(s){s.value=get(STATUS_FONT_KEY,DEFAULTS.status);});
   }
-  function apply(){
-    setFont(getFont());
-    setStatusFont(getStatusFont());
-    applyColumnWidths();
-    applyHeaderTexts();
-    ensureEditableHeaders();
-    ensureToolbar();
-  }
-  function saveHeadersSoon(){
-    clearTimeout(window.__aeterlinkEqcHeaderSaveTimer);
-    window.__aeterlinkEqcHeaderSaveTimer=setTimeout(function(){
-      var heads=readHeadersFromFirstTable();
-      if(heads) setStoredHeaders(heads);
-      apply();
-    },150);
-  }
+  function apply(){applyVars();markEqcPages();applyWidths();applyHeaders();ensureToolbar();syncToolbarValues();}
+  function saveHeadersSoon(){clearTimeout(window.__aeterlinkEqcHeaderSaveTimer);window.__aeterlinkEqcHeaderSaveTimer=setTimeout(function(){var h=readHeaders();if(h)saveHeaders(h);apply();},150);}
 
-  document.addEventListener('input',function(e){
-    if(e.target && e.target.matches && e.target.matches('table.a4-equipment-checklist-table thead th')){
-      normalizeLineBreaks(e.target);
-      saveHeadersSoon();
-    }
-  },true);
+  document.addEventListener('input',function(e){if(e.target&&e.target.matches&&e.target.matches('table.a4-equipment-checklist-table thead th')){normalizeBreaks(e.target);saveHeadersSoon();}},true);
   document.addEventListener('change',function(e){
-    if(e.target && e.target.matches && e.target.matches('.a4-eqc-header-font-size')){setFont(e.target.value||DEFAULT_HEADER_FONT);}
-    if(e.target && e.target.matches && e.target.matches('.a4-eqc-status-header-font-size')){setStatusFont(e.target.value||DEFAULT_STATUS_FONT);}
+    var t=e.target;if(!t||!t.matches)return;
+    if(t.matches('.a4-eqc-preview-scale')){set(PREVIEW_SCALE_KEY,t.value||DEFAULTS.preview);apply();}
+    if(t.matches('.a4-eqc-header-font-size')){set(HEADER_FONT_KEY,t.value||DEFAULTS.header);apply();}
+    if(t.matches('.a4-eqc-status-header-font-size')){set(STATUS_HEADER_FONT_KEY,t.value||DEFAULTS.statusHeader);apply();}
+    if(t.matches('.a4-eqc-body-font-size')){set(BODY_FONT_KEY,t.value||DEFAULTS.body);apply();}
+    if(t.matches('.a4-eqc-status-font-size')){set(STATUS_FONT_KEY,t.value||DEFAULTS.status);apply();}
   },true);
   function boot(){apply();setTimeout(apply,350);}
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,900);}); else setTimeout(boot,0);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,900);});else setTimeout(boot,0);
   window.addEventListener('load',function(){setTimeout(boot,200);});
   setTimeout(boot,900);setTimeout(boot,2200);
   window.AETERLINK_EQC_HEADER_EDIT_FONT_FIX={apply:apply,resetHeaders:function(){try{localStorage.removeItem(HEADER_KEY);}catch(e){}apply();}};
