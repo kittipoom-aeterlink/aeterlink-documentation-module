@@ -1,0 +1,138 @@
+<!-- AETERLINK Documentation Module — A4_WCR_Lotus_Rows_Restore.html -->
+<!-- WCR only: restore Lotus Work Completion Report rows when ScopeRows is blank/empty. -->
+<script id="a4-wcr-lotus-rows-restore-script">
+(function(){
+  if(window.__AETERLINK_WCR_LOTUS_ROWS_RESTORE_V1__) return;
+  window.__AETERLINK_WCR_LOTUS_ROWS_RESTORE_V1__ = true;
+
+  var running = false;
+  var previewRequested = false;
+  var LOTUS_TSV = [
+    'A\tChiller\t\t\t\t',
+    'A.1\tDDC\t1\tea.\tDone\t',
+    'A.2\tPiping and pressure guage\t2\tea.\tDone\t',
+    'A.3\tFlow meter\t1\tea.\tDone\t',
+    "A.4\tTemperature sensor (Pipe's surface)\t2\tea.\tDone\t",
+    'B\tEnvironmental Sensor\t\t\t\t',
+    'B.1\tSumit\t1\tea.\tDone\t',
+    'B.2\tPowerTX\t18\tea.\tDone\t',
+    'B.3\tSense-T\t36\tea.\tDone\t',
+    'B.4\tTemp. & Humidity sensor (Battery type)\t5\tea.\tDone\t',
+    'B.5\tTemp. & Humidity gateway\t1\tea.\tDone\t',
+    'B.6\tEquipment installation materials\t1\tset\tDone\t',
+    'C\tPower Meter\t\t\t\t',
+    'C.1\tPower meter\t8\tea.\tDone\t',
+    'D\tCommon Expense\t\t\t\t',
+    'D.1\tPanel and internal equipments\t3\tset\tDone\t',
+    'D.2\tPanel design and internal wiring\t3\tset\tDone\t',
+    'E\tEfento (Kyouei)\t\t\t\t',
+    'E.1\tInstallation\t1\tset\tDone\t',
+    'F\tChiller\t\t\t\t',
+    'F.1\tBLE Temperature sensor (Outlet and inlet)\t2\tea.\tDone\t',
+    'F.2\tUltrasonic Flow meter panel (Return flow)\t1\tea.\tDone\t',
+    'F.3\tClamp-on ultrasonic flow meter\t1\tea.\tDone\t',
+    'F.4\tBLE 4-20 mA. signal interface\t2\tea.\tDone\t',
+    'F.5\tBLE Gateway\t1\tea.\tDone\t',
+    'F.6\tRouter 4G\t1\tea.\tDone\t',
+    'F.7\tHanger, support and accessories\t1\tset\tDone\t',
+    'G\tEnvironmental Sensor\t\t\t\t',
+    'G.1\tBLE Temperature and Humidity sensor\t1\tea.\tDone\t',
+    'G.2\tInstallation and wiring work\t1\tea.\tDone\t',
+    'G.3\tStore BLE Temperature and Humidity sensor\t18\tea.\tDone\t',
+    'G.4\tStore BLE Gateway\t7\tea.\tDone\t',
+    'G.5\tStore wifi repeater\t8\tea.\tDone\t',
+    'G.6\tStore access point\t1\tea.\tDone\t',
+    'G.7\tStore Hanger, support and accessories\t1\tset\tDone\t',
+    'G.8\tTenant BLE Temperature and Humidity sensor\t5\tea.\tDone\t',
+    'G.9\tTenant BLE Gateway\t2\tea.\tDone\t',
+    'G.10\tTenant wifi repeater\t2\tea.\tDone\t',
+    'G.11\tTenant Hanger, support and accessories\t1\tset\tDone\t',
+    'G.12\tOutdoor BLE Temperature and Humidity sensor\t1\tea.\tDone\t',
+    'G.13\tOutdoor Hanger, support and accessories\t1\tset\tDone\t',
+    'H\tOther materials and wiring\t\t\t\t',
+    'H.1\t3xAA Battery\t2\tea.\tDone\t',
+    'H.2\t1xAA Battery\t36\tea.\tDone\t',
+    'H.3\tWiring for internet connection\t1\tset\tDone\t',
+    'I\tBMS Development\t\t\t\t',
+    'I.1\tBMS Development\t1\tset\tDone\t',
+    'J\tBEMS\t\t\t\t',
+    'J.1\tNiagara/JACE/DDC\t1\tset\tDone\t'
+  ].join('\n');
+
+  function byId(id){ return document.getElementById(id); }
+  function val(id){ var e = byId(id); return e ? String(e.value || '').trim() : ''; }
+  function setVal(id, v){ var e = byId(id); if(e) e.value = v == null ? '' : String(v); }
+  function clean(v){ return String(v == null ? '' : v).trim(); }
+  function esc(v){ return String(v == null ? '' : v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function docCode(){ return val('prodDocType') || val('fTemplate') || ''; }
+  function isWcr(){ return /PJ-WCR-001|WORK COMPLETION|WCR|WORK-COMPLETE/i.test(docCode()) || !!document.querySelector('#a4Preview table.a4-work-completion-table,#a4Preview .a4-page table.a4-scope-table'); }
+  function isLotus(){ return /LOTUS|KLL?ONG|KLONG|LKL|ALT-LKL/i.test([val('prodProjectCode'),val('fProjectCode'),val('prodProjectName'),val('fProjectName'),val('prodProjectLocation'),val('fProjectLocation')].join(' ')); }
+  function lotusRows(){ return LOTUS_TSV.split('\n').map(function(line){ var a = line.split('\t'); return {Item:a[0]||'',WorkDescription:a[1]||'',Qty:a[2]||'',Unit:a[3]||'',Status:a[4]||'',Remarks:a[5]||''}; }); }
+  function parseRows(){ try{ var a = JSON.parse(val('fRows') || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
+  function usefulRows(rows){ return (rows || []).filter(function(r){ return clean(r && (r.WorkDescription || r.Description || r.Item)); }); }
+  function rowText(tr){ return clean(tr ? tr.textContent : '').replace(/^Add Row$/i,''); }
+  function tables(){ return Array.prototype.slice.call(document.querySelectorAll('#a4Preview table.a4-work-completion-table,#a4Preview .a4-page table.a4-scope-table,#a4CheckOutput table.a4-work-completion-table,#a4CheckOutput .a4-page table.a4-scope-table')).filter(function(t){ return t && t.tBodies && t.tBodies[0] && !t.classList.contains('a4-equipment-checklist-table'); }); }
+  function tableHasRows(){ return tables().some(function(t){ return Array.prototype.slice.call(t.tBodies[0].rows).some(function(tr){ return rowText(tr); }); }); }
+  function setHiddenRows(rows){ try{ setVal('fRows', JSON.stringify(rows, null, 2)); }catch(e){} }
+  function td(v){ return '<td contenteditable="true" spellcheck="false">' + esc(v) + '</td>'; }
+  function fillDomRows(rows){
+    var t = tables()[0];
+    if(!t || !t.tBodies || !t.tBodies[0] || tableHasRows()) return false;
+    t.classList.add('a4-work-completion-table');
+    var html = rows.map(function(r){ return '<tr>' + td(r.Item) + td(r.WorkDescription) + td(r.Qty) + td(r.Unit) + td(r.Status) + td(r.Remarks) + '</tr>'; }).join('');
+    t.tBodies[0].innerHTML = html;
+    return true;
+  }
+  function patchSampleData(rows){
+    var tpl = window.AETERLINK_TEMPLATES && window.AETERLINK_TEMPLATES.WCR;
+    if(!tpl || tpl.__lotusRowsRestorePatched) return;
+    var oldSample = typeof tpl.sampleData === 'function' ? tpl.sampleData : null;
+    tpl.sampleData = function(){
+      var d = oldSample ? oldSample() : {};
+      if(!usefulRows(d.ScopeRows).length) d.ScopeRows = rows.slice();
+      if(!usefulRows(d.Rows).length) d.Rows = rows.slice();
+      return d;
+    };
+    tpl.__lotusRowsRestorePatched = true;
+  }
+  function restore(){
+    if(running) return;
+    if(!isWcr() || !isLotus()) return;
+    running = true;
+    try{
+      var current = usefulRows(parseRows());
+      if(current.length || tableHasRows()) return;
+      var rows = lotusRows();
+      setHiddenRows(rows);
+      patchSampleData(rows);
+      if(!previewRequested && typeof window.previewCurrentForm === 'function'){
+        previewRequested = true;
+        setTimeout(function(){ try{ window.previewCurrentForm(); }catch(e){} setTimeout(function(){ fillDomRows(rows); afterFill(); }, 350); }, 40);
+      }else{
+        fillDomRows(rows);
+        afterFill();
+      }
+    }finally{
+      running = false;
+    }
+  }
+  function afterFill(){
+    try{ if(window.AETERLINK_WCR_ADD_ROW_REMARKS_FIX && typeof AETERLINK_WCR_ADD_ROW_REMARKS_FIX.apply === 'function') AETERLINK_WCR_ADD_ROW_REMARKS_FIX.apply(); }catch(e){}
+    try{ if(window.AETERLINK_A4_RUNTIME_CLEAN_V3 && typeof AETERLINK_A4_RUNTIME_CLEAN_V3.apply === 'function') AETERLINK_A4_RUNTIME_CLEAN_V3.apply(); }catch(e){}
+  }
+  function boot(){ setTimeout(restore,80); setTimeout(restore,500); setTimeout(restore,1400); }
+  document.addEventListener('DOMContentLoaded', boot);
+  window.addEventListener('load', boot);
+  var oldPreview = window.previewCurrentForm;
+  function patchPreview(){
+    if(window.previewCurrentForm && window.previewCurrentForm !== oldPreview && !window.previewCurrentForm.__lotusRowsRestoreV1){
+      var fn = window.previewCurrentForm;
+      window.previewCurrentForm = function(){ var ret = fn.apply(this, arguments); setTimeout(restore,250); setTimeout(restore,900); return ret; };
+      window.previewCurrentForm.__lotusRowsRestoreV1 = true;
+    }
+  }
+  setInterval(patchPreview, 1000);
+  setTimeout(boot,300); setTimeout(boot,1500); setTimeout(boot,3500);
+  window.AETERLINK_WCR_LOTUS_ROWS_RESTORE = {restore:restore, rows:lotusRows};
+})();
+</script>
