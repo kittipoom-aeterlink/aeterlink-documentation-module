@@ -43,6 +43,7 @@ function include(fileName) {
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Logo_Display_Fix').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_Photo_Actions_Restore').getContent(); } catch (err) {}
     try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Print_Column_Width_Fix').getContent(); } catch (err) {}
+    try { content += '\n' + HtmlService.createHtmlOutputFromFile('A4_EQC_Header_Edit_Font_Fix').getContent(); } catch (err) {}
   }
 
   if (fileName === 'Client_App') {
