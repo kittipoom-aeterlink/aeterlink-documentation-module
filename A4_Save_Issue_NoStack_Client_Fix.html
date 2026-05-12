@@ -1,9 +1,9 @@
 <!-- AETERLINK Documentation Module — A4_Save_Issue_NoStack_Client_Fix.html -->
-<!-- Save/Issue only: force guarded no-stack save endpoint and prevent legacy handlers from reintroducing recursive collect/save. -->
+<!-- Save/Issue only: force guarded no-stack save endpoint, correct issue document number handoff, and prevent legacy recursive handlers. -->
 <script id="a4-save-issue-nostack-client-fix-script">
 (function(){
-  if(window.__AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX_V2__) return;
-  window.__AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX_V2__ = true;
+  if(window.__AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX_V3__) return;
+  window.__AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX_V3__ = true;
 
   var saving=false;
   var editStateRef=null;
@@ -92,6 +92,22 @@
     }
     return data;
   }
+  function patchPreviewDocNo(documentNo,revisionNo){
+    documentNo=clean(documentNo);revisionNo=clean(revisionNo||'R00');
+    if(!documentNo)return;
+    ['fDocumentNo','prodDocumentNo'].forEach(function(id){setVal(id,documentNo);});
+    ['fRevisionNo','prodRevisionNo'].forEach(function(id){if(revisionNo)setVal(id,revisionNo);});
+    var box=byId('prodDocNoBox');if(box)box.textContent=documentNo;
+    var area=byId('a4Preview');
+    if(!area)return;
+    var nodes=[];
+    var walker=document.createTreeWalker(area,NodeFilter.SHOW_TEXT,null,false);
+    while(walker.nextNode()){
+      var n=walker.currentNode;
+      if(/Not issued|revision of/i.test(n.nodeValue||''))nodes.push(n);
+    }
+    nodes.forEach(function(n){n.nodeValue=String(n.nodeValue||'').replace(/Not issued(?:\s+—\s+revision of\s+[A-Z0-9\-]+)?/gi,documentNo);});
+  }
   function cleanPrintClone(clone){
     if(!clone)return '';
     clone.querySelectorAll('.a4-no-print,.a4-preview-actions,.a4-row-control-bar,.a4-clean-row-bar,.a4-row-delete-btn,.a4-eqc-row-delete-btn,.a4-wcr-row-delete-btn,.prod-inline-editor,.prod-row-delete,.prod-photo-report-toolbar,.row-actions,.photo-actions,.a4-eqc-header-toolbar').forEach(function(n){n.remove();});
@@ -103,10 +119,13 @@
   function collectCss(){return Array.prototype.slice.call(document.querySelectorAll('style')).map(function(s){return s.textContent||'';}).join('\n')+'\n.a4-no-print,.a4-preview-actions,.a4-row-control-bar,.a4-clean-row-bar,.a4-row-delete-btn,.a4-eqc-row-delete-btn,.a4-wcr-row-delete-btn,.prod-inline-editor,.prod-row-delete,.prod-photo-report-toolbar,.row-actions,.photo-actions,.a4-eqc-header-toolbar{display:none!important;visibility:hidden!important}';}
   function currentEditState(){if(editStateRef)return editStateRef;if(window.AETERLINK_DRAFT_ISSUE_EDIT_UI&&AETERLINK_DRAFT_ISSUE_EDIT_UI.state)editStateRef=window.AETERLINK_DRAFT_ISSUE_EDIT_UI.state;return editStateRef||{};}
   function applySaved(rec,status,res){
-    rec=rec||{};res=res||{};var st=currentEditState();st.formRecordId=rec.FormRecordId||st.formRecordId||'';st.documentNo=rec.DocumentNo||st.documentNo||'';
-    if(rec.DocumentNo){setVal('fDocumentNo',rec.DocumentNo);setVal('prodDocumentNo',rec.DocumentNo);} else if(status!=='Issued'){setVal('fDocumentNo','');setVal('prodDocumentNo','');}
+    rec=rec||{};res=res||{};var st=currentEditState();
+    st.formRecordId=rec.FormRecordId||st.formRecordId||'';
+    st.documentNo=rec.DocumentNo||st.documentNo||'';
+    if(status==='Issued'){st.revisionMode=false;st.sourceDocumentNo='';st.sourceFormRecordId='';}
+    if(rec.DocumentNo){setVal('fDocumentNo',rec.DocumentNo);setVal('prodDocumentNo',rec.DocumentNo);patchPreviewDocNo(rec.DocumentNo,rec.RevisionNo||rec.Revision||'R00');} else if(status!=='Issued'){setVal('fDocumentNo','');setVal('prodDocumentNo','');}
     setVal('fRevisionNo',rec.RevisionNo||rec.Revision||val('fRevisionNo')||'R00');setVal('prodRevisionNo',rec.RevisionNo||rec.Revision||val('prodRevisionNo')||'R00');setVal('fStatus',rec.Status||status||'Draft');setVal('prodStatus',rec.Status||status||'Draft');
-    var box=byId('prodDocNoBox');if(box)box.textContent=rec.DocumentNo||'Not issued';var rid=byId('prodRecordIdBox');if(rid)rid.textContent=st.formRecordId||'Not saved yet';var pill=byId('prodStatusPill');if(pill)pill.textContent=rec.Status||status||'Draft';
+    var rid=byId('prodRecordIdBox');if(rid)rid.textContent=st.formRecordId||'Not saved yet';var pill=byId('prodStatusPill');if(pill)pill.textContent=rec.Status||status||'Draft';
   }
   function saveStatus(status){
     if(saving){msg('Saving is already in progress...');return;}
@@ -115,10 +134,18 @@
     try{
       data=collectDataNoRecursion();status=status||'Draft';issued=String(status).toUpperCase()==='ISSUED';data.Status=status;if(!issued)data.DocumentNo='';
       var st=currentEditState();
-      payload={FormRecordId:st.formRecordId||data.FormRecordId||'',ProjectCode:data.ProjectCode,TemplateCode:data.TemplateCode,DocumentNo:issued?(st.revisionMode?st.sourceDocumentNo:(st.documentNo||data.DocumentNo||'')):'',SourceDocumentNo:st.sourceDocumentNo||'',SourceFormRecordId:st.sourceFormRecordId||'',RevisionNo:data.RevisionNo||'R00',Status:status,DocumentStatus:status,Data:safeClone(data),RevisionReason:val('prodRevisionReason'),SubmittedAt:issued?googleNow():'',LockedAfterPdf:'FALSE',Html:issued?buildHtml():'',Styles:issued?collectCss():''};
+      var keepExistingDocNo=(issued && st.formRecordId && st.documentNo && !st.revisionMode);
+      payload={FormRecordId:st.formRecordId||data.FormRecordId||'',ProjectCode:data.ProjectCode,TemplateCode:data.TemplateCode,DocumentNo:keepExistingDocNo?st.documentNo:'',SourceDocumentNo:st.sourceDocumentNo||'',SourceFormRecordId:st.sourceFormRecordId||'',RevisionNo:data.RevisionNo||'R00',Status:status,DocumentStatus:status,Data:safeClone(data),RevisionReason:val('prodRevisionReason'),SubmittedAt:issued?googleNow():'',LockedAfterPdf:'FALSE',Html:issued?buildHtml():'',Styles:issued?collectCss():''};
     }catch(e){msg('Save failed: '+e.message);return;}
     saving=true;msg(issued?'Issuing document and generating document number...':'Saving draft without document number...');
-    google.script.run.withSuccessHandler(function(res){saving=false;var rec=res&&res.record?res.record:{};applySaved(rec,status,res||{});if(status==='Issued')msg('Issued: '+(rec.DocumentNo||'-')+' / '+(rec.RevisionNo||'R00')+(res&&res.fileUrl?' | PDF saved to Drive':''));else msg('Draft saved. FormRecordId: '+((rec&&rec.FormRecordId)||'-'));if(window.refreshData)window.refreshData();if(window.previewCurrentForm)setTimeout(window.previewCurrentForm,180);}).withFailureHandler(function(e){saving=false;msg('Save failed: '+(e&&e.message?e.message:String(e)));}).apiSafeSaveIssueNoStackV1(payload);
+    google.script.run.withSuccessHandler(function(res){
+      saving=false;
+      var rec=res&&res.record?res.record:{};
+      applySaved(rec,status,res||{});
+      if(status==='Issued')msg('Issued: '+(rec.DocumentNo||'-')+' / '+(rec.RevisionNo||'R00')+(res&&res.fileUrl?' | PDF saved to Drive':''));else msg('Draft saved. FormRecordId: '+((rec&&rec.FormRecordId)||'-'));
+      if(window.refreshData)window.refreshData();
+      if(window.previewCurrentForm)setTimeout(function(){window.previewCurrentForm();setTimeout(function(){patchPreviewDocNo(rec.DocumentNo,rec.RevisionNo||rec.Revision||'R00');},260);},180);
+    }).withFailureHandler(function(e){saving=false;msg('Save failed: '+(e&&e.message?e.message:String(e)));}).apiSafeSaveIssueNoStackV1(payload);
   }
   function patch(){
     window.prodSaveDraft=function(){saveStatus('Draft');};
@@ -132,6 +159,6 @@
   document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0);setTimeout(boot,800);setTimeout(boot,2200);});
   window.addEventListener('load',function(){setTimeout(boot,200);setTimeout(boot,1300);});
   setTimeout(boot,900);setTimeout(boot,2400);patchTimer=setInterval(boot,900);setTimeout(function(){clearInterval(patchTimer);boot();},35000);
-  window.AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX={saveDraft:function(){saveStatus('Draft');},issue:function(){saveStatus('Issued');},collectData:collectDataNoRecursion};
+  window.AETERLINK_SAVE_ISSUE_NOSTACK_CLIENT_FIX={saveDraft:function(){saveStatus('Draft');},issue:function(){saveStatus('Issued');},collectData:collectDataNoRecursion,patchPreviewDocNo:patchPreviewDocNo};
 })();
 </script>
